@@ -87,10 +87,10 @@ function tick(){const _qa0=performance.now();
     if(window.__camOv){camera.position.copy(P.pos).add(window.__camOv);camera.lookAt(P.pos.clone().add(window.__camLook||new THREE.Vector3()));}
     // aim
     ray.origin.copy(camera.position);ray.direction.copy(f3);aimTarget.copy(camera.position).addScaledVector(f3,80);
-    let best=1e9;_tcAimP=null;for(const s of spiders){const d=ray.distanceSqToPoint(s.mesh.position);if(d<(isTouch?1.25:0.8)*Math.max(1,s.mesh.scale.x*s.mesh.scale.x*0.6)){const dd=camera.position.distanceTo(s.mesh.position);if(dd<best){best=dd;_tcAimP=s.mesh.position;
-      if(d<0.36)ray.closestPointToPoint(s.mesh.position,aimTarget);else aimTarget.copy(s.mesh.position);}}} // on target: precise · just off: gentle pull to the body
-    for(const e of INCS){if(e.st==='fall'||e.st==='dead')continue;const c=incCenter(e,_j6),d=ray.distanceSqToPoint(c);if(d<(0.6*INC_SC)**2){const dd=camera.position.distanceTo(c);if(dd<best){best=dd;_tcAimP=_tcAimV.copy(c);ray.closestPointToPoint(c,aimTarget);}}}
-    for(const e of EGGS){const d=ray.distanceSqToPoint(e.pos);if(d<0.5*0.5){const dd=camera.position.distanceTo(e.pos);if(dd<best){best=dd;_tcAimP=e.pos;aimTarget.copy(e.pos);}}} // eggs: aim converges on the egg under the crosshair
+    let best=1e9;_tcAimP=null;_tcAimHit=false;for(const s of spiders){const d=ray.distanceSqToPoint(s.mesh.position);if(d<(isTouch?1.25:0.8)*Math.max(1,s.mesh.scale.x*s.mesh.scale.x*0.6)){const dd=camera.position.distanceTo(s.mesh.position);if(dd<best){best=dd;_tcAimP=s.mesh.position;
+      _tcAimHit=d<0.36;if(_tcAimHit)ray.closestPointToPoint(s.mesh.position,aimTarget);else aimTarget.copy(s.mesh.position);}}} // on target: precise · just off: gentle pull to the body
+    for(const e of INCS){if(e.st==='fall'||e.st==='dead')continue;const c=incCenter(e,_j6),d=ray.distanceSqToPoint(c);if(d<(0.6*INC_SC)**2){const dd=camera.position.distanceTo(c);if(dd<best){best=dd;_tcAimP=_tcAimV.copy(c);_tcAimHit=true;ray.closestPointToPoint(c,aimTarget);}}}
+    for(const e of EGGS){const d=ray.distanceSqToPoint(e.pos);if(d<0.5*0.5){const dd=camera.position.distanceTo(e.pos);if(dd<best){best=dd;_tcAimP=e.pos;_tcAimHit=true;aimTarget.copy(e.pos);}}} // eggs: aim converges on the egg under the crosshair
     TC.aim=isTouch&&best<1e9;
     // touch aim help (v56, stronger in v58): while you are aiming or shooting, the view is drawn onto the body under the crosshair (never the head)
     if(TC.aim&&_tcAimP&&state==='play'&&!CINE.on&&(inp.fire||performance.now()-lookInput<350)){_tcV.subVectors(_tcAimP,camera.position);
@@ -304,7 +304,7 @@ function tick(){const _qa0=performance.now();
   updateMusic();
   // camera shake on top of the follow camera (re-copied from camPos every frame, so it never accumulates)
   if(shakeAmp>0.002){camera.position.x+=(Math.random()-0.5)*shakeAmp;camera.position.y+=(Math.random()-0.5)*shakeAmp;camera.position.z+=(Math.random()-0.5)*shakeAmp;shakeAmp*=Math.exp(-dt*10);}
-  tcFrame();qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
+  tcFrame();mhudFrame();qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
 camera.position.set(14,4,16);camera.lookAt(0,0,0);
 requestAnimationFrame(tick);
 window.__renderer=renderer;window.__GRADE=GRADE;window.__heads={get CINE(){return CINE},spawnCloud,shipClear,BELT,DUST,get leakMult(){return leakMult()},ROCKS,rockAt,landOnRock,get ammo(){return P.ammo},EGGS,layEgg,tryLayEgg,P,spiders,CLOUDS,killSpider,spawnSpider,spawnSpitter,spitAcid,ACID,hullBlocked,stats,inp,get lost(){return lostN;},get pts(){return pts},PU,DROPS,spawnDrop,applyPU,WB,get cargo(){return cargo}};

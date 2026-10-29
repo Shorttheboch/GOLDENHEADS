@@ -7,10 +7,11 @@ Desde v61 el proyecto se compila con Vite (`npm run build` → `dist/`; Netlify 
 - `index.html`: el marcado de la página.
 - `src/game/NN-nombre.js`: el código del juego en 32 piezas. Comparten un solo ámbito: el plugin `heads-game` de `vite.config.js` las concatena por orden de nombre, igual que el antiguo `<script type="module">` único. No uses `import`/`export` entre piezas; una pieza nueva va con el número que le toque.
 - `src/styles/NN-*.css`: el CSS en el orden de cascada original (los importa `src/main.js`).
+- `src/hud/hud.js`: HUD de móvil de Santi (v62, todo por código, `window.HUD`); lo conecta `src/game/32-hud-movil.js` y solo se monta en táctil.
 - `public/i18n.js`: script clásico que corre antes del juego (bloque i18n ES/EN, selector de idioma y menú de PC). three.js viene de npm (versión fija 0.170.0).
 - `public/assets/`: archivos reales (`models/*.glb`, `sfx/`, `vo/es`, `vo/en`, `ui/<kit>/`, `opening.mp4`). Los `.js` de esa carpeta son listas con las mismas claves de antes; las de `ui/` dan URL absolutas porque algunas acaban en variables CSS.
 - `netlify/functions/ranking.mts`: ranking online. El juego llama a `/api/run` y `/api/scores` con rutas relativas.
-- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión actual: **v58** publicada en la vista previa; v59–v60 en la rama `pendiente` y v61 (reorganización) en `v61-reorganizacion`, sin publicar.
+- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión actual: **v58** publicada en la vista previa; v59–v60 en la rama `pendiente`, v61 (reorganización) en `v61-reorganizacion` y v62 (HUD de móvil) en `v62-hud-movil`, sin publicar.
 
 ## Cómo publicar
 - Este repositorio es la versión buena. Las carpetas antiguas `F:\AI\HEADS\JUEGO\game` y `web` quedan como copia.
@@ -29,6 +30,6 @@ Desde v61 el proyecto se compila con Vite (`npm run build` → `dist/`; Netlify 
 
 ## Antes de subir
 - `npm run build` sin errores (comprueba la sintaxis del juego y de `public/i18n.js`).
-- Pruebas automáticas: `npm run build:test` y `tools/run-test.sh dist-test tools/tests/<prueba>.cjs` (`pc-game`, `touch`, `phone-menu`, `assets`, `ios-audio`); con la compilación real, `tools/run-test.sh dist tools/tests/pc-menu-real.cjs`. Los ganchos de prueba están en `tools/test-hooks.json`: si cambias el código que usan como ancla, la compilación de prueba avisa.
+- Pruebas automáticas: `npm run build:test` y `tools/run-test.sh dist-test tools/tests/<prueba>.cjs` (`pc-game`, `touch`, `phone-menu`, `phone-hud`, `assets`, `ios-audio`); con la compilación real, `tools/run-test.sh dist tools/tests/pc-menu-real.cjs`. Los ganchos de prueba están en `tools/test-hooks.json`: si cambias el código que usan como ancla, la compilación de prueba avisa.
 - Jugar una partida en PC. Si tocas lo táctil, probar también en emulación móvil horizontal (844×390) con varios dedos.
 - No reproducir audio en voz alta en el navegador de Santi.

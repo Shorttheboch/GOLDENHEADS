@@ -1,0 +1,9 @@
+/* v62: phone HUD by Santi (src/hud/hud.js). body.hm is set only on touch and only once it mounted. */
+/* the previous phone HUD pieces it replaces */
+body.hm :is(#hTop,#hScore,#hVit,#hTank,#cross,#rep,#sub,#tPause){display:none!important}
+/* pistol energy and RACHA go under the new weld bar (it sits right below the crosshair) */
+body.hm #ammo{margin-top:52px}
+body.hm #xpS{margin-top:68px}
+/* the new subtitles are taller: tips, tutorial and messages move up a little */
+body.hm #tut,body.hm #tip{bottom:calc(58px + env(safe-area-inset-bottom,0px))!important}
+body.hm #msg{bottom:calc(100px + env(safe-area-inset-bottom,0px))!important}

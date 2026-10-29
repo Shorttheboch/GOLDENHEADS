@@ -63,7 +63,8 @@ function say(id,prio=2,o={}){
   const buf=vs[k],src=AC.createBufferSource();src.buffer=buf;src.connect(voChain());const t0=now+0.06;squelch(now);src.start(t0);squelch(t0+buf.duration);voSrc=src;
   VOQ.until=t0+buf.duration+0.1;VOQ.prio=prio;VOQ.lastEnd=VOQ.until;VOQ.cool[id]=now+(o.cd||0);
   if(o.once){voSeen[id]=1;try{localStorage.setItem('heads_vo_seen',JSON.stringify(voSeen));}catch(e){}}
-  const [who,txt]=VO_LINES[id],el=$('sub');el.innerHTML=`<b class="${who==='P'?'p':'i'}">${who==='P'?'PILOTO':'INGENIERÍA'}</b>${txt}`;el.classList.add('show');
+  const [who,txt]=VO_LINES[id],el=$('sub');if(mhudSay(who,txt,(buf.duration+1.1)*1000))return true; // v62: phone HUD
+  el.innerHTML=`<b class="${who==='P'?'p':'i'}">${who==='P'?'PILOTO':'INGENIERÍA'}</b>${txt}`;el.classList.add('show');
   clearTimeout(say.t);say.t=setTimeout(()=>el.classList.remove('show'),(buf.duration+1.1)*1000);
   return true;}
 function voTick(){if(!AC||!VOB)return;const now=AC.currentTime;

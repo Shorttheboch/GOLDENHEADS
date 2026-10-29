@@ -16,7 +16,7 @@ const {BASE,ARGS,shot}=require('./lib.cjs');
  await p.evaluate(()=>__AC().suspend());await p.waitForTimeout(300);console.log('stopped',await st());
  await p.touchscreen.tap(600,120);await p.waitForTimeout(500);console.log('after a touch',await st());
  // paused on purpose: a touch must NOT restart it; CONTINUAR does
- await p.evaluate(()=>{window.__noRender=0;});await p.tap('#tPause');await p.waitForTimeout(500);console.log('paused',await st(),'menu',await p.evaluate(()=>!document.getElementById('tPauseM').hidden));
+ await p.evaluate(()=>{window.__noRender=0;});await p.tap(await p.evaluate(()=>document.querySelector('.hudm')?'#hud-pause':'#tPause'));await p.waitForTimeout(500);console.log('paused',await st(),'menu',await p.evaluate(()=>!document.getElementById('tPauseM').hidden));
  await p.touchscreen.tap(420,60);await p.waitForTimeout(400);console.log('touch while paused',await st());
  await p.tap('#tPauseM [data-a=go]');await p.waitForTimeout(500);console.log('after CONTINUAR',await st());
  console.log('errors',JSON.stringify(errs.slice(0,3)));await b.close();})();

@@ -5,7 +5,7 @@ const st={x:0,y:0},_tcF=new THREE.Vector3(),_tcV=new THREE.Vector3(),_tcV2=new T
 const TC={stickId:null,lookId:null,fireId:null,last:{},ox:0,oy:0,mag:0,ang:0,R:62,boost:false,aim:false,paused:false,ap:null,wPaused:false,mk:[],wSlow:false,
   push:{on:false,ang:0,relT:-9,relAng:0}};
 const TC_SENS=0.006; // v56: was 0.0045 — Santi had to slide too far to turn
-let _tcAimP=null;const _tcAimV=new THREE.Vector3(); // body of the spider (or egg / Incinerator core) under the crosshair, for the aim help
+let _tcAimP=null,_tcAimHit=false;const _tcAimV=new THREE.Vector3(); // body of the spider (or egg / Incinerator core) under the crosshair, for the aim help
 // drag to look: faster swipes turn proportionally more (up to 2.2x), slow drags stay precise; the view slows down while the crosshair is on a spider
 function tcLook(dx,dy){const sp=Math.hypot(dx,dy),k=TC_SENS*(1+Math.min(1.2,Math.max(0,(sp-4)/25)))*(TC.aim?0.4:1);
   P.yaw-=dx*k;P.pitch-=dy*k;lookInput=performance.now();}
@@ -44,7 +44,7 @@ function tcReset(){TC.stickId=TC.lookId=TC.fireId=null;st.x=st.y=0;TC.mag=0;TC.b
    if(a==='go')tcSetPause(false);
    else if(a==='next'){if(inBreak||WB.calm){skipReq=true;tcSetPause(false);}}
    else if(a==='mus'){musicOn=!musicOn;tcPauseLabels();}
-   else if(a==='vo'){voOn=!voOn;if(!voOn&&voSrc){try{voSrc.stop();}catch(_){}$('sub').classList.remove('show');}tcPauseLabels();}});
+   else if(a==='vo'){voOn=!voOn;if(!voOn&&voSrc){try{voSrc.stop();}catch(_){}$('sub').classList.remove('show');if(MHUD.on)window.HUD.hideSay();}tcPauseLabels();}});
  // perfect weld: tap the weld bar while the fill is inside the golden band (a miss just keeps welding)
  $('rep').addEventListener('pointerdown',e=>{if(!isTouch||state!=='play'||!R.pa)return;e.preventDefault();e.stopPropagation();
    const p=R.pa.prog;if(R.useBand&&p>=R.band&&p<=R.band+CFG.bandW){repairPatch(R.pa,true);R.pa=null;R.on=false;}

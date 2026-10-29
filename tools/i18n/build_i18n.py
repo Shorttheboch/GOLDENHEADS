@@ -160,6 +160,8 @@ EN.update({'TU MISIÓN':'YOUR MISSION','DEFIENDE':'DEFEND','Elimina arañas ante
  'APUNTAR Y DISPARAR':'AIM AND SHOOT','Arrastra a la derecha para apuntar.':'Drag on the right to aim.','Mantén':'Hold','y desliza.':'and slide.',
  'Toca un aviso:':'Tap an alert:','ve a la rotura o bodega.':'fly to the breach or the hold.','Pausa:':'Pause:',
  'música, voces y adelantar ronda.':'music, voices and start the round early.','Aspirar, soldar y descargar: automáticos.':'Vacuuming, welding and unloading: automatic.'})
+# ---- v62: phone HUD (Santi's design, src/hud/hud.js) ----
+EN.update({'ENEMIGO':'ENEMY','ENEMIGOS':'ENEMIES','s · RESPIRO':'s · BREATHER','s · CALMA':'s · CALM'})
 # sanity: every tutorial line must exist verbatim in the game code
 for k in H:
     if k not in b: print('TUT NOT FOUND:',k[:60])

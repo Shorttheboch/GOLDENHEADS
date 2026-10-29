@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HEADS Rescate Dorado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;800&display=swap">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="flash"></div>
+<div class="hud" id="hp"><div class="lbl" id="hpLbl">Traje</div><div class="bar"><i id="hpFill" style="width:100%"></i></div>
+  <div id="tankHud"><div class="lbl" id="tankLbl">Tanque 0 / 60</div><div class="bar"><i id="tankFill" style="width:0%"></i></div></div>
+  <div id="ship"><div class="lbl" id="shipPct">Nave 100%</div>
+    <div id="shipRow"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div>
+    <div id="shipLbl"><span>MOTOR</span><span>REACTOR</span><span>BODEGA</span><span>CABINA</span></div></div>
+  <div class="lbl" id="round" style="margin-top:9px"></div></div>
+<div class="hud" id="dash"><div id="dashIn">
+  <img id="dBase" alt=""><img id="dSegs" alt="">
+  <div class="dt dl" id="dSuitLbl">TRAJE</div><div class="dt" id="dSuit">100<small>%</small></div><svg id="dPulse" viewBox="0 0 300 80" preserveAspectRatio="none"><path/></svg>
+  <div class="dt dl" id="dTankLbl">TANQUE</div><div class="dt" id="dTank">0 / 60</div><div id="dTankBar"><i></i></div>
+  <div class="dt dl" id="dShipLbl">NAVE</div><div class="dt" id="dShip">100%</div><div class="dt" id="dShipAlert"></div>
+  <div class="dz" id="dz0"><img alt="Motor"><b><i></i></b></div><div class="dz" id="dz1"><img alt="Reactor"><b><i></i></b></div>
+  <div class="dz" id="dz2"><img alt="Bodega"><b><i></i></b></div><div class="dz" id="dz3"><img alt="Cabina"><b><i></i></b></div>
+  <div class="dt" id="dRound">RONDA 1</div><div class="dt" id="dSpN">0</div>
+  <div class="dsp" id="dsp0"><svg viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M26 30 14 20 8 26M26 34 10 32 5 40M38 30 50 20 56 26M38 34 54 32 59 40M27 37 16 44 13 54M37 37 48 44 51 54M29 26 22 12 16 9M35 26 42 12 48 9"/></g><ellipse cx="32" cy="38" rx="8" ry="10" fill="currentColor"/><circle cx="32" cy="25" r="6" fill="currentColor"/></svg></div><div class="dsp" id="dsp1"><svg viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M26 30 14 20 8 26M26 34 10 32 5 40M38 30 50 20 56 26M38 34 54 32 59 40M27 37 16 44 13 54M37 37 48 44 51 54M29 26 22 12 16 9M35 26 42 12 48 9"/></g><ellipse cx="32" cy="38" rx="8" ry="10" fill="currentColor"/><circle cx="32" cy="25" r="6" fill="currentColor"/></svg></div><div class="dsp" id="dsp2"><svg viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M26 30 14 20 8 26M26 34 10 32 5 40M38 30 50 20 56 26M38 34 54 32 59 40M27 37 16 44 13 54M37 37 48 44 51 54M29 26 22 12 16 9M35 26 42 12 48 9"/></g><ellipse cx="32" cy="38" rx="8" ry="10" fill="currentColor"/><circle cx="32" cy="25" r="6" fill="currentColor"/></svg></div><div class="dsp" id="dsp3"><svg viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M26 30 14 20 8 26M26 34 10 32 5 40M38 30 50 20 56 26M38 34 54 32 59 40M27 37 16 44 13 54M37 37 48 44 51 54M29 26 22 12 16 9M35 26 42 12 48 9"/></g><ellipse cx="32" cy="38" rx="8" ry="10" fill="currentColor"/><circle cx="32" cy="25" r="6" fill="currentColor"/></svg></div>
+  <div class="drow" id="dr0"><span>A BORDO</span><b>1000</b></div><div class="drow" id="dr1"><span>FLOTANDO</span><b>0</b></div><div class="drow" id="dr2"><span>PERDIDOS</span><b>0</b></div>
+</div></div>
+<div class="hud" id="sub"></div>
+<div class="hud" id="dust"><div class="lbl">Carga asegurada</div><b id="scoreN">0</b><div id="cargoBar"><div class="cbl"><span>TRICOMAS A BORDO</span><em id="cargoPct">100%</em></div><div class="cbt"><i></i></div><small id="cargoNote"></small></div><div id="cargoLine"></div><div id="ptsL">PUNTOS<b id="ptsN">0</b></div></div>
+<div id="pwr"></div><div id="burn"></div><div id="boss" hidden>ESCUPIDORA<b><i></i></b></div><div id="combo"></div><div id="zapFlash"></div>
+<div class="hud" id="tut"></div>
+<div class="hud" id="tip"><div class="kc"></div><div class="tx"><b></b><small></small></div></div>
+<div id="fxLayer"></div>
+<div id="hatchInd" hidden><i></i>BODEGA <span id="hatchDist"></span></div>
+<div id="repPrompt" hidden><kbd>F</kbd><span id="repPromptT"></span></div>
+<div class="zi" id="zi0" hidden><i></i><span></span></div><div class="zi" id="zi1" hidden><i></i><span></span></div>
+<div class="zi" id="zi2" hidden><i></i><span></span></div><div class="zi" id="zi3" hidden><i></i><span></span></div>
+<div class="hud" id="dep"><div id="depLbl">DESCARGANDO EN LA BODEGA</div><div class="track"><div id="depFill"></div></div></div>
+<div id="lbT"></div><div id="lbB"><span>CLIC O ENTER PARA SALTAR</span></div>
+<div class="hud" id="rep"><div id="repLbl"></div><div class="track"><div id="repBand"></div><div id="repFill"></div></div></div>
+<div class="hud" id="cross"></div><div class="hud" id="xpS"><b>RACHA</b><i></i><i></i><i></i><i></i><i></i></div><div id="xpFlash"></div><div class="hud" id="ammo"><img class="eb" data-k="energia-base" alt=""><i></i><span>RECARGANDO</span></div>
+<div class="hud" id="msg"></div>
+<div class="hud" id="hint"></div>
+<div class="hud h4" id="hTop"><div id="hTopT">TRICOMAS · <b id="hCargoN">1.000</b></div>
+  <div class="h4bar" id="hCargoBar"><img class="trk" data-k="barra-carga-base" alt=""><div class="fill"><img data-k="barra-recurso-relleno" alt=""></div></div>
+  <div id="hStat"><span id="hLeak" hidden><img data-k="icono-fuga" alt=""><em id="hLeakT"></em></span><i id="hSep" hidden></i><span id="hRes" hidden></span><span id="hSeal" hidden>FUGAS SELLADAS</span></div></div>
+<div class="hud h4 h4p" id="hScore"><img class="bg" data-k="panel-puntuacion" alt=""><div class="s1">PUNTUACIÓN</div><div class="s2" id="hScoreN">0</div><div class="s3">BAJAS <b id="hKills">0</b></div><div class="s4" id="hRound">RONDA 1</div></div>
+<div class="hud h4 h4p" id="hVit"><img class="bg" data-k="panel-traje-nave" alt="">
+  <div class="vl v1"><span>TRAJE</span><b id="hSuitN">100%</b></div><div class="seg g1" id="hSuitB"><img data-k="vida-relleno-segmentado" alt=""></div>
+  <div class="vl v2"><span>NAVE</span><b id="hShipN">100%</b></div><div class="seg g2" id="hShipB"><img data-k="vida-relleno-segmentado" alt=""></div></div>
+<div class="hud h4 h4p" id="hTank"><img class="bg" data-k="panel-mochila" alt=""><div class="k1">TANQUE</div><div class="k2" id="hTankN">0 / 60</div><div class="k3" id="hTankS">TRICOMAS RECOGIDOS</div><div class="seg kb" id="hTankB"><img data-k="barra-recurso-relleno" alt=""></div></div>
+<div id="h4m"></div>
+<div class="mk bod" id="hBod" hidden><img class="ar" data-k="flecha-bodega" alt=""><img class="ic" data-k="icono-bodega" alt=""><span>BODEGA<br>DEPOSITAR</span></div>
+<div id="flare" aria-hidden="true"><i class="fs"></i><i class="fc"></i><i class="fg"></i><i class="fg"></i><i class="fg"></i><i class="fg"></i></div>
+
+<div id="tZone" hidden></div><div id="tStick"><i id="tKnob"></i></div><div id="bMk"></div>
+<div id="touch" hidden>
+  <button class="tBtn" id="tFire" type="button" aria-label="Disparar">DISPARAR</button>
+  <button class="tBtn" id="tPause" type="button" aria-label="Pausa"><i></i><i></i></button>
+</div>
+<div id="tPauseM" hidden><div class="tpBox"><div class="tpT">PAUSA</div>
+  <button type="button" class="go" data-a="go">CONTINUAR</button><button type="button" data-a="next">EMPEZAR RONDA YA</button>
+  <button type="button" data-a="mus">MÚSICA ON</button><button type="button" data-a="vo">VOCES ON</button></div></div>
+<div id="tRot" hidden><div class="trBox"><div class="trPh"></div><b>GIRA EL TELÉFONO</b><small>El juego se juega en horizontal</small></div></div>
+
+<div id="opening" hidden><video id="opVid" playsinline preload="none"></video>
+  <div id="opBar"><i></i></div>
+  <button id="opSkip" type="button" aria-label="Saltar la intro"><span>SALTAR</span><b>›</b><small>ENTER</small></button></div>
+<div id="langPick" data-noi18n hidden><div class="lpBox"><div class="lpT">IDIOMA · LANGUAGE</div><div class="lpBtns"><button type="button" data-l="es"><b>ESPAÑOL</b><small>ES</small></button><button type="button" data-l="en"><b>ENGLISH</b><small>EN</small></button></div><div class="lpH">← → · ENTER</div></div></div>
+<div class="screen" id="menu"><div id="langTog" data-noi18n><button type="button" data-l="es">ES</button><button type="button" data-l="en">EN</button></div>
+  <div id="menuBg" hidden></div><div id="mFlash"></div><div id="mRing"></div><div id="menuArt">
+    <div class="mL" id="mDropC"><div class="mL" id="mDrop"><div class="mL" id="mMidW"><img id="mMid" alt=""><i class="mkf" style="left:16.124%;top:46.226%;--k:0"></i><i class="mkf" style="left:10.242%;top:51.548%;--k:1"></i><i class="mkf" style="left:16.255%;top:51.548%;--k:2"></i><i class="mkf" style="left:22.033%;top:51.548%;--k:3"></i><div class="mT"><div class="mp" data-k="prop" style="left:16.176%;top:60.581%"></div><div class="md" data-k="up" style="left:38.314%;top:49.484%"></div><div class="md" data-k="down" style="left:38.524%;top:60.581%"></div><div class="md t" data-k="lc" style="left:52.547%;top:45.226%"></div><div class="md t" data-k="rc" style="left:66.492%;top:45.161%"></div><div class="md" data-k="aim" style="left:59.401%;top:60.581%"></div><div class="md" data-k="weld" style="left:77.442%;top:49.290%"></div><div class="md" data-k="rel" style="left:87.447%;top:48.484%"></div><div class="md" data-k="dash" style="left:82.852%;top:60.613%"></div><div class="md l" data-k="view" style="left:17.279%;top:70.742%"></div><div class="md" data-k="start" style="left:40.284%;top:74.581%"></div><div class="md" data-k="mv" style="left:63.051%;top:74.581%"></div><div class="md" data-k="esc" style="left:82.405%;top:74.581%"></div><div class="mkey" data-k="space" style="left:38.314%;top:44.710%"></div><div class="mkey" data-k="enter" style="left:40.284%;top:69.452%"></div><div class="mh dec" data-k="uti" style="left:16.597%;top:64.774%"></div></div></div>
+    <div class="mL" id="mBotW"><img id="mBot" alt=""><button id="menuGo" type="button" disabled aria-label="Jugar"><b id="menuJ"></b><span id="menuE"></span><span id="menuLoad">CARGANDO</span></button></div></div></div>
+    <div class="mL" id="mTopW"><img id="mTop" alt=""><div class="mT"><div class="mh dec" data-k="mov" style="left:16.255%;top:36.645%"></div><div class="mh dec" data-k="ver" style="left:38.577%;top:36.645%"></div><div class="mh dec" data-k="rat" style="left:60.977%;top:36.645%"></div><div class="mh dec" data-k="acc" style="left:83.666%;top:36.645%"></div></div></div>
+    <div class="mL" id="mFx"><div id="mBlue"></div><div id="mGold"></div></div>
+    <div id="mLogoW"><img id="mLogo" alt="HEADS Rescue"><div id="mLogoBlue"></div><div id="mLogoShine"></div></div></div>
+  <div id="mobMenu"><div id="mmStage">
+    <div class="mmP" id="mmL"><img id="mmLImg" alt="">
+      <div class="mmT mmTx" style="left:49.6%;top:7.5%">TU MISIÓN</div>
+      <div class="mmRow mmTx" style="top:22.3%"><b>DEFIENDE</b><span>Elimina arañas antes de que devoren el casco.</span></div>
+      <div class="mmRow mmTx" style="top:40%"><b>REPARA</b><span>Acércate a una rotura: se suelda sola.</span></div>
+      <div class="mmRow mmTx" style="top:57.7%"><b>RECOGE</b><span>Pasa cerca del polvo dorado: son tricomas.</span></div>
+      <div class="mmRow mmTx" style="top:75.6%"><b>ENTREGA</b><span>Llévalos a la bodega cian. A bordo suman puntos cada ronda.</span></div>
+      <div class="mmFoot mmTx"><span class="w">Sobrevive tantas rondas como puedas.</span><span class="r">Pierdes: nave al 0 %, sin carga a bordo o traje roto.</span></div>
+    </div>
+    <div class="mmP" id="mmR"><img id="mmRImg" alt="">
+      <div class="mmT mmTx" style="left:50%;top:11.5%">CONTROLES TÁCTILES</div>
+      <div class="mmCap mmTx" style="left:29.6%"><b>MOVERSE</b><span>Pulgar izquierdo</span><span class="c">Doble empuje: acelerón.</span></div>
+      <div class="mmCap mmTx" style="left:71%"><b>APUNTAR Y DISPARAR</b><span>Arrastra a la derecha para apuntar.</span><span>Mantén <em>DISPARAR</em> y desliza.</span></div>
+      <div class="mmLine mmTx" style="top:60.4%"><b>Toca un aviso:</b> ve a la rotura o bodega.</div>
+      <div class="mmLine mmTx" style="top:68%"><b>Pausa:</b> música, voces y adelantar ronda.</div>
+      <div class="mmNote mmTx">Aspirar, soldar y descargar: automáticos.</div>
+      <button id="mmGo" type="button" disabled><span id="mmGoT">CARGANDO</span></button>
+    </div>
+    <img id="mmLogo" alt="HEADS Rescue">
+  </div></div>
+  <div class="panel" id="menuPanel">
+    <h1>HEADS</h1>
+    <h2>Arañas en el casco</h2>
+    <p>Las arañas rojas se están comiendo tu nave. Mátalas, suelda el casco y rescata los tricomas que se escapan al vacío. Al final de cada ronda, la carga que queda a bordo suma puntos. ¿Hasta dónde llegarás?</p>
+    <div class="keys" id="keysPC">
+      <kbd>WASD</kbd><span>Propulsores</span>
+      <kbd>Espacio / C</kbd><span>Subir / bajar</span>
+      <kbd>Ratón</kbd><span>Mirar y apuntar</span>
+      <kbd>Clic izq.</kbd><span>Disparar</span>
+      <kbd>Clic der. / E</kbd><span>Aspirar tricomas</span>
+      <kbd>F (mantener)</kbd><span>Soldar el casco</span>
+      <kbd>R</kbd><span>Recargar la pistola</span>
+      <kbd>Shift</kbd><span>Acelerón para esquivar</span>
+      <kbd>Enter</kbd><span>Empezar la ronda ya</span>
+      <kbd>Q</kbd><span>Ver al astronauta</span>
+      <kbd>M / V</kbd><span>Música / voces on/off</span>
+    </div>
+    <div class="keys" id="keysTouch" hidden>
+      <kbd>Joystick</kbd><span>Moverse: nadas hacia donde miras</span>
+      <kbd>Arrastrar</kbd><span>Mirar (mitad derecha)</span>
+      <kbd>DISPARAR</kbd><span>Disparar · arrástralo para apuntar</span>
+      <kbd>Doble empuje</kbd><span>Acelerón: empuja, suelta y vuelve a empujar</span>
+      <kbd>Pasar cerca</kbd><span>Aspirar tricomas</span>
+      <kbd>Quedarte cerca</kbd><span>Soldar · toca la barra en la franja dorada</span>
+      <kbd>Tocar aviso</kbd><span>Ir solo a una rotura o a la bodega</span>
+      <kbd>Pausa</kbd><span>Música, voces y empezar la ronda ya</span>
+    </div>
+    <button class="btn" id="play" disabled>CARGANDO</button>
+    <div id="load"></div>
+  </div>
+</div>
+<div class="screen" id="end" hidden>
+  <div id="endBox">
+    <div id="endHead"><div id="endT"></div><div id="endS"><span></span></div></div>
+    <div class="eLbl"><span>PUNTUACIÓN</span></div>
+    <div id="bigScore"></div>
+    <div id="endRound"></div>
+    <div id="endPanel"><div id="endStats"></div></div>
+    <div id="record"></div>
+    <div id="rankBox" hidden><div id="rankH">RANKING DE CAPITANES</div>
+      <form id="rankForm" autocomplete="off"><input id="rankName" maxlength="12" placeholder="TU NOMBRE" spellcheck="false" autocapitalize="characters" enterkeyhint="send" aria-label="Nombre para el ranking"><button id="rankSend" type="submit">GUARDAR</button></form>
+      <div id="rankMsg"></div><ol id="rankList"></ol></div>
+    <button id="again" type="button"><b>REINTENTAR</b><small>ENTER</small></button>
+  </div>
+</div>
+
+<script src="./i18n.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

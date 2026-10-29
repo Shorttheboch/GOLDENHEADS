@@ -2,10 +2,18 @@
   "name": "heads-rescate-dorado",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node --check public/i18n.js && vite build",
+    "build:test": "node --check public/i18n.js && vite build --mode test",
+    "preview": "vite preview"
+  },
   "dependencies": {
-    "@netlify/blobs": "^11.1.7"
+    "@netlify/blobs": "^11.1.7",
+    "three": "0.170.0"
   },
   "devDependencies": {
-    "@netlify/functions": "^6.0.3"
+    "@netlify/functions": "^6.0.3",
+    "vite": "7.3.7"
   }
 }

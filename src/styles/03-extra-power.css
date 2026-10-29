@@ -1,0 +1,14 @@
+/* ===== EXTRA POWER (v49) ===== */
+#xpS{left:50%;top:50%;margin-top:46px;transform:translateX(-50%);display:flex;align-items:center;gap:5px;opacity:0;transition:opacity .25s;font-family:var(--f-display)}
+#xpS.show{opacity:1}
+#xpS b{font-size:9px;font-weight:800;letter-spacing:.24em;color:#9fe9ff;margin-right:3px;text-shadow:0 0 6px rgba(80,200,255,.7)}
+#xpS i{position:relative;width:9px;height:9px;transform:rotate(45deg);border:1px solid rgba(140,225,255,.75);background:rgba(4,14,20,.55);overflow:hidden}
+#xpS i::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,#e6fbff,#45c8ff);transform-origin:0 100%;transform:scale(var(--f,0));box-shadow:0 0 6px #45c8ff}
+#xpS.brk{animation:xpBrk .6s ease-out}#xpS.brk i{border-color:#ff5a3a}
+@keyframes xpBrk{0%{opacity:1;transform:translateX(-50%)}20%{transform:translateX(calc(-50% - 4px))}40%{transform:translateX(calc(-50% + 3px))}60%{transform:translateX(-50%)}100%{transform:translateX(-50%)}}
+#ammo.xp i{filter:saturate(1.5) brightness(1.35) drop-shadow(0 0 4px #4fd2ff)!important}
+#ammo.xp span{opacity:1;color:#9fe9ff;text-shadow:0 0 8px rgba(80,200,255,.9);animation:none;font-weight:800;letter-spacing:.26em}
+#ammo.xp.xpend i,#ammo.xp.xpend span{animation:ablink .3s steps(2) infinite}
+#xpFlash{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;background:radial-gradient(ellipse at 50% 55%,rgba(120,220,255,.0) 30%,rgba(90,200,255,.35) 70%,rgba(255,200,90,.28))}
+#xpFlash.go{animation:xpFl .7s ease-out both}@keyframes xpFl{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+body:has(#menu:not([hidden])) #xpS{visibility:hidden!important}

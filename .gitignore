@@ -7,3 +7,7 @@ node_modules/
 Thumbs.db
 .DS_Store
 desktop.ini
+dist/
+dist-test/
+tools/tests/out/
+__pycache__/

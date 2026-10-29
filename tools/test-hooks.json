@@ -1,0 +1,102 @@
+[
+ {
+  "a": "      if(toSpawn>0&&!CINE.on){",
+  "b": "      if(toSpawn>0&&!CINE.on&&!window.__noSpawn){",
+  "file": "game"
+ },
+ {
+  "a": "const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;",
+  "b": "const rdt=window.__dt?(clock.getDelta(),window.__dt):Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;",
+  "file": "game"
+ },
+ {
+  "a": "if(!window.__noRender)composer.render();requestAnimationFrame(tick);}",
+  "b": "if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);}\nwindow.__step=n=>{window.__manual=1;window.__noRender=1;window.__dt=0.05;for(let i=0;i<n;i++)tick();window.__dt=0;window.__manual=0;window.__noRender=0;};\nwindow.__render=()=>{const o=window.__shotCam;if(o&&o.pos){camera.position.fromArray(o.pos);camera.lookAt(new THREE.Vector3().fromArray(o.look));composer.render();return;}if(o){const q=P.rig.quaternion;const yq=new THREE.Quaternion().setFromAxisAngle(UP,AN.yaw+Math.PI);const f=new THREE.Vector3(0,0,1).applyQuaternion(yq),r=new THREE.Vector3(-1,0,0).applyQuaternion(yq);const d=o==='side'?r:o==='front'?f:o==='left'?r.clone().negate():f.clone().negate();camera.position.copy(P.pos).addScaledVector(d,3.4).addScaledVector(UP,o==='top'?3.2:0.3);camera.lookAt(P.pos.x,P.pos.y+0.1,P.pos.z);}composer.render();};",
+  "file": "game"
+ },
+ {
+  "a": "window.__heads={",
+  "b": "window.__THREE=THREE;window.__scene=scene;window.__camera=camera;window.__sun=sun;window.__bloom=bloom;window.__T={get wave(){return wave},get state(){return state},HATCH,damagePlayer,startWave,get toSpawn(){return toSpawn},set toSpawn(v){toSpawn=v},set score(v){score=v},set pts(v){pts=v},ZONES,PATCHES,R,get cargo(){return cargo},set cargo(v){cargo=v},get score(){return score},get inBreak(){return inBreak},get repairs(){return repairs},leakFrom,set skip(v){skipReq=v},get camOrbit(){return camOrbit},set showcase(v){showcaseT=v}};window.__heads={",
+  "file": "game"
+ },
+ {
+  "a": "camOrbit+=(wantOrbit-camOrbit)",
+  "b": "if(window.__orbitOv!=null){camOrbit=window.__orbitOv;}else camOrbit+=(wantOrbit-camOrbit)",
+  "file": "game"
+ },
+ {
+  "a": "const nozTip=P.bones.Hose_Grip.localToWorld(new THREE.Vector3(0,0.17,0));",
+  "b": "const nozTip=P.bones.Hose_Grip.localToWorld(new THREE.Vector3(0,0.17,0));P._nd=ndir;P._aim=aimDir;P._f3=f3.clone();",
+  "file": "game"
+ },
+ {
+  "a": "window.__heads={",
+  "b": "window.__noCine=window.__noCine??1;window.__noOpening=window.__noOpening??1;window.__heads={",
+  "file": "game"
+ },
+ {
+  "a": "'assets/ship.glb'",
+  "b": "'assets/ship_test.glb'",
+  "file": "game"
+ },
+ {
+  "a": "const an=Math.min(isTouch?4:8,",
+  "b": "const an=Math.min(1,",
+  "file": "game"
+ },
+ {
+  "a": "let SFXB=null,SFXL=null;",
+  "b": "let SFXB=null,SFXL=null;window.__SFXB=()=>SFXB;window.__sfx=(k)=>sfx(k);window.__AC=()=>AC;",
+  "file": "game"
+ },
+ {
+  "a": "function makeBiped(scale=1){",
+  "b": "window.__makeBiped=(s)=>makeBiped(s);window.__hullParam=(p)=>hullParam(p);window.__hullPoint=(z,th)=>{const p=new THREE.Vector3(),n=new THREE.Vector3();hullPoint(z,th,p,n);return [p,n];};function makeBiped(scale=1){",
+  "file": "game"
+ },
+ {
+  "a": "window.__heads={get CINE",
+  "b": "window.__heads={pickPU,get CINE",
+  "file": "game"
+ },
+ {
+  "a": "function tryLayEgg(){",
+  "b": "window.__eggDbg=()=>({plan:eggPlan.slice(),spitFirstW,eggLastW,toSpawn,n:waveDef(wave).n,sp:spiders.map(s=>s.kind[0]+':'+s.state+':'+s.pos.distanceTo(P.pos).toFixed(0)).join(' ')});function tryLayEgg(){",
+  "file": "game"
+ },
+ {
+  "a": "window.__heads={pickPU,",
+  "b": "window.__heads={pickPU,INCS,spawnInc,isIncRound,incDamage,",
+  "file": "game"
+ },
+ {
+  "a": "if(onHull)incFeet(e);",
+  "b": "if(onHull&&!window.__noFeetIK)incFeet(e);",
+  "file": "game"
+ },
+ {
+  "a": "window.LANG_READY=new Promise(",
+  "b": "window.__lang=window.__lang||'es';window.LANG_READY=new Promise(",
+  "file": "i18n"
+ },
+ {
+  "a": "const TC_SENS=",
+  "b": "window.__TC=TC;window.__tcGo=x=>tcGo(x);window.__CFG=CFG;window.__st=st;window.__tcNearDust=()=>tcNearDust();window.__tcPlan=(a,b)=>tcPlan(a,b);const TC_SENS=",
+  "file": "game"
+ },
+ {
+  "a": "const isTouch=matchMedia(",
+  "b": "window.__noQA=window.__noQA??1;const isTouch=matchMedia(",
+  "file": "game"
+ },
+ {
+  "a": "function qaFrame(t0){",
+  "b": "window.__QA=QA;window.__qaDecide=(a,b)=>qaDecide(a,b);window.__qaSet=l=>qaSet(l);window.__composer=composer;function qaFrame(t0){",
+  "file": "game"
+ },
+ {
+  "a": "let VOB=null,voBus=null,voOn=true,voSrc=null;",
+  "b": "let VOB=null,voBus=null,voOn=true,voSrc=null;window.__VO=()=>({n:VOB?Object.keys(VOB).length:-1,on:voOn,until:VOQ.until,q:VOQ.queue.length});",
+  "file": "game"
+ }
+]

@@ -1,0 +1,82 @@
+/* ===== START MENU v46 (Santi's pieces): intro — logo impact, top bar, mechanical unfold, decoding headers ===== */
+#menuArt{--mf:'TitilliumH','Titillium Web','Oxanium','Segoe UI',system-ui,sans-serif;position:relative;width:min(96vw,calc(97vh*1.2284));aspect-ratio:3808/3100;container-type:inline-size;filter:none;visibility:hidden}
+#menuArt.go{visibility:visible}
+#mDrop,#mLogoW,#mTopW{will-change:transform}
+/* while the menu is up, none of the game's HUD shows through it */
+body:has(#menu:not([hidden])) :is(.hud,.mk,#flare,#fxLayer,#hatchInd,#repPrompt,[id^="zi"]){visibility:hidden!important}
+#menuArt img{display:block;position:absolute;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.mL{position:absolute;inset:0}
+#mTopW{z-index:4}#mDropC{z-index:2;clip-path:inset(37.097% -20% -20% -20%)}
+#mTopW,#mFx{pointer-events:none}#menuGo{pointer-events:auto} /* v59: the top bar art lies over the PLAY button; mouse clicks must reach the button */#mMidW{z-index:1}#mBotW{z-index:2}#mFx{z-index:5;pointer-events:none}#mLogoW{z-index:6}
+#mTop{left:-0.525%;top:14.839%;width:101.165%;height:40.637%}#mMid{left:-1.261%;top:30.839%;width:102.243%;height:51.298%}#mBot{left:3.466%;top:62.903%;width:92.743%;height:37.975%}
+#mLogoW{position:absolute;left:30.042%;top:0.000%;width:39.863%;height:33.065%;transform-origin:50% 50%}
+#mLogoW>*{position:absolute;inset:0;width:100%!important;height:100%!important}
+#mLogo{filter:drop-shadow(0 0 1.4cqw rgba(255,180,60,.35))}
+#mBlue,#mGold,#mLogoBlue,#mLogoShine{pointer-events:none;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;opacity:0}
+#mBlue{position:absolute;inset:0;-webkit-mask-image:var(--m-blue);mask-image:var(--m-blue);background:#c9f6ff}
+#mGold{position:absolute;inset:0;-webkit-mask-image:var(--m-gold);mask-image:var(--m-gold);
+  background:linear-gradient(100deg,transparent 0 44%,rgba(255,250,220,.0) 45%,rgba(255,250,225,.55) 50%,rgba(255,250,220,0) 55%,transparent 56% 100%) 130% 0/260% 100% no-repeat}
+#mLogoBlue{-webkit-mask-image:var(--m-logoblue);mask-image:var(--m-logoblue);background:#d6f8ff}
+#mLogoShine{-webkit-mask-image:var(--m-logo);mask-image:var(--m-logo);
+  background:linear-gradient(105deg,transparent 0 42%,rgba(255,255,240,.0) 43%,rgba(255,252,230,.7) 50%,rgba(255,255,240,0) 57%,transparent 58% 100%) 140% 0/280% 100% no-repeat}
+.mkf{position:absolute;width:5.646cqw;height:4.858cqw;transform:translate(-50%,-50%);border-radius:0.578cqw;pointer-events:none;opacity:0;
+  background:radial-gradient(ellipse at 50% 40%,rgba(255,252,225,.5),rgba(255,235,160,.16) 55%,transparent 75%)}
+.mT{position:absolute;inset:0;pointer-events:none;font-family:var(--mf);font-weight:700}
+.mT>div{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;text-align:center}
+.mT>div.t{transform:translate(-50%,0)}
+.mT>div.l{transform:translate(0,-50%);text-align:left}
+.mT>div>span{display:block}
+.mh{font-size:1.602cqw;line-height:1;letter-spacing:.065em;color:#f6f0d4;text-shadow:0 0 0.263cqw rgba(0,0,0,.6)}
+.mh.dec{opacity:0}.mh.dec.on{opacity:1}.mh.dec.run{color:#8ee9ff;text-shadow:0 0 0.368cqw rgba(80,210,255,.75)}
+.mp{font-size:1.497cqw;line-height:1;letter-spacing:.16em;color:#f4d06a;text-shadow:0 0 0.368cqw rgba(255,190,60,.35);display:flex;align-items:center;gap:0.683cqw}
+.mp::before,.mp::after{content:'';width:3.939cqw;height:max(1px,0.079cqw);background:linear-gradient(90deg,rgba(240,200,110,.85),rgba(240,200,110,.85));box-shadow:0 0 0.158cqw rgba(255,190,60,.4)}
+.mp>span{margin-right:-.16em}
+.md{font-size:1.103cqw;line-height:1.313cqw;font-weight:600;letter-spacing:.06em;color:#eeece6}
+.md.sm{font-size:1.011cqw;line-height:1.366cqw}
+.md .g{font-size:1.169cqw;font-weight:700;letter-spacing:.05em;color:#f4d36f}
+.mkey{font-size:1.681cqw;line-height:1;font-weight:900;letter-spacing:.02em;color:#1d1304;text-shadow:0 0.039cqw 0 rgba(255,240,190,.45)}
+#menuGo{position:absolute;left:36.555%;top:80.806%;width:26.576%;height:10.161%;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.368cqw;
+  background:transparent;border:0;cursor:pointer;font-family:var(--mf);clip-path:polygon(9% 0,91% 0,100% 50%,91% 100%,9% 100%,0 50%);transition:background .2s}
+#menuJ{display:block;font-size:3.624cqw;font-weight:900;letter-spacing:.2em;margin-right:-.2em;line-height:1;color:#1d150a;text-shadow:0 0.053cqw 0 rgba(255,240,190,.5)}
+#menuE{display:flex;align-items:center;gap:0.578cqw;font-size:0.998cqw;font-weight:900;letter-spacing:.42em;line-height:1;color:#2a1c08;margin-right:-.42em}
+#menuE::before,#menuE::after{content:'';width:3.939cqw;height:max(1px,0.105cqw);background:rgba(42,28,8,.8)}
+#menuLoad{display:none;font-size:1.313cqw;font-weight:900;letter-spacing:.22em;color:#2a1c08}
+#menuGo[disabled]{cursor:wait}
+#menuGo[disabled] #menuJ{display:none}#menuGo[disabled] #menuLoad{display:block}
+#menuGo:not([disabled]){animation:goGlow 1.6s ease-in-out infinite alternate}
+#menuGo:hover,#menuGo:focus-visible{background:rgba(255,248,215,.22);animation:none;outline:none}
+#menuGo:active{background:rgba(60,40,0,.12)}
+#mFlash{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:7;background:radial-gradient(circle at 50% 50%,rgba(255,246,215,.95),rgba(255,190,90,.45) 22%,rgba(255,150,40,.08) 48%,transparent 66%)}
+#mRing{position:fixed;left:50%;top:50%;width:60vmin;height:60vmin;margin:-30vmin 0 0 -30vmin;border-radius:50%;pointer-events:none;opacity:0;z-index:7;
+  border:1.1vmin solid rgba(255,214,120,.85);box-shadow:0 0 3vmin rgba(255,180,60,.8),inset 0 0 3vmin rgba(255,200,90,.6)}
+/* ---- intro ---- */
+#menuArt.go #mLogoW{animation:mLogoIntro .96s linear both}
+#menu.mgo #mFlash{animation:mFlashK .45s .02s ease-out both}
+#menu.mgo #mRing{animation:mRingK .6s .05s cubic-bezier(.1,.6,.3,1) both}
+#menuArt.go{animation:mShake .26s .06s linear both,mClank .22s 1.47s linear}
+#menuArt.go #mTopW{animation:mTopIn 0.3s 0.82s cubic-bezier(.2,1,.3,1) both;transform-origin:50% 32.258%}
+#menuArt.go #mDrop{animation:mDropK 0.62s 1.06s both}
+#menuArt.go #mBlue{animation:mPowerOn .34s 1.64s steps(1) both,mPulse 2.6s 2.04s ease-in-out infinite alternate}
+#menuArt.go #mLogoBlue{animation:mPowerOn .34s 1.04s steps(1) both,mPulse 2.6s 1.64s ease-in-out infinite alternate}
+#menuArt.go #mGold{animation:mSweep 7s 2.14s ease-in-out infinite;opacity:1}
+#menuArt.go #mLogoShine{animation:mShine 5.5s 1.0s ease-in-out infinite;opacity:1}
+#menuArt.go .mkf{animation:mKey 4.8s ease-out infinite;animation-delay:calc(2.64s + var(--k)*.22s)}
+@keyframes mLogoIntro{
+  0%{opacity:0;transform:translate(var(--ix),var(--iy)) scale(calc(var(--is)*1.18))}
+  9%{opacity:1;transform:translate(var(--ix),var(--iy)) scale(calc(var(--is)*.98));filter:brightness(1.6)}
+  16%{transform:translate(var(--ix),var(--iy)) scale(var(--is));filter:brightness(1.15)}
+  44%{transform:translate(var(--ix),var(--iy)) scale(calc(var(--is)*1.025));filter:none;animation-timing-function:cubic-bezier(.55,0,.25,1)}
+  100%{opacity:1;transform:none;filter:none}}
+@keyframes mAppear{from{opacity:0}to{opacity:1}}
+@keyframes mFlashK{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+@keyframes mRingK{0%{opacity:0;transform:scale(.25)}2%{opacity:.95;transform:scale(.27)}100%{opacity:0;transform:scale(2.6)}}
+@keyframes mShake{0%,100%{transform:none}15%{transform:translate(-1.1%,.7%)}30%{transform:translate(.9%,-.6%)}45%{transform:translate(-.6%,.4%)}60%{transform:translate(.4%,-.2%)}80%{transform:translate(-.15%,.1%)}}
+@keyframes mClank{0%,100%{transform:none}30%{transform:translateY(.25%)}60%{transform:translateY(-.12%)}}
+@keyframes mTopIn{0%{opacity:0;transform:translateY(-4%) scaleX(.82)}55%{opacity:1;transform:translateY(.5%) scaleX(1.012)}78%{transform:translateY(-.18%) scaleX(.998)}100%{opacity:1;transform:none}}
+@keyframes mDropK{0%{transform:translateY(-62.903%);animation-timing-function:cubic-bezier(.55,0,.75,.35)}9%{transform:translateY(-63.532%);animation-timing-function:cubic-bezier(.5,0,.8,.5)}64%{transform:translateY(0.755%);animation-timing-function:ease-out}76%{transform:translateY(-0.377%);animation-timing-function:ease-in-out}88%{transform:translateY(0.189%);animation-timing-function:ease-out}100%{transform:translateY(0.000%);animation-timing-function:linear}}
+@keyframes mPowerOn{0%{opacity:0}8%{opacity:.6}20%{opacity:0}35%{opacity:.75}50%{opacity:.15}70%{opacity:.9}100%{opacity:.55}}
+@keyframes mPulse{from{opacity:.1}to{opacity:.55}}
+@keyframes mSweep{0%{background-position:130% 0}35%,100%{background-position:-30% 0}}
+@keyframes mShine{0%{background-position:140% 0}30%,100%{background-position:-40% 0}}
+@keyframes mKey{0%,100%{opacity:0}4%{opacity:1}14%{opacity:0}}
+@media (prefers-reduced-motion:reduce){#menuArt.go,#menuArt.go *{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}}

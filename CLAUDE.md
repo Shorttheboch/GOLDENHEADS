@@ -6,7 +6,7 @@ Juego web **HEADS Rescate Dorado** de Santi: un astronauta dorado defiende su na
 - `site/index.html`: el juego entero en un archivo (three.js por CDN, un `<script type="module">`).
 - `site/assets/`: modelos, HUD, menú, sonidos y voces como `.js` (base64) y el vídeo `opening.mp4`.
 - `netlify/functions/ranking.mts`: ranking online. El juego llama a `/api/run` y `/api/scores` con rutas relativas.
-- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión actual: **v56**.
+- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión actual: **v57**.
 
 ## Cómo publicar
 - Este repositorio es la versión buena. Las carpetas antiguas `F:\AI\HEADS\JUEGO\game` y `web` quedan como copia.

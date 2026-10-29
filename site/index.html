@@ -2787,7 +2787,8 @@ function updateFX(dt){
 /* ================= AUDIO (procedural, no files) ================= */
 const LOOPS={};let weldG=null,WELD_T=-1e9;let AC=null,master=null,suckGain=null,humOsc=null,musicGain=null,NOISE=null,musicOn=true,musicT=0,beat=0;
 function loopSrc(buf,L,dst){const n=AC.createBufferSource();n.buffer=buf;n.loop=true;n.loopStart=L*0.5;n.loopEnd=L*1.5;n.connect(dst);n.start(0,L*0.5);return n;}
-function initAudio(){if(AC)return;try{AC=new (window.AudioContext||window.webkitAudioContext)();
+function initAudio(){if(AC)return;try{if(isTouch&&navigator.audioSession)try{navigator.audioSession.type='playback';}catch(_){} // v57: iPhone silent switch would mute the game but not the film
+  AC=new (window.AudioContext||window.webkitAudioContext)();
   master=AC.createGain();master.gain.value=0.9;const comp=AC.createDynamicsCompressor();comp.threshold.value=-16;comp.knee.value=12;comp.ratio.value=4;comp.attack.value=0.003;comp.release.value=0.18;master.connect(comp).connect(AC.destination);
   const len=AC.sampleRate*2;NOISE=AC.createBuffer(1,len,AC.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
   // hose: band-passed noise + low motor hum, both gated by suckGain
@@ -3073,6 +3074,11 @@ function tcReset(){tcLookEnd();TC.stickId=TC.lookId=TC.fireId=null;st.x=st.y=0;T
 }
 function tcPauseLabels(){const M=$('tPauseM');M.querySelector('[data-a=mus]').textContent=musicOn?'MÚSICA ON':'MÚSICA OFF';
   M.querySelector('[data-a=vo]').textContent=voOn?'VOCES ON':'VOCES OFF';M.querySelector('[data-a=next]').disabled=!(inBreak||WB.calm);}
+// v57 (iPhone): Safari stops the game's audio when the opening film plays (state "interrupted") or another app takes the sound,
+// and only a touch can restart it, so every touch brings it back; coming back to the tab tries too
+if(isTouch){const wakeAC=()=>{if(AC&&AC.state!=='running'&&AC.state!=='closed'&&!(TC.paused&&state==='play'))AC.resume().catch(()=>{});};
+  for(const ev of ['touchend','pointerup','click'])document.addEventListener(ev,wakeAC,{capture:true,passive:true});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakeAC();});}
 // pause (touch only): freezes the game and its sound; music, voices and "start the round now" live here
 function tcSetPause(v){if(!isTouch||TC.paused===v)return;TC.paused=v;$('tPauseM').hidden=!v;
   if(v){tcReset();tcPauseLabels();if(typeof AC!=='undefined'&&AC&&AC.state==='running')AC.suspend().catch(()=>{});}
@@ -3400,7 +3406,7 @@ $('again').addEventListener('click',()=>{tcFull();cancelAnimationFrame(ENDP.raf)
 // ---- opening film (Santi's HEADS_GAME_OPENING): plays once per session before the first game, skippable ----
 let opSeen=false;
 function playOpening(done){const el=$('opening'),v=$('opVid');let fin=false,idleT=0;
-  const end=()=>{if(fin)return;fin=true;document.removeEventListener('keydown',kd,true);el.classList.remove('on','ui');if(master)master.gain.value=1;
+  const end=()=>{if(fin)return;fin=true;document.removeEventListener('keydown',kd,true);el.classList.remove('on','ui');if(master)master.gain.value=1;if(AC&&AC.state!=='running'&&AC.state!=='closed')AC.resume().catch(()=>{});
     setTimeout(()=>{el.hidden=true;v.pause();v.removeAttribute('src');v.load();},650);done();};
   const kd=e=>{if(['Enter','NumpadEnter','Space','Escape'].includes(e.code)){e.preventDefault();e.stopPropagation();end();}};
   const wake=()=>{el.classList.add('ui');el.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>el.classList.add('idle'),2200);};

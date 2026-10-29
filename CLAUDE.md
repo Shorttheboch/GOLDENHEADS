@@ -11,7 +11,7 @@ Desde v61 el proyecto se compila con Vite (`npm run build` → `dist/`; Netlify 
 - `public/i18n.js`: script clásico que corre antes del juego (bloque i18n ES/EN, selector de idioma y menú de PC). three.js viene de npm (versión fija 0.170.0).
 - `public/assets/`: archivos reales (`models/*.glb`, `sfx/`, `vo/es`, `vo/en`, `ui/<kit>/`, `opening.mp4`). Los `.js` de esa carpeta son listas con las mismas claves de antes; las de `ui/` dan URL absolutas porque algunas acaban en variables CSS.
 - `netlify/functions/ranking.mts`: ranking online. El juego llama a `/api/run` y `/api/scores` con rutas relativas.
-- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión actual: **v58** publicada en la vista previa; v59–v60 en la rama `pendiente`, v61 (reorganización) en `v61-reorganizacion` y v62 (HUD de móvil) en `v62-hud-movil`, sin publicar.
+- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión actual: **v62**, publicada el 29-10 (incluye v55–v61).
 
 ## Cómo publicar
 - Este repositorio es la versión buena. Las carpetas antiguas `F:\AI\HEADS\JUEGO\game` y `web` quedan como copia.

@@ -128,17 +128,17 @@ body.touch.mmfail #mobMenu{display:none!important}body.touch.mmfail #menuPanel{d
 @supports (height:100dvh){#mmStage{width:min(100vw,calc(100dvh * 2.1618))}}
 .mmP{position:absolute;container-type:inline-size;opacity:0}
 .mmP>img{display:block;width:100%;height:auto}
-#mmL{left:10.57%;top:16.34%;width:41.43%;transform-origin:100% 50%}
-#mmR{left:51.95%;top:14.3%;width:39.05%;transform-origin:0% 50%}
-#mmLogo{position:absolute;left:40.13%;top:-1%;width:17.08%;height:auto;opacity:0}
+#mmL{left:11.82%;top:16.55%;width:38.72%;transform-origin:100% 50%}
+#mmR{left:50.22%;top:14.53%;width:39.47%;transform-origin:0% 50%}
+#mmLogo{position:absolute;left:41.46%;top:-1%;width:17.08%;height:auto;opacity:0}
 .mmTx{opacity:0}
-.mmT{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-weight:900;font-size:3.6cqw;letter-spacing:.18em;
+.mmT{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-weight:900;font-size:3.85cqw;letter-spacing:.18em;
   background:linear-gradient(180deg,#fff6d2 0%,#ffd36a 48%,#e09a28 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 .15cqw .2cqw rgba(0,0,0,.8))}
 #mmR .mmT{font-size:3.5cqw}
-.mmRow{position:absolute;left:32.6%;width:61%;transform:translateY(-50%);display:flex;flex-direction:column;gap:.3cqw}
-.mmRow b{font-weight:900;font-size:3.7cqw;letter-spacing:.08em;color:#ffcf55;line-height:1}
-.mmRow span{font-weight:600;font-size:2.85cqw;line-height:1.22;color:#f4ecd6}
-.mmFoot{position:absolute;left:17.4%;top:89.2%;width:76%;transform:translateY(-50%);display:flex;flex-direction:column;gap:.35cqw;font-weight:600;font-size:2.55cqw;line-height:1.15}
+.mmRow{position:absolute;left:35%;width:58%;transform:translateY(-50%);display:flex;flex-direction:column;gap:.3cqw}
+.mmRow b{font-weight:900;font-size:3.95cqw;letter-spacing:.08em;color:#ffcf55;line-height:1}
+.mmRow span{font-weight:600;font-size:3.05cqw;line-height:1.22;color:#f4ecd6}
+.mmFoot{position:absolute;left:18.6%;top:89.2%;width:75%;transform:translateY(-50%);display:flex;flex-direction:column;gap:.35cqw;font-weight:600;font-size:2.75cqw;line-height:1.15}
 .mmFoot .w{color:#f4ecd6}.mmFoot .r{color:#ff6f5c;font-weight:700}
 .mmCap{position:absolute;top:45.4%;width:42%;transform:translateX(-50%);text-align:center;display:flex;flex-direction:column;gap:.1cqw}
 .mmCap b{font-weight:900;font-size:3.05cqw;letter-spacing:.05em;color:#ffcf55;line-height:1.1;white-space:nowrap}
@@ -156,9 +156,9 @@ body.touch.mmfail #mobMenu{display:none!important}body.touch.mmfail #menuPanel{d
 #mmGo:active{filter:brightness(1.25)}
 @keyframes mmShine{0%{transform:translateX(-120%)}45%,100%{transform:translateX(120%)}}
 #mobMenu.go #mmLogo{animation:mmLogoIn 1.35s cubic-bezier(.3,.7,.2,1) both}
-@keyframes mmLogoIn{0%{opacity:0;transform:translate(1.3cqw,38cqh) scale(2.7);filter:brightness(3)}
-  18%{opacity:1;transform:translate(1.3cqw,38cqh) scale(2.35);filter:brightness(1.6)}
-  45%{opacity:1;transform:translate(1.3cqw,38cqh) scale(2.3);filter:brightness(1.12)}
+@keyframes mmLogoIn{0%{opacity:0;transform:translate(0,38.5cqh) scale(2.7);filter:brightness(3)}
+  18%{opacity:1;transform:translate(0,38.5cqh) scale(2.35);filter:brightness(1.6)}
+  45%{opacity:1;transform:translate(0,38.5cqh) scale(2.3);filter:brightness(1.12)}
   100%{opacity:1;transform:none;filter:none}}
 #mobMenu.go .mmP{animation:mmUnfold .55s 1.05s cubic-bezier(.2,1.25,.35,1) both}
 @keyframes mmUnfold{0%{opacity:0;transform:scaleX(.02)}12%{opacity:1}100%{opacity:1;transform:none}}
@@ -774,7 +774,7 @@ body:has(#menu:not([hidden])) #xpS{visibility:hidden!important}
     <div id="mLogoW"><img id="mLogo" alt="HEADS Rescue"><div id="mLogoBlue"></div><div id="mLogoShine"></div></div></div>
   <div id="mobMenu"><div id="mmStage">
     <div class="mmP" id="mmL"><img id="mmLImg" alt="">
-      <div class="mmT mmTx" style="left:50.4%;top:7.5%">TU MISIÓN</div>
+      <div class="mmT mmTx" style="left:49.6%;top:7.5%">TU MISIÓN</div>
       <div class="mmRow mmTx" style="top:22.3%"><b>DEFIENDE</b><span>Elimina arañas antes de que devoren el casco.</span></div>
       <div class="mmRow mmTx" style="top:40%"><b>REPARA</b><span>Acércate a una rotura: se suelda sola.</span></div>
       <div class="mmRow mmTx" style="top:57.7%"><b>RECOGE</b><span>Pasa cerca del polvo dorado: son tricomas.</span></div>

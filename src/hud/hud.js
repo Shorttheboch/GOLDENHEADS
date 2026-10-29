@@ -4,7 +4,8 @@
 //  - la raíz se llama .hudm (el juego ya usa la clase .hud para su propio HUD) y queda por debajo del menú de pausa;
 //  - las barras anulan dos reglas globales del juego (.bar inclinada con borde, .bar>i con altura 100 %);
 //  - los números usan el separador de miles del idioma (1.000 / 1,000), como el resto del juego;
-//  - weld({band:false}) oculta la franja dorada en las soldaduras cortas; enemies(n, texto) permite RESPIRO / CALMA.
+//  - weld({band:false}) oculta la franja dorada en las soldaduras cortas; enemies(n, texto) permite RESPIRO / CALMA;
+//  - v63: el cartel RONDA n es más pequeño y está más arriba (27 % en vez de 34 %), para tapar menos el juego.
 // Los textos en castellano los traduce el bloque i18n del juego (public/i18n.js) cuando se juega en inglés.
 (function () {
   // Todo el HUD se dibuja en "unidades de diseño" sobre una pantalla de referencia
@@ -140,9 +141,9 @@
 #hud-sub.nowho .who,#hud-sub.nowho .dv{display:none}
 
 /* ---------- Cartel de ronda ---------- */
-#hud-round{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);text-align:center;opacity:0}
-#hud-round .r1{font-size:${u(40)};color:var(--cream);letter-spacing:${u(10)};text-shadow:0 ${u(3)} 0 #000}
-#hud-round .r2{font-size:${u(150)};font-weight:800;color:var(--gold);line-height:.9;
+#hud-round{position:absolute;left:50%;top:27%;transform:translate(-50%,-50%);text-align:center;opacity:0}
+#hud-round .r1{font-size:${u(28)};color:var(--cream);letter-spacing:${u(8)};text-shadow:0 ${u(3)} 0 #000}
+#hud-round .r2{font-size:${u(96)};font-weight:800;color:var(--gold);line-height:.9;
   text-shadow:0 0 ${u(30)} rgba(255,180,40,.6),0 ${u(5)} 0 #000}
 #hud-round.show{animation:hudRound 2.6s ease-out forwards}
 

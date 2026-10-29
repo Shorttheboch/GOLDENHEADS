@@ -67,7 +67,8 @@ function dropNear(s){const hp=hullParam(P.pos);s.z=THREE.MathUtils.clamp(hp.z+(M
 function workLeft(){return PATCHES.some(p=>p.hp<CFG.patchHp)||looseCount()>3||P.carry>0;}
 function planBursts(n){WB.spitQ=[];const G=wave<1?1:wave<5?2:3,a=[];let r=n;for(let k=0;k<G;k++){const c=k===G-1?r:Math.round(n/G);a.push(c);r-=c;}
   WB.groups=a;WB.gi=0;WB.left=a[0];WB.calm=false;WB.lull=0;WB.spit=false;}
-function showMsg(t,sub='',dur=2.5){$('msg').innerHTML=t+(sub?`<small>${sub}</small>`:'');$('msg').style.opacity=1;msgT=dur;}
+function showMsg(t,sub='',dur=2.5){if(mhudMsg(t,sub,dur,'msg'))return; // v63: phones route it (alert or side feed)
+  $('msg').innerHTML=t+(sub?`<small>${sub}</small>`:'');$('msg').style.opacity=1;msgT=dur;}
 function crossHit(){const c=$('cross');c.classList.add('hit');clearTimeout(crossHit.t);crossHit.t=setTimeout(()=>c.classList.remove('hit'),120);}
 function crossCrit(){const c=$('cross');c.classList.add('crit');clearTimeout(crossCrit.t);crossCrit.t=setTimeout(()=>c.classList.remove('crit'),180);}
 function damagePlayer(d,dir){if(P.inv>0||state!=='play')return;P.hp=Math.max(0,P.hp-d);P.inv=0.9;P.lastHit=playT;xpBreak();

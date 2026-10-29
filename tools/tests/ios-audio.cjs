@@ -9,6 +9,7 @@ const {BASE,ARGS,shot}=require('./lib.cjs');
  await p.addInitScript(()=>{window.__lang='es';});
  await p.goto(BASE+'/test.html');
  await p.waitForFunction(()=>document.getElementById('play')&&!document.getElementById('play').disabled,null,{timeout:240000});
+ await p.waitForFunction(()=>document.getElementById('mobMenu').classList.contains('go'),null,{timeout:120000});await p.waitForTimeout(2500); // let the menu finish opening
  await p.tap('#mmGo');await p.evaluate(()=>{window.__noRender=1;});await p.waitForTimeout(4000);
  const st=()=>p.evaluate(()=>__AC().state);
  console.log('after play',await st());

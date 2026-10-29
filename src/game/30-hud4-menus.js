@@ -72,7 +72,8 @@ function updateHud4(dt,t){
     for(const it of items){if(it.dead)continue;const m=h4mark(i++);m.hidden=false;h4apply(m,it.s,m.children[0],180,24);
       const urg=it.rem<10,lb=m.children[2],tm=m.children[3],txt=it.n+' POR RESCATAR';if(lb.textContent!==txt)lb.textContent=txt;
       tm.style.display=urg?'':'none';if(urg){tm.lastChild.textContent=Math.max(0,Math.ceil(it.rem))+' s';tm.firstChild.style.setProperty('--a',(THREE.MathUtils.clamp(it.rem/10,0,1)*360).toFixed(0)+'deg');}
-      m.classList.toggle('urg',it.rem<5);m.classList.toggle('near',!it.s.off&&it.near);}}
+      m.classList.toggle('urg',it.rem<5);m.classList.toggle('near',!it.s.off&&it.near);
+      if(isTouch)m.classList.toggle('mid',!it.s.off&&Math.abs(it.s.px-innerWidth/2)<innerWidth*0.3&&Math.abs(it.s.py-innerHeight/2)<innerHeight*0.32);}} // v63: phones hide the count near the crosshair
   for(;i<HUD4.pool.length;i++)HUD4.pool[i].hidden=true;
   const bod=$('hBod'),atH=P.pos.distanceTo(HATCH)<CFG.depositR,showB=!CINE.on&&P.carry>0&&!atH&&!ZONES[2].nest;bod.hidden=!showB;
   if(showB){h4apply(bod,h4proj(HATCH),bod.children[0],0,28);bod.classList.toggle('call',full);}

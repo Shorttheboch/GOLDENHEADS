@@ -4,7 +4,7 @@ const ptsVal=n=>n*(PU.dbl>0?2:1);
 function addPts(n){pts+=ptsVal(n);}
 // ---- multikills and headshot streaks ----
 const CB={n:0,t:-9,hs:0,heads:0};
-function comboBanner(txt,sub){const c=$('combo');c.innerHTML=txt+(sub?`<small>${sub}</small>`:'');c.classList.remove('go');void c.offsetWidth;c.classList.add('go');}
+function comboBanner(txt,sub){if(mhudMsg(txt,sub,1.6,'combo'))return;const c=$('combo');c.innerHTML=txt+(sub?`<small>${sub}</small>`:'');c.classList.remove('go');void c.offsetWidth;c.classList.add('go');}
 function onKill(s,crit){
   if(playT-CB.t<1.6)CB.n++;else CB.n=1;CB.t=playT;
   if(crit){CB.hs++;CB.heads++;stats.heads++;}else CB.hs=0;stats.multi=Math.max(stats.multi,CB.n);

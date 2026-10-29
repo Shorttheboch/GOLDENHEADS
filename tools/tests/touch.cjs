@@ -8,6 +8,7 @@ const {BASE,ARGS,shot}=require('./lib.cjs');
  await p.goto(BASE+'/test.html');
  await p.waitForFunction(()=>document.getElementById('play')&&!document.getElementById('play').disabled,null,{timeout:240000});
  console.log('keys',await p.evaluate(()=>[...document.querySelectorAll('#keysTouch kbd')].map(k=>k.textContent).join(' | ')));
+ await p.waitForFunction(()=>document.getElementById('mobMenu').classList.contains('go'),null,{timeout:120000});await p.waitForTimeout(2500); // let the menu finish opening
  await p.tap('#mmGo');await p.evaluate(()=>{window.__noRender=1;__step(40);for(const s of [...__heads.spiders])__heads.killSpider(s);window.__noSpawn=1;});
  console.log('layout',JSON.stringify(await p.evaluate(()=>{const r=document.getElementById('tFire').getBoundingClientRect();return {fire:[Math.round(r.left),Math.round(r.top),Math.round(r.width)],look:!!document.getElementById('tLook')};})));
  const cdp=await ctx.newCDPSession(p);const touch=(type,pts)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:pts.map(([x,y,id])=>({x,y,id}))});

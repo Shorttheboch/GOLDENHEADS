@@ -131,6 +131,7 @@ function tcMarkers(){const box=$('bMk');
       m.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(m._pa&&state==='play')tcGo({pa:m._pa});});}
     if(!m.dataset.art&&HUD4.art){m.dataset.art=1;m.children[0].src=HUD4.art['flecha-rescate'];m.children[1].src=HUD4.art['icono-fuga'];}
     const it=shown[i];m._pa=it.pa;m.hidden=false;h4apply(m,it.s,m.children[0],180,26);m.classList.toggle('eat',it.eat);
+    {const k=THREE.MathUtils.clamp((it.d-8)/27,0,1);m.style.opacity=(1-0.72*k).toFixed(2);m.style.transform=`translate(-50%,-50%) scale(${(1-0.28*k).toFixed(2)})`;} // v63: 8 m → full, 35 m → faint and smaller
     const t=Math.round(it.d)+' m';if(m.children[3].textContent!==t)m.children[3].textContent=t;}
   for(let i=shown.length;i<TC.mk.length;i++)TC.mk[i].hidden=true;}
 // once per frame (touch): show the controls only while playing, keep the markers in place

@@ -6,7 +6,7 @@ Juego web **HEADS Rescate Dorado** de Santi: un astronauta dorado defiende su na
 - `site/index.html`: el juego entero en un archivo (three.js por CDN, un `<script type="module">`).
 - `site/assets/`: modelos, HUD, menú, sonidos y voces como `.js` (base64) y el vídeo `opening.mp4`.
 - `netlify/functions/ranking.mts`: ranking online. El juego llama a `/api/run` y `/api/scores` con rutas relativas.
-- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión actual: **v54**.
+- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión actual: **v56**.
 
 ## Cómo publicar
 - Este repositorio es la versión buena. Las carpetas antiguas `F:\AI\HEADS\JUEGO\game` y `web` quedan como copia.
@@ -14,6 +14,7 @@ Juego web **HEADS Rescate Dorado** de Santi: un astronauta dorado defiende su na
 - Trabaja en una rama. Cada rama o pull request tiene su vista previa gratis. Pasa a `main` solo cuando Santi lo apruebe.
 - Para subir solo documentación sin publicar, pon `[skip netlify]` en el mensaje del commit.
 - `RANK_SECRET` está solo en Production: las vistas previas no guardan partidas en el ranking.
+- Firma los commits como `Shorttheboch <174453569+Shorttheboch@users.noreply.github.com>`. Netlify bloquea las publicaciones de autores que no reconoce (el correo personal de Santi está asociado en GitHub a otra cuenta).
 - Ninguna clave en el repositorio. `RANK_SECRET` (y en el futuro las de Supabase) van en las variables de entorno de Netlify.
 
 ## Reglas del juego

@@ -1,0 +1,7 @@
+# GOLDENHEADS · HEADS Rescate Dorado — Netlify config
+# No build step: the game is plain files in site/. Netlify installs package.json deps for the ranking function.
+[build]
+  publish = "site"
+
+[functions]
+  directory = "netlify/functions"

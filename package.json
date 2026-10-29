@@ -1,0 +1,11 @@
+{
+  "name": "heads-rescate-dorado",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.7"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^6.0.3"
+  }
+}

@@ -868,8 +868,19 @@ if(isTouch){$('keysPC').hidden=true;$('keysTouch').hidden=false;}
 
 /* ================= RENDERER / SCENE ================= */
 const canvas=$('c');
-const renderer=new THREE.WebGLRenderer({canvas,antialias:!isTouch,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,isTouch?1.5:2));
+// v55: the canvas needs no MSAA of its own: every frame is drawn into the composer's multisampled target and only full-screen passes reach the canvas,
+// so dropping it saves memory bandwidth (a lot on integrated GPUs) with no visible change
+const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
+// v55: automatic quality. Level 0 = the full look, exactly as before. Each level down caps the render resolution (pixel budget),
+// then lowers MSAA, bloom resolution and shadow-map size. See qaDecide() for when it moves.
+const QA={lvl:0,base:Math.min(devicePixelRatio,isTouch?1.5:2),on:!window.__noQA,
+  budget:[Infinity,2.4e6,1.6e6,1.05e6,0.7e6,0.45e6],          // max rendered pixels per frame
+  samples:isTouch?[0,0,0,0,0,0]:[4,4,2,0,0,0],                 // MSAA of the main render target
+  bloomDiv:isTouch?[2,2,2,2,3,3]:[0,2,2,2,3,3],               // bloom at screen size / n (0 = full render size)
+  shadow:isTouch?[1024,1024,1024,1024,512,512]:[2048,2048,2048,1024,1024,512],
+  last:0,wT:0,wF:[],wJ:[],bad:0,good:0,cool:2,probeAt:-1,probeW:0,block:-1,blockT:0,fps:0,gpu:''};
+function qaPR(w,h){return Math.max(0.5,Math.min(QA.base,Math.sqrt(QA.budget[QA.lvl]/(w*h))));}
+renderer.setPixelRatio(qaPR(innerWidth,innerHeight));
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 const TM=window.__tm||'aces';renderer.toneMapping=TM==='aces'?THREE.ACESFilmicToneMapping:THREE.AgXToneMapping;renderer.toneMappingExposure=TM==='aces'?1.0:(window.__tmx||1.25);
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -894,8 +905,8 @@ const GRADE=new ShaderPass({uniforms:{tDiffuse:{value:null},uTime:{value:0},uRes
       float g=hash(vUv*uRes+fract(uTime*13.17)*vec2(91.7,37.3))-.5;col+=g*uGrain*(1.-.6*l);
       gl_FragColor=vec4(col,1.);}`});
 composer.addPass(GRADE);
-function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(w,h);
-  if(isTouch)bloom.setSize(w/2,h/2);camera.aspect=w/h;camera.updateProjectionMatrix();GRADE.uniforms.uRes.value.set(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());}
+function resize(){const w=innerWidth,h=innerHeight;renderer.setPixelRatio(qaPR(w,h));renderer.setSize(w,h,false);composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(w,h);
+  {const d=QA.bloomDiv[QA.lvl];if(d)bloom.setSize(w/d,h/d);}camera.aspect=w/h;camera.updateProjectionMatrix();GRADE.uniforms.uRes.value.set(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());}
 addEventListener('resize',resize);resize();
 
 // ---- space environment: procedural nebula sky + gas giant + sun, used for the background AND for metal reflections ----
@@ -3519,7 +3530,36 @@ let camYaw=0,camPitch=0,camOrbit=0,showcaseT=0,lookInput=0;
 const angDiff=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 const clock=new THREE.Clock();const camPos=new THREE.Vector3(10,3,14);const aimTarget=new THREE.Vector3();
 const ray=new THREE.Ray();
-function tick(){
+// ---- v55: automatic quality ----
+// Measures the real frame time while playing, in 1 s windows (median, so a one-off hitch such as a shader compiling does not count). Slower than ~48 fps twice in a row -> one level down (two at once below 25 fps),
+// unless the game logic itself is what takes the time (then a lower resolution would not help). Steady at the screen's refresh rate for 5 s ->
+// try one level up; if that level stutters again within the next 4 s it goes back and is not retried for 90 s.
+QA.gpu=(()=>{try{const gl=renderer.getContext(),e=gl.getExtension('WEBGL_debug_renderer_info');return e?String(gl.getParameter(e.UNMASKED_RENDERER_WEBGL)):'';}catch(_){return '';}})();
+function qaSet(l){l=Math.max(0,Math.min(QA.budget.length-1,l));if(l===QA.lvl)return;QA.lvl=l;
+  const s=QA.samples[l];if(composer.renderTarget1.samples!==s){const rt=composer.renderTarget1.clone();rt.samples=s;composer.reset(rt);}
+  const m=QA.shadow[l];if(sun.shadow.mapSize.x!==m){sun.shadow.mapSize.set(m,m);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}
+  resize();QA.cool=2;QA.bad=QA.good=0;qaHud();}
+function qaDecide(ft,jt){ // ft: average frame time of the last window (ms); jt: game-logic time per frame (ms)
+  const now=performance.now();
+  if(QA.cool>0){QA.cool--;return;}
+  if(QA.probeAt>=0&&++QA.probeW>4)QA.probeAt=-1; // the level we climbed to held up: keep it
+  if(ft>21&&jt<ft*0.7){QA.good=0;if(++QA.bad>=(ft>40?1:2)){if(QA.probeAt>=0){QA.block=QA.probeAt;QA.blockT=now;QA.probeAt=-1;}qaSet(QA.lvl+(ft>40?2:1));}return;}
+  QA.bad=0;
+  if(ft<17.6&&QA.lvl>0){if(++QA.good>=5){const up=QA.lvl-1;if(QA.block===up&&now-QA.blockT<90000)QA.good=0;else{QA.probeAt=up;QA.probeW=0;qaSet(up);}}}else QA.good=0;}
+function qaMed(a){a.sort((x,y)=>x-y);return a[a.length>>1];}
+function qaFrame(t0){const now=performance.now(),fd=now-QA.last,js=now-t0;QA.last=now;
+  if(!QA.on||window.__manual||fd>3000||document.hidden||state!=='play'||CINE.on)return; // only real play time counts (a gap over 3 s = the page was suspended)
+  QA.wT+=fd;QA.wF.push(fd);QA.wJ.push(js);if(QA.wT<1000)return;
+  const ft=qaMed(QA.wF),jt=qaMed(QA.wJ);QA.wT=0;QA.wF=[];QA.wJ=[];QA.fps=1000/ft;qaDecide(ft,jt);qaHud();}
+// add ?fps to the address to see frame rate, level, rendered megapixels and GPU; ?q=0..5 fixes the level (no automatic changes)
+const QA_HUD=/[?&]fps\b/.test(location.search)?(()=>{const d=document.createElement('div');d.style.cssText='position:fixed;left:50%;bottom:4px;transform:translateX(-50%);z-index:60;font:600 12px/1.2 monospace;color:#ffd27a;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:4px;pointer-events:none;white-space:nowrap';document.body.appendChild(d);return d;})():null;
+function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.textContent=Math.round(QA.fps)+' fps · Q'+QA.lvl+' · '+(innerWidth*innerHeight*pr*pr/1e6).toFixed(1)+' MP · '+QA.gpu.replace(/^ANGLE \(/,'').replace(/^[^,(]*, /,'').replace(/ (Direct3D|vs_|OpenGL).*$/,'').slice(0,48);}
+{const qf=/[?&]q=([0-5])\b/.exec(location.search);
+ if(qf){QA.on=false;qaSet(+qf[1]);}
+ // start lower on GPUs that cannot carry the full look (it climbs back if there is headroom): software rendering -> 4, integrated Intel/AMD -> 2
+ else if(QA.on&&!isTouch){if(/swiftshader|basic render|llvmpipe|softpipe/i.test(QA.gpu))qaSet(4);else if(/intel|radeon\(tm\)|radeon graphics|vega/i.test(QA.gpu)&&!/\barc\b/i.test(QA.gpu))qaSet(2);}}
+qaHud();
+function tick(){const _qa0=performance.now();
   if(TC.paused&&state==='play'){clock.getDelta();tcOrientTick();if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);return;} // touch pause
   const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;let dt=rdt;if(hitStop>0){hitStop-=rdt;dt=rdt*0.12;} // tiny freeze on kills
   FLOW.dz=(state==='play'||state==='menu')?CFG.worldV*dt:0;
@@ -3787,7 +3827,7 @@ function tick(){
   updateMusic();
   // camera shake on top of the follow camera (re-copied from camPos every frame, so it never accumulates)
   if(shakeAmp>0.002){camera.position.x+=(Math.random()-0.5)*shakeAmp;camera.position.y+=(Math.random()-0.5)*shakeAmp;camera.position.z+=(Math.random()-0.5)*shakeAmp;shakeAmp*=Math.exp(-dt*10);}
-  tcFrame();if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
+  tcFrame();qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
 camera.position.set(14,4,16);camera.lookAt(0,0,0);
 requestAnimationFrame(tick);
 window.__renderer=renderer;window.__GRADE=GRADE;window.__heads={get CINE(){return CINE},spawnCloud,shipClear,BELT,DUST,get leakMult(){return leakMult()},ROCKS,rockAt,landOnRock,get ammo(){return P.ammo},EGGS,layEgg,tryLayEgg,P,spiders,CLOUDS,killSpider,spawnSpider,spawnSpitter,spitAcid,ACID,hullBlocked,stats,inp,get lost(){return lostN;},get pts(){return pts},PU,DROPS,spawnDrop,applyPU,WB,get cargo(){return cargo}};

@@ -547,7 +547,8 @@ body.cine #tip,body.cine #boss,body.cine #pwr,body.cine #combo{opacity:0!importa
 body:has(#menu:not([hidden])) :is(.hud,.mk,#flare,#fxLayer,#hatchInd,#repPrompt,[id^="zi"]){visibility:hidden!important}
 #menuArt img{display:block;position:absolute;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
 .mL{position:absolute;inset:0}
-#mTopW{z-index:4}#mDropC{z-index:2;clip-path:inset(37.097% -20% -20% -20%)}#mMidW{z-index:1}#mBotW{z-index:2}#mFx{z-index:5;pointer-events:none}#mLogoW{z-index:6}
+#mTopW{z-index:4}#mDropC{z-index:2;clip-path:inset(37.097% -20% -20% -20%)}
+#mTopW,#mFx{pointer-events:none}#menuGo{pointer-events:auto} /* v59: the top bar art lies over the PLAY button; mouse clicks must reach the button */#mMidW{z-index:1}#mBotW{z-index:2}#mFx{z-index:5;pointer-events:none}#mLogoW{z-index:6}
 #mTop{left:-0.525%;top:14.839%;width:101.165%;height:40.637%}#mMid{left:-1.261%;top:30.839%;width:102.243%;height:51.298%}#mBot{left:3.466%;top:62.903%;width:92.743%;height:37.975%}
 #mLogoW{position:absolute;left:30.042%;top:0.000%;width:39.863%;height:33.065%;transform-origin:50% 50%}
 #mLogoW>*{position:absolute;inset:0;width:100%!important;height:100%!important}

@@ -29,7 +29,7 @@ body:has(#boss:not([hidden])) #mAlert{top:calc(env(safe-area-inset-top,0px) + 13
 body.ended #mAlert,body.ended #mFeed,body.cine #mAlert,body.cine #mFeed{visibility:hidden}
 /* tutorial line and control tips: small, on the left, under the feed */
 body.hm #tut,body.hm #tip{left:calc(env(safe-area-inset-left,0px) + 16px)!important;right:auto!important;top:46%!important;bottom:auto!important;
-  transform:none!important;max-width:31vw!important;width:auto!important;text-align:left!important;white-space:normal!important}
+  transform:none!important;max-width:min(25vw,230px)!important;width:auto!important;text-align:left!important;white-space:normal!important}
 body.hm #tut,body.hm #tip{font-family:'Saira Condensed','Arial Narrow',system-ui,sans-serif!important;letter-spacing:.02em!important;line-height:1.18!important}
 body.hm #tut{font-size:12px!important;font-weight:600;color:#f4e2b8}
 body.hm #tip{flex-wrap:wrap;align-items:baseline;gap:4px 6px!important}

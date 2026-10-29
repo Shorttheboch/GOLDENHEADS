@@ -5,7 +5,8 @@
 //  - las barras anulan dos reglas globales del juego (.bar inclinada con borde, .bar>i con altura 100 %);
 //  - los números usan el separador de miles del idioma (1.000 / 1,000), como el resto del juego;
 //  - weld({band:false}) oculta la franja dorada en las soldaduras cortas; enemies(n, texto) permite RESPIRO / CALMA;
-//  - v63: el cartel RONDA n es más pequeño y está más arriba (27 % en vez de 34 %), para tapar menos el juego.
+//  - v63: el cartel RONDA n es más pequeño y está más arriba (27 % en vez de 34 %), para tapar menos el juego;
+//    FUGAS y POR RESCATAR van sin recuadro.
 // Los textos en castellano los traduce el bloque i18n del juego (public/i18n.js) cuando se juega en inglés.
 (function () {
   // Todo el HUD se dibuja en "unidades de diseño" sobre una pantalla de referencia
@@ -83,6 +84,8 @@
 #hud-alerts .hp{position:relative;flex:none;height:${u(56)};padding:0 ${u(22)};display:flex;align-items:center;gap:${u(10)};
   font-size:${u(27)};white-space:nowrap;text-shadow:0 ${u(2)} 0 #000}
 #hud-alerts .hp.off{display:none}
+#hud-alerts .hp>svg.fr{display:none} /* v63 (Santi): FUGAS / POR RESCATAR without a frame */
+#hud-alerts .hp{text-shadow:0 ${u(2)} 0 #000,0 0 ${u(10)} rgba(0,0,0,.9)}
 #hud-alerts .hp.pop{animation:hudPop .35s ease-out}
 #hud-fuga{color:var(--red)}
 #hud-fuga svg:not(.fr){width:${u(40)};height:${u(36)};animation:hudPulse .9s ease-in-out infinite}

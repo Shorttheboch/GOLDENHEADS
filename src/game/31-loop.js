@@ -290,7 +290,7 @@ function tick(){const _qa0=performance.now();
     {const el=$('scoreN');if(el.textContent!==String(score)){if(+el.textContent<score){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}el.textContent=score;}}$('ptsN').textContent=pts;updateDash(t,loose);updateHud4(dt,t);updateTip(dt);
     if(TUT.timer>0){TUT.timer-=dt;if(TUT.timer<=0){TUT.timer=0;if(TUT.q.length){const [k,d]=TUT.q.shift();showTut(k,d);}else resumeTut();}}
     if(P.tank){const T=P.tank;T.level=THREE.MathUtils.damp(Number.isFinite(T.level)?T.level:0,(P.carry||0)/CFG.tankCap,6,dt); // (carry is undefined on the menu: never let NaN stick)
-      const U=T.mat.uniforms;U.uLevel.value=T.level;U.uTime.value=t;U.uSuck.value=THREE.MathUtils.damp(U.uSuck.value,sucking||P.depActive?1:0,6,dt);T.fill.visible=T.level>0.004;T.glow.intensity=T.level>0.01?(sucking?0.45:0.2):0;}
+      const U=T.mat.uniforms;U.uLevel.value=T.level;U.uTime.value=t;U.uSuck.value=THREE.MathUtils.damp(U.uSuck.value,sucking||P.depActive?1:0,6,dt);T.fill.visible=T.level>0.004;if(P.scr){const S=P.scr.material.uniforms;S.uLevel.value=T.level;S.uTime.value=t;S.uSuck.value=U.uSuck.value;S.uGlow.value=QA.lvl>=4?0:1;} /* v64 backpack screen */T.glow.intensity=T.level>0.01?(sucking?0.45:0.2):0;}
     if(msgT>0){msgT-=dt;if(msgT<=0)$('msg').style.opacity=0;}
   }else{updateFX(dt);
     if(P.model){const a=t*0.22;camera.position.set(P.pos.x+Math.sin(a)*3.3,P.pos.y+0.8,P.pos.z+Math.cos(a)*3.3);camera.lookAt(P.pos.x,P.pos.y+0.35,P.pos.z);}}

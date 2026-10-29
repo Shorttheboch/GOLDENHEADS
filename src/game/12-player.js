@@ -61,7 +61,31 @@ function setupAstronaut(gltf){
    const fill=new THREE.Mesh(g,mat);piv.add(fill);
    const glow=new THREE.PointLight(0xffb040,0,0.9,2);glow.position.set(0,0.117,-0.12);piv.add(glow);
    piv.updateMatrixWorld(true);P.bones.Spine2.attach(piv);
-   P.tank={piv,fill,mat,glow,base:piv.scale.clone(),level:0};}
+   P.tank={piv,fill,mat,glow,base:piv.scale.clone(),level:0};
+   // v64 (Santi): charge screen in the recessed panel under the glass (Blender "backpack": x -0.1015..0.1222, y 0.3486, z 1.0984..1.2407, facing +Y = backwards).
+   // A simple load bar (load, not a battery): black when the tank is empty, the blue bar fills left to right and the light grows with the load;
+   // full = all lit and pulsing. Soft glow around the bar (off on the lowest quality levels; the bloom adds more where the device can afford it). PC and phone.
+   {const sm=new THREE.ShaderMaterial({uniforms:{uLevel:{value:0},uTime:{value:0},uSuck:{value:0},uGlow:{value:1}},
+      vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:`uniform float uLevel,uTime,uSuck,uGlow;varying vec2 vUv;
+        float sdBox(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
+        void main(){vec2 p=(vUv-0.5)*vec2(1.6,1.);float lv=clamp(uLevel,0.,1.),full=step(0.985,lv),pulse=full*(0.5+0.5*sin(uTime*4.));
+          vec3 blue=vec3(0.04,0.36,1.);float light=lv*(0.85+0.15*uSuck)+0.4*pulse;
+          vec3 col=vec3(0.0015,0.002,0.004)+blue*(0.03*lv+0.05*pulse);         // the screen: black, a faint blue as it fills
+          col*=0.86+0.14*sin(vUv.y*260.);                                         // faint scanlines
+          float tr=sdBox(p,vec2(0.6,0.085),0.085);                               // the bar's track
+          col+=blue*smoothstep(0.01,0.,abs(tr)-0.008)*(0.04+0.55*light);       // thin outline, almost invisible when empty
+          float fx=(p.x+0.57)/1.14,inside=step(tr,-0.022),fill=inside*step(fx,lv);
+          float sheen=0.78+0.22*sin(fx*36.-uTime*(3.+uSuck*9.));                 // a slow shimmer running along the load
+          col+=blue*fill*(0.55+0.5*lv)*sheen*(1.+0.6*pulse);
+          col+=vec3(0.45,0.82,1.)*inside*smoothstep(0.03,0.,abs(fx-lv))*step(0.01,lv)*(1.-full)*0.7; // brighter leading edge
+          col+=blue*exp(-max(tr,0.)*13.)*(0.22*lv+0.35*pulse)*0.65*uGlow;      // soft glow around the bar
+          gl_FragColor=vec4(col,1.);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`});
+    const scr=new THREE.Mesh(new THREE.PlaneGeometry(0.214,0.134),sm); // a hair inside the 0.224 x 0.142 recess, so its rim stays visible
+    scr.rotation.y=Math.PI;scr.position.set(0.0003,-0.1024,0.0239);piv.add(scr);P.scr=scr;}}
   // effector offset: grip head expressed in Hose_09 space (bind pose)
   const g=P.bones.Hose_Grip.getWorldPosition(new THREE.Vector3());P.hoseOff.copy(P.hose[9].worldToLocal(g.clone()));
   // nozzle points model-forward (+Z) in bind pose -> store in grip-local space

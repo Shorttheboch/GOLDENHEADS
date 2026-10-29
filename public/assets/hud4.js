@@ -13,6 +13,7 @@ export default {
  "icono-fuga": u("assets/ui/hud4/icono-fuga.webp"),
  "marcador-rescate": u("assets/ui/hud4/marcador-rescate.webp"),
  "mira": u("assets/ui/hud4/mira.webp"),
+ "mochila": u("assets/ui/hud4/mochila.webp"),
  "panel-mochila": u("assets/ui/hud4/panel-mochila.webp"),
  "panel-puntuacion": u("assets/ui/hud4/panel-puntuacion.webp"),
  "panel-traje-nave": u("assets/ui/hud4/panel-traje-nave.webp"),

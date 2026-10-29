@@ -71,7 +71,7 @@ EN={
 'SOLDAR':'WELD','EL CASCO':'THE HULL','ACELERÓN':'BOOST','RATÓN':'MOUSE','EL RATÓN':'THE MOUSE','LA RONDA YA':'THE ROUND NOW','MÚSICA / VOCES':'MUSIC / VOICES','PARA ESQUIVAR':'TO DODGE','LA PISTOLA':'THE PISTOL','RECARGAR':'RELOAD','MIRAR Y APUNTAR':'LOOK AND AIM','(MANTENER)':'(HOLD)','(O E)':'(OR E)','SUBIR':'UP','BAJAR':'DOWN','EMPEZAR':'START','SOLTAR':'RELEASE','ESPACIO':'SPACE','VER AL':'VIEW THE','ASTRONAUTA':'ASTRONAUT','UTILIDADES':'UTILITIES','MOVIMIENTO':'MOVEMENT','ACCIONES':'ACTIONS','PROPULSORES':'THRUSTERS',
 # --- tutorial fragments (fallback when a line is split by <b>) ---
 'Cuando una araña':'When a spider','se agacha y le brillan los ojos':'crouches and its eyes glow',', va a saltar: esquiva con':", it's about to jump: dodge with",
-'Las arañas':'The spiders','se comen la nave':'eat the ship','. Mira el estado de la':'. Watch the','(abajo a la izquierda) y elimínalas':'status (bottom left) and kill them',
+'Las arañas':'The spiders','se comen la nave':'eat the ship','. Mira el estado de la':'. Watch the','(arriba a la izquierda) y elimínalas':'status (top left) and kill them',
 'Su punto débil está':'Their weak spot is','entre los ojos':'between the eyes',': headshot = doble daño y más puntos':': headshot = double damage and more points',
 'La':'The','bodega':'hold','está destruida: repárala para poder entregar tricomas':'is destroyed: repair it to be able to deliver trichomes',
 }
@@ -103,7 +103,6 @@ P=[
 # tutorial lines, translated whole (they carry <b> markup)
 H={
  '¡Arañas en el casco! <b>Clic izquierdo</b> para dispararles':'Spiders on the hull! <b>Left click</b> to shoot them',
- 'Las arañas <b>se comen la nave</b>. Mira el estado de la <b>NAVE</b> (abajo a la izquierda) y elimínalas':'The spiders <b>eat the ship</b>. Watch the <b>SHIP</b> status (bottom left) and kill them',
  'Se escapan <b>tricomas</b>, tu carga: aspíralos con <b>clic derecho</b> o <b>E</b>. Sigue los <b>rombos dorados</b>: lo que flote <b>30 s</b> se pierde':
    '<b>Trichomes</b>, your cargo, are escaping: vacuum them with <b>right click</b> or <b>E</b>. Follow the <b>gold diamonds</b>: anything floating for <b>30 s</b> is lost',
  'Lleva los tricomas a la <b>bodega</b> (anillo verde): lo que esté <b>a bordo</b> al acabar la ronda suma puntos':'Take the trichomes to the <b>hold</b> (green ring): whatever is <b>aboard</b> when the round ends scores points',
@@ -163,6 +162,7 @@ EN.update({'TU MISIÓN':'YOUR MISSION','DEFIENDE':'DEFEND','Elimina arañas ante
 # ---- v62: phone HUD (Santi's design, src/hud/hud.js) ----
 EN.update({'ENEMIGO':'ENEMY','ENEMIGOS':'ENEMIES','s · RESPIRO':'s · BREATHER','s · CALMA':'s · CALM'})
 # ---- v63: phones, shorter messages (no Shift on a phone) ----
+H.update({'Las arañas <b>se comen la nave</b>.<br>Mira el estado de la <b>NAVE</b> y elimínalas':'The spiders <b>are eating the ship</b>.<br>Watch the <b>SHIP</b> status and take them out'})
 EN.update({'Mátala antes de que destroce la nave':'Kill it before it wrecks the ship',
  'Viene a por ti · su núcleo del pecho es el punto débil':"It's coming for you · the core in its chest is the weak spot"})
 # sanity: every tutorial line must exist verbatim in the game code

@@ -63,6 +63,9 @@ function updateHud4(dt,t){
   const full=P.carry>=CFG.tankCap,tk=$('hTank');tk.classList.toggle('full',full);tk.classList.toggle('dep',!!P.depActive);
   h4set('hTankS',P.depActive?'DESCARGANDO…':full?'LLENO · VE A BODEGA':P.carry>0?'LLÉVALOS A LA BODEGA':'TRICOMAS RECOGIDOS');
   $('hTankB').style.setProperty('--r',((1-P.carry/CFG.tankCap)*100).toFixed(1)+'%');
+  // v64 (PC): the tank as Santi's backpack icon in a gold ring + a bar
+  h4set('hTkN',P.carry+' / '+CFG.tankCap);$('hTkB').style.setProperty('--r',((1-P.carry/CFG.tankCap)*100).toFixed(1)+'%');
+  {const tk2=$('hTk');tk2.classList.toggle('full',full);tk2.classList.toggle('dep',!!P.depActive);}
   // rescue markers (count + countdown under 10 s) and the hold
   HUD4.clT-=dt;if(HUD4.clT<=0){HUD4.clT=0.25;HUD4.cl=clusterLoose();}else for(const c of HUD4.cl)c.z-=FLOW.dz;
   let i=0;

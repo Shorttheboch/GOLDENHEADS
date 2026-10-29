@@ -5,7 +5,7 @@ function queueTut(k,d){if(TUT.cur&&TUT.cur!=='shoot'&&TUT.timer>1.2){if(!TUT.q.s
 // touch versions of the hints that name keys (v54)
 const TUT_T={
   shoot:'¡Arañas en el casco! Mantén <b>DISPARAR</b> y arrástralo para apuntar',
-  eat:'Las arañas <b>se comen la nave</b>. Mira el estado de la <b>NAVE</b> (arriba a la izquierda) y elimínalas',
+  eat:'Las arañas <b>se comen la nave</b>.<br>Mira el estado de la <b>NAVE</b> y elimínalas', // v63 (Santi): shorter on the phone, the ship status is right there
   leak:'Se escapan <b>tricomas</b>, tu carga: <b>pasa cerca</b> y la manguera los aspira sola. Sigue los <b>rombos dorados</b>: lo que flote <b>30 s</b> se pierde',
   deliver:'Lleva los tricomas a la <b>bodega</b> (anillo verde) o <b>toca su icono</b> para ir solo: lo que esté <b>a bordo</b> al acabar la ronda suma puntos',
   repairTime:'Aprovecha el respiro: <b>toca una ROTURA</b> o acércate a ella y se suelda sola',
@@ -17,7 +17,7 @@ const TIPS_T={shoot:{k:['DISPARAR'],t:'DISPARAR',s:'Mantén el botón y arrástr
   weld:{k:['CERCA'],t:'QUÉDATE CERCA DE LA ROTURA',s:'Se suelda sola si la miras · toca la barra en la franja dorada'}};
 const tutTxt=k=>({
   shoot:'¡Arañas en el casco! <b>Clic izquierdo</b> para dispararles',
-  eat:'Las arañas <b>se comen la nave</b>. Mira el estado de la <b>NAVE</b> (abajo a la izquierda) y elimínalas',
+  eat:'Las arañas <b>se comen la nave</b>. Mira el estado de la <b>NAVE</b> (arriba a la izquierda) y elimínalas', // v64: TRAJE/NAVE is now at the top on PC too
   leak:'Se escapan <b>tricomas</b>, tu carga: aspíralos con <b>clic derecho</b> o <b>E</b>. Sigue los <b>rombos dorados</b>: lo que flote <b>30 s</b> se pierde',
   deliver:'Lleva los tricomas a la <b>bodega</b> (anillo verde): lo que esté <b>a bordo</b> al acabar la ronda suma puntos',
   mult:'Cuanto más <b>dañada</b> está la nave, más rápido se escapan los tricomas: <b>suelda</b> las roturas para frenar la fuga',

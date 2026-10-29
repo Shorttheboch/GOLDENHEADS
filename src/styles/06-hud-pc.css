@@ -1,0 +1,25 @@
+/* v64 (PC, Santi): TRAJE/NAVE and PUNTUACIÓN bigger, at the top and further in from the corners
+   (on wide screens the corners are far from where you look); prize timers under the score; the tank as an icon + a bar.
+   --hx: side margin. On very wide screens the panels sit inside a 2.3:1 frame around the centre; on normal screens ~2 % of the height. */
+:root{--hx:max(2.2vh,calc((100vw - 230vh) / 2 + 2vh));--ht:calc(3vh + env(safe-area-inset-top,0px));--scw:clamp(220px,30vh,420px)}
+body:not(.touch) #hVit{left:var(--hx);top:var(--ht);bottom:auto;width:clamp(300px,46vh,660px)}
+body:not(.touch) #hScore{right:var(--hx);top:var(--ht);width:var(--scw)}
+body:not(.touch) #pwr{right:var(--hx)!important;top:calc(var(--ht) + var(--scw) * 250 / 460 + 1.2vh)!important}
+/* tank: Santi's backpack in a black circle with a gold ring, the load as a bar */
+body:not(.touch) #hTank{display:none}
+#hTk{display:none}
+body:not(.touch) #hTk{container-type:normal;display:flex;align-items:center;gap:1.3vh;right:var(--hx);bottom:calc(3vh + env(safe-area-inset-bottom,0px));font-size:clamp(13px,2vh,24px)}
+#hTk .tkR{display:flex;flex-direction:column;align-items:flex-end;gap:.7vh}
+#hTk b{font-weight:800;letter-spacing:.05em;font-variant-numeric:tabular-nums;color:#fff7de}
+#hTk .tkT{position:relative;width:24vh;min-width:160px;height:1.7vh;min-height:11px;border-radius:99px;background:rgba(0,0,0,.6);
+  box-shadow:inset 0 0 0 1px rgba(232,182,74,.75),0 0 0 1px rgba(0,0,0,.8)}
+#hTk .tkT .seg{inset:2px}
+#hTk .tkIc{flex:none;width:9vh;height:9vh;min-width:64px;min-height:64px;border-radius:50%;display:grid;place-items:center;border:max(3px,.35vh) solid transparent;
+  background:radial-gradient(circle at 50% 38%,#1c1915,#050404 72%) padding-box,linear-gradient(160deg,#fff0b0,#c8901f 42%,#6e440c 68%,#ffd76a) border-box;
+  box-shadow:0 0 0 1px #000,0 .5vh 1.4vh rgba(0,0,0,.65)}
+#hTk .tkIc img{height:70%;width:auto;max-width:70%;object-fit:contain;filter:drop-shadow(0 .2vh .3vh rgba(0,0,0,.85))}
+#hTk.full b{color:#ffcf4a;animation:ablink .7s steps(2) infinite}
+#hTk.full .tkIc{animation:tkPulse .7s ease-in-out infinite alternate}
+#hTk.full .tkT{box-shadow:inset 0 0 0 1px #ffd76a,0 0 1.2vh rgba(255,200,60,.85)}
+#hTk.dep b{color:#7fffd0}
+@keyframes tkPulse{to{box-shadow:0 0 0 1px #000,0 0 2.4vh rgba(255,200,60,.95)}}

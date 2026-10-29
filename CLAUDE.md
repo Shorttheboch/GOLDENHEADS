@@ -5,7 +5,7 @@ Juego web **HEADS Rescate Dorado** de Santi: un astronauta dorado defiende su na
 ## Dónde está cada cosa
 Desde v61 el proyecto se compila con Vite (`npm run build` → `dist/`; Netlify hace lo mismo).
 - `index.html`: el marcado de la página.
-- `src/game/NN-nombre.js`: el código del juego en 32 piezas. Comparten un solo ámbito: el plugin `heads-game` de `vite.config.js` las concatena por orden de nombre, igual que el antiguo `<script type="module">` único. No uses `import`/`export` entre piezas; una pieza nueva va con el número que le toque.
+- `src/game/NN-nombre.js`: el código del juego en piezas (33 desde v62). Comparten un solo ámbito: el plugin `heads-game` de `vite.config.js` las concatena por orden de nombre, igual que el antiguo `<script type="module">` único. No uses `import`/`export` entre piezas; una pieza nueva va con el número que le toque.
 - `src/styles/NN-*.css`: el CSS en el orden de cascada original (los importa `src/main.js`).
 - `src/hud/hud.js`: HUD de móvil de Santi (v62, todo por código, `window.HUD`); lo conecta `src/game/32-hud-movil.js` y solo se monta en táctil.
 - `public/i18n.js`: script clásico que corre antes del juego (bloque i18n ES/EN, selector de idioma y menú de PC). three.js viene de npm (versión fija 0.170.0).

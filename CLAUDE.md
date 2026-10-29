@@ -10,8 +10,10 @@ Juego web **HEADS Rescate Dorado** de Santi: un astronauta dorado defiende su na
 
 ## Cómo publicar
 - Este repositorio es la versión buena. Las carpetas antiguas `F:\AI\HEADS\JUEGO\game` y `web` quedan como copia.
-- Push a `main` = publicación en https://heads-rescate-dorado.netlify.app. En el plan gratis de Netlify cada publicación gasta 15 de 300 créditos al mes.
+- Push a `main` = publicación en https://heads-rescate-dorado.netlify.app. Santi tiene el plan Personal de Netlify: 1.000 créditos al mes; cada publicación gasta 15 y cada GB servido 20.
 - Trabaja en una rama. Cada rama o pull request tiene su vista previa gratis. Pasa a `main` solo cuando Santi lo apruebe.
+- Para subir solo documentación sin publicar, pon `[skip netlify]` en el mensaje del commit.
+- `RANK_SECRET` está solo en Production: las vistas previas no guardan partidas en el ranking.
 - Ninguna clave en el repositorio. `RANK_SECRET` (y en el futuro las de Supabase) van en las variables de entorno de Netlify.
 
 ## Reglas del juego

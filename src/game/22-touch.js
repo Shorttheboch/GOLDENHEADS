@@ -43,6 +43,7 @@ function tcReset(){TC.stickId=TC.lookId=TC.fireId=null;st.x=st.y=0;TC.mag=0;TC.b
  for(const btn of $('tPauseM').querySelectorAll('button'))btn.addEventListener('click',e=>{e.stopPropagation();const a=btn.dataset.a;
    if(a==='go')tcSetPause(false);
    else if(a==='next'){if(inBreak||WB.calm){skipReq=true;tcSetPause(false);}}
+   else if(a==='tut'){mtutAgain();} // v66: see the tutorial again
    else if(a==='mus'){musicOn=!musicOn;tcPauseLabels();}
    else if(a==='vo'){voOn=!voOn;if(!voOn&&voSrc){try{voSrc.stop();}catch(_){}$('sub').classList.remove('show');if(MHUD.on)window.HUD.hideSay();}tcPauseLabels();}});
  // perfect weld: tap the weld bar while the fill is inside the golden band (a miss just keeps welding)

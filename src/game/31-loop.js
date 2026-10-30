@@ -33,7 +33,7 @@ function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.text
  else if(QA.on&&!isTouch){if(/swiftshader|basic render|llvmpipe|softpipe/i.test(QA.gpu))qaSet(4);else if(/intel|radeon\(tm\)|radeon graphics|vega/i.test(QA.gpu)&&!/\barc\b/i.test(QA.gpu))qaSet(2);}}
 qaHud();
 function tick(){const _qa0=performance.now();
-  if(TC.paused&&state==='play'){clock.getDelta();tcOrientTick();if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);return;} // touch pause
+  if((TC.paused||MTUT.on)&&state==='play'){clock.getDelta();tcOrientTick();if(MTUT.on)mtutFrame();if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);return;} // touch pause · v66 phone tutorial
   const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;let dt=rdt;if(hitStop>0){hitStop-=rdt;dt=rdt*0.12;} // tiny freeze on kills
   FLOW.dz=(state==='play'||state==='menu')?CFG.worldV*dt:0;
   for(const [o,sp] of ROTORS)o.rotation.z+=sp*dt;
@@ -314,7 +314,7 @@ function tick(){const _qa0=performance.now();
   updateMusic();
   // camera shake on top of the follow camera (re-copied from camPos every frame, so it never accumulates)
   if(shakeAmp>0.002){camera.position.x+=(Math.random()-0.5)*shakeAmp;camera.position.y+=(Math.random()-0.5)*shakeAmp;camera.position.z+=(Math.random()-0.5)*shakeAmp;shakeAmp*=Math.exp(-dt*10);}
-  tcFrame();mhudFrame();qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
+  tcFrame();mhudFrame();mtutTick();qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
 camera.position.set(14,4,16);camera.lookAt(0,0,0);
 requestAnimationFrame(tick);
 window.__renderer=renderer;window.__GRADE=GRADE;window.__heads={get CINE(){return CINE},spawnCloud,shipClear,BELT,DUST,get leakMult(){return leakMult()},ROCKS,rockAt,landOnRock,get ammo(){return P.ammo},EGGS,layEgg,tryLayEgg,P,spiders,CLOUDS,killSpider,spawnSpider,spawnSpitter,spitAcid,ACID,hullBlocked,stats,inp,get lost(){return lostN;},get pts(){return pts},PU,DROPS,spawnDrop,applyPU,WB,get cargo(){return cargo}};

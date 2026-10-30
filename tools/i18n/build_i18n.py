@@ -12,6 +12,10 @@ rd=lambda p:open(p,encoding='utf-8').read()
 b=rd(os.path.join(ROOT,'index.html'))+''.join(rd(f) for f in sorted(glob.glob(os.path.join(ROOT,'src','game','*.js'))))+rd(I18N_JS)
 
 EN={
+# --- v66 phone tutorial ---
+'MUÉVETE':'MOVE','MIRA Y DISPARA':'AIM AND SHOOT','RECOGE Y DEPOSITA':'COLLECT AND DEPOSIT','TRAJE Y NAVE':'SUIT AND SHIP',
+'PULGAR IZQUIERDO':'LEFT THUMB','ARRASTRA = GIRAS':'DRAG = TURN','MANTÉN':'HOLD','TOCA PARA SEGUIR':'TAP TO CONTINUE',
+'¡A JUGAR!':"LET'S PLAY!",'CÓMO SE JUEGA':'HOW TO PLAY',
 # --- HUD ---
 'TRICOMAS':'TRICHOMES','TRICOMAS ·':'TRICHOMES ·','TRICOMAS A BORDO':'TRICHOMES ABOARD','TRICOMAS RECOGIDOS':'TRICHOMES COLLECTED',
 'PUNTUACIÓN':'SCORE','BAJAS':'KILLS','TANQUE':'TANK','TRAJE':'SUIT','NAVE':'SHIP','RACHA':'STREAK','RECARGANDO':'RECHARGING',
@@ -102,6 +106,18 @@ P=[
 ]
 # tutorial lines, translated whole (they carry <b> markup)
 H={
+ # v66 phone tutorial
+ '<b>Pulgar izquierdo</b>: empuja para moverte.':'<b>Left thumb</b>: push to move.',
+ '<b class="c">Doble empuje</b> = acelerón.':'<b class="c">Double push</b> = boost.',
+ '<b>Arrastra</b> a la derecha para girar.':'<b>Drag</b> on the right to turn.',
+ '<b>Mantén DISPARAR</b> y desliza para apuntar.':'<b>Hold SHOOT</b> and slide to aim.',
+ 'Es tu carga: <b>mantén la barra llena</b>.':"It's your cargo: <b>keep the bar full</b>.",
+ 'Si llega a <b class="r">0, pierdes</b>.':'If it hits <b class="r">0, you lose</b>.',
+ '<b>1</b> Pasa cerca: se aspiran solos.':'<b>1</b> Fly close: they get vacuumed up.',
+ '<b>2</b> Llévalos a la <b class="c">BODEGA</b>.':'<b>2</b> Take them to the <b class="c">HOLD</b>.',
+ '<b>TRAJE</b>: tu vida.':'<b>SUIT</b>: your life.',
+ '<b>NAVE</b>: mata las arañas y suelda las roturas.':'<b>SHIP</b>: kill the spiders and weld the breaches.',
+ 'Si alguno llega a <b class="r">0, pierdes</b>.':'If either hits <b class="r">0, you lose</b>.',
  '¡Arañas en el casco! <b>Clic izquierdo</b> para dispararles':'Spiders on the hull! <b>Left click</b> to shoot them',
  'Se escapan <b>tricomas</b>, tu carga: aspíralos con <b>clic derecho</b> o <b>E</b>. Sigue los <b>rombos dorados</b>: lo que flote <b>30 s</b> se pierde':
    '<b>Trichomes</b>, your cargo, are escaping: vacuum them with <b>right click</b> or <b>E</b>. Follow the <b>gold diamonds</b>: anything floating for <b>30 s</b> is lost',

@@ -11,7 +11,7 @@ Desde v61 el proyecto se compila con Vite (`npm run build` → `dist/`; Netlify 
 - `public/i18n.js`: script clásico que corre antes del juego (bloque i18n ES/EN, selector de idioma y menú de PC). three.js viene de npm (versión fija 0.170.0).
 - `public/assets/`: archivos reales (`models/*.glb`, `sfx/`, `vo/es`, `vo/en`, `ui/<kit>/`, `opening.mp4`). Los `.js` de esa carpeta son listas con las mismas claves de antes; las de `ui/` dan URL absolutas porque algunas acaban en variables CSS.
 - `netlify/functions/ranking.mts`: ranking online. El juego llama a `/api/run` y `/api/scores` con rutas relativas.
-- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión publicada: **v65** (30-10, incluye v63–v64). En la rama `v66-tutorial-movil`: **v66**, tutorial en partida para móvil (`src/game/33-tutorial-movil.js`, `src/styles/07-tutorial-movil.css`).
+- Diseño, historial de versiones y decisiones: doc `claude/heads-juego-diseno-gameplay.md` del proyecto HEADS en claude.ai. Versión publicada: **v65** (30-10, incluye v63–v64). En la rama `v66-tutorial-movil`: **v66**, tutorial en partida para móvil (`src/game/33-tutorial-movil.js`, `src/styles/07-tutorial-movil.css`), y **v67**, Incineradora más fácil y más viva.
 
 ## Cómo publicar
 - Este repositorio es la versión buena. Las carpetas antiguas `F:\AI\HEADS\JUEGO\game` y `web` quedan como copia.
@@ -30,6 +30,6 @@ Desde v61 el proyecto se compila con Vite (`npm run build` → `dist/`; Netlify 
 
 ## Antes de subir
 - `npm run build` sin errores (comprueba la sintaxis del juego y de `public/i18n.js`).
-- Pruebas automáticas: `npm run build:test` y `tools/run-test.sh dist-test tools/tests/<prueba>.cjs` (`pc-game`, `touch`, `phone-menu`, `phone-hud`, `phone-clean`, `phone-balance`, `phone-tutorial`, `pc-hud`, `assets`, `ios-audio`). Las pruebas no ven el tutorial salvo que pongan `window.__noTut=0`; con la compilación real, `tools/run-test.sh dist tools/tests/pc-menu-real.cjs`. Los ganchos de prueba están en `tools/test-hooks.json`: si cambias el código que usan como ancla, la compilación de prueba avisa.
+- Pruebas automáticas: `npm run build:test` y `tools/run-test.sh dist-test tools/tests/<prueba>.cjs` (`pc-game`, `touch`, `phone-menu`, `phone-hud`, `phone-clean`, `phone-balance`, `phone-tutorial`, `incinerator`, `pc-hud`, `assets`, `ios-audio`). Las pruebas no ven el tutorial salvo que pongan `window.__noTut=0`; con la compilación real, `tools/run-test.sh dist tools/tests/pc-menu-real.cjs`. Los ganchos de prueba están en `tools/test-hooks.json`: si cambias el código que usan como ancla, la compilación de prueba avisa.
 - Jugar una partida en PC. Si tocas lo táctil, probar también en emulación móvil horizontal (844×390) con varios dedos.
 - No reproducir audio en voz alta en el navegador de Santi.

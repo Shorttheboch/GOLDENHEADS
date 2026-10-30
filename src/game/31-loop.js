@@ -81,7 +81,7 @@ function tick(){const _qa0=performance.now();
     camPos.lerp(want,1-Math.exp(-12*dt));camera.position.copy(camPos);camera.lookAt(pivot.clone().addScaledVector(fc,20*(1-w)+0.01));
     if(CINE.on){if(CINE.mode==='boss')bossCam(dt);else{CINE.nPos.copy(camPos);CINE.nLook.copy(pivot).addScaledVector(fc,20);cineCam(dt);}}
     // lens feel: a short zoom kick on the dash, and a slow, tiny hand-held drift
-    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=62+fovK;if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
+    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=CINE.on&&CINE.fov?CINE.fov:62+fovK; /* v67: a cinematic can set its own lens */if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
     if(!window.__camOv){camera.rotateX(Math.sin(t*0.83)*0.0015+Math.sin(t*2.1)*0.0005);camera.rotateY(Math.sin(t*0.61+1.3)*0.0017+Math.sin(t*1.7)*0.0005);}
     $('cross').style.visibility=w>0.3?'hidden':'';camFill.intensity=0.6+1.3*w;
     if(window.__camOv){camera.position.copy(P.pos).add(window.__camOv);camera.lookAt(P.pos.clone().add(window.__camLook||new THREE.Vector3()));}

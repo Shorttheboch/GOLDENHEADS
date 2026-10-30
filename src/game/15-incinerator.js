@@ -5,7 +5,7 @@
 const INC_SC=3.0,INCS=[];let incN=0;
 const isIncRound=i=>i>=7&&(i-7)%3===0;
 const INC_SND={},INC_FX={beamOn:0,aimOn:0,aimO:new THREE.Vector3(),aimD:new THREE.Vector3()};
-const _j1=new THREE.Vector3(),_j2=new THREE.Vector3(),_j3=new THREE.Vector3(),_j4=new THREE.Vector3(),_j5=new THREE.Vector3(),_j6=new THREE.Vector3(),_jm=new THREE.Matrix4();
+const _jq1=new THREE.Quaternion(),_jq2=new THREE.Quaternion(),_j1=new THREE.Vector3(),_j2=new THREE.Vector3(),_j3=new THREE.Vector3(),_j4=new THREE.Vector3(),_j5=new THREE.Vector3(),_j6=new THREE.Vector3(),_jm=new THREE.Matrix4();
 {const g=new THREE.CylinderGeometry(1,1,1,18,1,true);g.translate(0,0.5,0);g.rotateX(Math.PI/2); // unit beam along +Z
  const mk=(w,a)=>new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,uniforms:{uT:{value:0},uA:{value:0}},
    vertexShader:`varying vec3 vN,vV,vX;varying float vZ;void main(){vZ=position.z;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);vX=normalize((modelViewMatrix*vec4(0.,0.,1.,0.)).xyz);gl_Position=projectionMatrix*mv;}`,
@@ -31,7 +31,7 @@ function spawnInc(cine){const B=makeBiped(INC_SC);if(!B)return null;incN++;const
   const e={isInc:true,B,mesh:B.g,gen:incN,pos:new THREE.Vector3(),n:new THREE.Vector3(),face:new THREE.Vector3(),vel:new THREE.Vector3(),aim:new THREE.Vector3(),z:0,th:0,hop:0,
     hp:0,maxHp:0,st:'fall',state:'fall',t:0,cds:{beam:2.0,leap:5,melee:0,guard:0,stag:0,hop:3},roam:null,roamT:0,front:[],stagAcc:0,coreHit:0,flash:0,hs:[],side:Math.random()<0.5?1:-1,sideT:2,
     lookH:0.5,topH:1.15,camD:7.5};
-  e.hp=e.maxHp=Math.round(95*(1+0.25*k));
+  e.hp=e.maxHp=Math.round(50*(1+0.2*k)); // v67: 95 -> 50 (+20 % each time, was +25 %): Santi found it far too strong
   e.bHead=incBone(B,'head');e.bChest=incBone(B,'chest');
   e.bBody=['pelvis','spine','chest','hump','abdomen.02','abdomen.03','abdomen.04','thigh.L','thigh.R'].map(n=>incBone(B,n));e.rBody=[0.15,0.14,0.15,0.12,0.2,0.18,0.16,0.1,0.1];
   $('boss').firstChild.textContent='INCINERADORA'+(incN>1?' '+['','II','III','IV','V','VI'][Math.min(5,k)]:'');
@@ -43,7 +43,7 @@ function spawnInc(cine){const B=makeBiped(INC_SC);if(!B)return null;incN++;const
   scene.add(B.g);incPlace(e);B.play('Idle',0);B.update(0.01);B.g.updateMatrixWorld(true);
   e.coreL=e.bChest.worldToLocal(e.bChest.getWorldPosition(new THREE.Vector3()).addScaledVector(e.face,0.075*INC_SC).addScaledVector(e.n,0.02*INC_SC));
   e.fall={tgt:e.pos.clone(),n:e.n.clone(),v:cine?14:18,cine};e.pos.addScaledVector(e.n,cine?48:46);B.play('ZeroG_Float',0);incPlace(e);INCS.push(e);
-  if(cine){for(const sh of shards)sh.visible=false;CINE.on=true;CINE.mode='boss';CINE.t=0;CINE.dur=5.0;CINE.boss=e;document.body.classList.add('cine');}
+  if(cine){for(const sh of shards)sh.visible=false;CINE.on=true;CINE.mode='boss';CINE.t=0;CINE.dur=5.6;CINE.boss=e;document.body.classList.add('cine');}
   else showMsg('¡CUIDADO ARRIBA!','La Incineradora cae sobre la nave',2);
   return e;}
 // stand on the hull: up = hull normal, facing kept in the tangent plane
@@ -64,10 +64,11 @@ function incBeamSnd(on){if(!AC)return;
   if(on&&!INC_SND.s){if(SFXB&&SFXB.laserLoop){const g=AC.createGain();g.gain.value=0;g.connect(master);g.gain.setTargetAtTime(0.6,AC.currentTime,0.02);INC_SND.g=g;INC_SND.s=loopSrc(SFXB.laserLoop[0],(SFXL&&SFXL.laserLoop)||2.5,g);}else sfx('zap');}
   if(!on&&INC_SND.s){try{INC_SND.g.gain.setTargetAtTime(0,AC.currentTime,0.05);INC_SND.s.stop(AC.currentTime+0.4);}catch(err){}INC_SND.s=null;}}
 function incStalk(e){e.st='stalk';e.t=0;e.hop=0;}
-// a new spot on the hull around you: anywhere from 5 to 17 m along the ship and up to ~65 degrees around it
+// a new spot on the hull around you: anywhere from 6 to 18 m along the ship and up to ~65 degrees around it
+// v67 (Santi): far enough from where it stands that it RUNS there across the hull
 function incPickRoam(e){const hq=hullParam(P.pos);
-  for(let k=0;k<16;k++){const z=THREE.MathUtils.clamp(hq.z+(Math.random()<0.5?-1:1)*(5+Math.random()*12),-12,19),th=hq.th+THREE.MathUtils.randFloatSpread(2.3);
-    if(hullBlocked(z,th,2))continue;const n=new THREE.Vector3(),p=hullPoint(z,th,new THREE.Vector3(),n);if(p.distanceTo(e.pos)<6)continue;return {z,th,p,n};}
+  for(let k=0;k<16;k++){const z=THREE.MathUtils.clamp(hq.z+(Math.random()<0.5?-1:1)*(6+Math.random()*12),-12,19),th=hq.th+THREE.MathUtils.randFloatSpread(2.3);
+    if(hullBlocked(z,th,2))continue;const n=new THREE.Vector3(),p=hullPoint(z,th,new THREE.Vector3(),n);if(p.distanceTo(e.pos)<8)continue;return {z,th,p,n};}
   return null;}
 // long zero-g leap from one part of the ship to another: an arc a few metres over the hull
 function incHullLeap(e,R){e.st='hopTake';e.t=0;e.hopTo=R;e.B.play('ZeroG_Takeoff',0.15);}
@@ -86,13 +87,38 @@ function incLand(e){const F=e.fall;e.pos.copy(F.tgt);e.n.copy(F.n);e.fall=null;e
   const away=_j1.subVectors(P.pos,F.tgt),dd=away.length();if(dd<10&&dd>0.01)P.vel.addScaledVector(away.normalize(),12*(1-dd/10));
   showMsg('¡INCINERADORA!','Viene a por ti · esquiva el láser con Shift · su núcleo del pecho es el punto débil',3.4);say('inc_land',4);}
 // fly back down onto the hull after a leap (also used if it dies in the air)
+// v67 (Santi: "la animación de vuelta es muy dura"): a smooth curve that carries on from how it was moving and comes down onto the hull
+// gently; its back turns to the hull little by little over the whole trip (before: a straight line and a quick flip)
 function incBack(e,dt){
-  if(!e.tgt){const hp=hullParam(e.pos);const [z,th]=freeSpot(THREE.MathUtils.clamp(hp.z,-12,19),hp.th,2);e.tz=z;e.tth=th;e.tn=new THREE.Vector3();e.tgt=hullPoint(z,th,new THREE.Vector3(),e.tn);}
-  const d=_j1.subVectors(e.tgt,e.pos),L=d.length();e.vel.lerp(d.normalize().multiplyScalar(Math.min(16,4+e.t*14)),1-Math.exp(-4*dt));
-  e.pos.addScaledVector(e.vel,dt);e.n.lerp(e.tn,1-Math.exp(-5*dt)).normalize();
-  if(!e.lg&&e.st!=='dead'&&L<e.vel.length()*9/24){e.lg=1;e.B.play('ZeroG_LandGrip',0.12);}
-  if(L<Math.max(0.25,e.vel.length()*dt*1.2)){e.pos.copy(e.tgt);e.n.copy(e.tn);e.z=e.tz;e.th=e.tth;e.tgt=null;e.lg=0;e.vel.set(0,0,0);incStep(e,1.6);return true;}
+  if(!e.tgt){const hp=hullParam(e.pos);const [z,th]=freeSpot(THREE.MathUtils.clamp(hp.z,-12,19),hp.th,2);e.tz=z;e.tth=th;e.tn=new THREE.Vector3();e.tgt=hullPoint(z,th,new THREE.Vector3(),e.tn);
+    const v0=e.vel.clone();if(v0.length()>10)v0.setLength(10);e.bk={p0:e.pos.clone(),v0,n0:e.n.clone(),T:THREE.MathUtils.clamp(e.pos.distanceTo(e.tgt)/7,1.1,3.4),x:0};}
+  const K=e.bk,T=K.T;K.x=Math.min(1,K.x+dt/T);const x=K.x,x2=x*x,x3=x2*x;
+  // Hermite curve: leaves with its own speed, arrives dropping onto the hull at ~2 m/s
+  const p=_j1.copy(K.p0).multiplyScalar(2*x3-3*x2+1).addScaledVector(K.v0,(x3-2*x2+x)*T).addScaledVector(e.tgt,-2*x3+3*x2).addScaledVector(e.tn,-2.2*(x3-x2)*T);
+  e.vel.subVectors(p,e.pos).divideScalar(Math.max(dt,1e-4));e.pos.copy(p);
+  const sm=x*x*(3-2*x);_jq1.setFromUnitVectors(K.n0,e.tn);e.n.copy(K.n0).applyQuaternion(_jq2.identity().slerp(_jq1,sm)).normalize();
+  if(!e.lg&&e.st!=='dead'&&(1-x)*T<=9/24){e.lg=1;e.B.play('ZeroG_LandGrip',0.22);}
+  if(x>=1){e.pos.copy(e.tgt);e.n.copy(e.tn);e.z=e.tz;e.th=e.tth;e.tgt=null;e.bk=null;e.lg=0;e.vel.set(0,0,0);incStep(e,1.6);return true;}
   return false;}
+// v67 (Santi): its own entrance, not the spitter's. A higher lens watches it fall; after the impact the camera pushes in and zooms
+// to its face while it threatens and roars, looking slightly down at it.
+function incCam(dt){CINE.t+=dt;const s=CINE.boss;P.inv=Math.max(P.inv,1);P.vel.multiplyScalar(0.9);
+  if(s.st==='fall'&&CINE.t>=CINE.dur-0.75)incFall(s,99); // skipped before it landed: land now
+  if(!CINE.camN){const F=s.fall,tg=F?F.tgt:s.pos,hp=hullParam(tg);CINE.n=(F?F.n:UP).clone();
+    // wide lens ~10 m along the hull from where it lands and ~4.5 m up (the spitter's lens is low, looking up)
+    const n0=new THREE.Vector3(),foot=hullPoint(hp.z+10,hp.th+0.12,new THREE.Vector3(),n0),cam=new THREE.Vector3(),top=tg.clone().addScaledVector(CINE.n,1.2*INC_SC);
+    for(let h=4.5;h<9;h+=0.3){cam.copy(foot).addScaledVector(n0,h);if(hullClear(cam,tg)&&hullClear(cam,top))break;}
+    pushOutOfRocks(cam,1.5,null);CINE.camN=cam;CINE.camA=cam.clone();CINE.look=s.pos.clone();CINE.landT=-1;camPos.copy(cam);}
+  let fov=60;
+  if(s.fall){CINE.look.lerp(V2.copy(s.pos).addScaledVector(CINE.n,0.55*INC_SC),1-Math.exp(-20*dt));camPos.copy(CINE.camA);}
+  else{if(CINE.landT<0)CINE.landT=0;CINE.landT+=dt;const L=CINE.landT;if(L<0.6)shake(0.32*(1-L/0.6));
+    const head=s.bHead.getWorldPosition(V3),close=V1.copy(head).addScaledVector(s.face,3.3).addScaledVector(CINE.n,1.0); // in front of its face, a bit above
+    const k=THREE.MathUtils.smoothstep(L,0.45,1.9);camPos.copy(CINE.camA).lerp(close,k);fov=60-18*k;
+    CINE.look.lerp(V2.copy(s.pos).addScaledVector(CINE.n,0.55*INC_SC).lerp(head,k),1-Math.exp(-8*dt));}
+  camera.position.copy(camPos);
+  if(CINE.landT>=0&&CINE.landT<0.8){const k=CINE.landT;camera.position.addScaledVector(CINE.n,-0.35*Math.exp(-k*6)*Math.cos(k*26));} // the hull kicks under the lens
+  camera.lookAt(CINE.look);CINE.fov=fov;
+  if(CINE.t>=CINE.dur){for(const sh of shards)sh.visible=true;CINE.on=false;CINE.mode='';CINE.camN=null;CINE.boss=null;CINE.fov=0;document.body.classList.remove('cine');}}
 function incBeam(e,dt,t){const o=incCore(e,_j5).clone(),d=e.aim;let [L,ship]=incRayLen(o,d);
   // the astronaut anywhere near the beam line burns (and stops it)
   const pr=_j1.subVectors(P.pos,o),along=pr.dot(d),off=pr.addScaledVector(d,-along).length();
@@ -152,18 +178,18 @@ function incRay(p0,step,sl){let best=null;
   return best;}
 function incDamage(e,dmg,part,bvel,p){if(e.st==='dead'||e.st==='fall'||e.st==='gone')return;const bd=_j1.copy(bvel).normalize();
   const front=-bd.dot(e.face)>0.3,guard=(e.st==='guard'||e.st==='guardS')&&front,firing=e.st==='charge'||e.st==='beamStart'||e.st==='beam';
-  let m=part==='head'?2:part==='core'?(firing?3:1.25):1;if(guard)m=0.2;
+  let m=part==='head'?2:part==='core'?(firing?3:1.5):1;if(guard)m=0.5; // v67: the guard stops half (was 80 %), the core always hurts more
   const d=(PU.over>0?5:dmg)*m;e.hp-=d;e.flash=1;stats.hits++;addPts(PTS.hit);
   if(guard){burst(p,0xd8d0c0,6);sfx('hit',p);floatText(p.clone(),'BLOQUEADO','loss');}else if(m>=2){burst(p,0xffffff,10);sfx('crit',p);crossCrit();}else{burst(p,0xffc050,7);sfx('hit',p);crossHit();}
   if(e.hp<=0){killInc(e,m>=2);return;}
   // shot from the front again and again: it covers up with all four arms
   if(front&&!guard){e.front.push(playT);e.front=e.front.filter(x=>playT-x<1.3);
-    if(e.front.length>=3&&e.st==='stalk'&&e.cds.guard<=0){e.st='guardS';e.t=0;e.B.play('Guard_Start',0.1);e.cds.guard=6;e.front.length=0;return;}}
+    if(e.front.length>=4&&e.st==='stalk'&&e.cds.guard<=0){e.st='guardS';e.t=0;e.B.play('Guard_Start',0.1);e.cds.guard=9;e.front.length=0;return;}}
   // the core cracks while it charges or fires: it reels back and the beam dies
   if(part==='core'&&firing){e.coreHit+=d;if(e.coreHit>=7){incBeamSnd(false);e.st='hit';e.t=0;e.B.play('Hit_Front',0.08);e.cds.beam=3;e.cds.stag=2.5;return;}}
-  e.stagAcc+=d;if(e.stagAcc>=16&&e.cds.stag<=0&&e.st==='stalk'){e.stagAcc=0;e.cds.stag=3;const side=-bd.dot(_j2.crossVectors(e.n,e.face));
+  e.stagAcc+=d;if(e.stagAcc>=12&&e.cds.stag<=0&&e.st==='stalk'){e.stagAcc=0;e.cds.stag=3;const side=-bd.dot(_j2.crossVectors(e.n,e.face));
     e.st='hit';e.t=0;e.B.play(front?'Hit_Front':side>0?'Hit_Left':'Hit_Right',0.08);}}
-function killInc(e,crit){incBeamSnd(false);const air=e.st==='fly'||e.st==='back'||e.st==='hop';e.st='dead';e.t=0;e.hop=0;e.deadFly=air;
+function killInc(e,crit){incBeamSnd(false);const air=e.st==='swim'||e.st==='back'||e.st==='hop';e.st='dead';e.t=0;e.hop=0;e.deadFly=air;
   if(!e.deadFly)e.B.play(crit?'Death_Shot':'Death_Collapse',0.15);e.crit=crit;
   stats.incs=(stats.incs||0)+1;stats.kills++;addPts(800);comboBanner('¡INCINERADORA ABATIDA!','+'+ptsVal(800));say('inc_dead',4);
   const c=incCenter(e,new THREE.Vector3());floatText(c.clone(),(crit?'CRÍTICO +':'+')+ptsVal(800),'crit');
@@ -179,19 +205,19 @@ function updateInc(e,dt,t){const B=e.B;e.t+=dt;for(const k in e.cds)e.cds[k]-=dt
       const hq=hullParam(P.pos);hullPoint(hq.z,hq.th,_j5,_j6);const pH=_j1.subVectors(P.pos,_j5).dot(_j6); // how high you float above the hull
       const tan=toP.clone().addScaledVector(e.n,-toP.dot(e.n)),flat=tan.length();
       const core=incCore(e,new THREE.Vector3()),see=!shipBetween(core,P.pos)&&rockRay(core,_j2.subVectors(P.pos,core))<0;
-      const running=e.roam&&e.roam.p.distanceTo(e.pos)>7;const facing=running?e.face.dot(_j3.copy(tan).normalize()):incTurn(e,flat>0.3?tan:e.face,2.4,dt);
+      const running=e.roam&&e.roam.p.distanceTo(e.pos)>4.5;const facing=running?e.face.dot(_j3.copy(tan).normalize()):incTurn(e,flat>0.3?tan:e.face,2.4,dt);
       if(live){
         if(dist<4.6&&e.cds.melee<=0&&facing>0.4){incMelee(e,dist<3.3?'Bite':'JumpSlash');break;}
-        if(see&&e.cds.leap<=0&&dist>7&&dist<34&&pH>2.5){e.st='takeoff';e.t=0;B.play('ZeroG_Takeoff',0.15);break;}
+        if(see&&e.cds.leap<=0&&dist>6&&dist<70&&pH>2.5){e.st='takeoff';e.t=0;B.play('ZeroG_Takeoff',0.15);break;} // v67: also when you shoot it from far off the ship
         if(see&&e.cds.beam<=0&&dist<44&&dist>3.5){incCharge(e);break;}}
       // it never stands still: it keeps moving to new spots around you (running, walking or side-stepping while it stares at you)
       // and covers big distances with long leaps across the hull
-      e.roamT-=dt;if(!e.roam||e.roamT<=0||e.pos.distanceTo(e.roam.p)<2.2){e.roam=incPickRoam(e);e.roamT=5+Math.random()*4;}
+      e.roamT-=dt;if(!e.roam||e.roamT<=0||e.pos.distanceTo(e.roam.p)<2.2){e.roam=incPickRoam(e);e.roamT=4+Math.random()*3;}
       let spd=0,clip='Idle';const mdir=new THREE.Vector3();
       if(e.roam){const to=_j3.subVectors(e.roam.p,e.pos);to.addScaledVector(e.n,-to.dot(e.n));const dR=to.length();
-        if(live&&dR>11&&e.cds.hop<=0){incHullLeap(e,e.roam);e.roam=null;break;}
+        if(live&&dR>16&&e.cds.hop<=0){incHullLeap(e,e.roam);e.roam=null;break;} // long leaps only for the far ones: the rest it runs
         if(dR>0.5){mdir.copy(to).normalize();
-          if(dR>7){spd=5.0;clip='Run';incTurn(e,mdir,3.2,dt);} // running: it looks where it goes
+          if(dR>4.5){spd=6.5;clip='Run';incTurn(e,mdir,3.6,dt);} // running: it looks where it goes (v67: runs more, and faster)
           else{const fw=mdir.dot(e.face),lat=mdir.dot(_j4.crossVectors(e.n,e.face));
             if(Math.abs(lat)>Math.abs(fw)){spd=1.3;clip=lat>0?'Strafe_L':'Strafe_R';}else if(fw>0){spd=1.25;clip='Walk';}else{spd=1.25;clip='Walk';incTurn(e,mdir,3,dt);}}}}
       if(!live||!(spd>0&&incMove(e,mdir,spd,dt))){spd=0;clip='Idle';if(live&&e.roam)e.roamT=Math.min(e.roamT,0.5);}
@@ -205,15 +231,23 @@ function updateInc(e,dt,t){const B=e.B;e.t+=dt;for(const k in e.cds)e.cds[k]-=dt
         if(ft>8&&ft<22){const tg=toP.clone().addScaledVector(e.n,-toP.dot(e.n));if(tg.length()>2.5)incMove(e,tg.normalize(),3.2,dt);}}
       glow=2.4;if(B.done())incStalk(e);break;}
     case 'takeoff':incTurn(e,toP,3,dt);glow=2.2;
-      if(B.at(12)){const lead=P.pos.clone().addScaledVector(P.vel,0.35);e.vel.subVectors(lead,incCenter(e,_j1)).normalize().multiplyScalar(19);e.st='fly';e.t=0;B.play('ZeroG_Float',0.15);if(!(AC&&playS('tss',0.5,0.6)))sfx('dash');}
+      if(B.at(12)){e.vel.subVectors(P.pos,incCenter(e,_j1)).normalize().multiplyScalar(12);e.st='swim';e.t=0;e.sw={T:4.6+Math.random()*1.4,o:e.pos.clone(),ph:0};
+        B.play('ZeroG_Float',0.2);if(!(AC&&playS('tss',0.55,0.6)))sfx('dash');}
       break;
-    case 'fly':{const c=incCenter(e,new THREE.Vector3()),want=_j2.subVectors(P.pos,c),dl=want.length();
-      if(e.t<1.2){want.normalize().multiplyScalar(19);e.vel.lerp(want,1-Math.exp(-1.6*dt));} // homes in a little
-      e.pos.addScaledVector(e.vel,dt);e.face.copy(e.vel);glow=2.6;
-      if(live&&dl<2.8){damagePlayer(30,e.vel.clone());P.vel.addScaledVector(e.vel.clone().normalize(),9);shake(0.5);sfx('hit',P.pos);e.st='back';e.t=0;}
-      else if(e.t>2.2||rockAt(c,1.6)||pushOutOfShip(_j3.copy(c),1.2,null)){e.st='back';e.t=0;}
+    // v67 (Santi): it doesn't just lunge once. It swims through space after you with heavy strokes and claws at you up close,
+    // so floating far off the ship to shoot it from a distance is no longer safe. It can only stay out a few seconds, then it goes back.
+    case 'swim':{const c=incCenter(e,new THREE.Vector3()),want=_j2.subVectors(P.pos,c),dl=want.length(),S=e.sw;glow=2.4;
+      const ph=(e.t*1.55)%1,surge=ph<0.35?Math.sin(ph/0.35*Math.PI):0;if(ph<S.ph&&AC)playS('tss',0.2,0.55+Math.random()*0.1);S.ph=ph; // a surge (and a puff) every ~0.65 s
+      const spd=(e.atk?3:6.5)+surge*6.5;want.normalize();e.vel.lerp(_j3.copy(want).multiplyScalar(spd),1-Math.exp(-(e.atk?1.2:2.0)*dt)); // heavy: it turns wide
+      e.pos.addScaledVector(e.vel,dt);
+      const fwd=e.atk?want:_j3.copy(e.vel).normalize();e.face.lerp(fwd,1-Math.exp(-5*dt)).normalize(); // it faces where it swims (you, while clawing)
+      e.n.addScaledVector(e.face,-e.n.dot(e.face));if(e.n.lengthSq()<1e-4)e.n.copy(UP).addScaledVector(e.face,-e.face.y);e.n.normalize();
+      if(!e.atk&&live&&dl<4.6&&e.cds.melee<=0){e.atk='JumpSlash';B.play('JumpSlash',0.12);e.cds.melee=1.5;sfx('chitter',e.pos);}
+      if(e.atk){for(const f of [16,22])if(B.at(f)&&live&&dl<5.2){damagePlayer(14,want.clone());P.vel.addScaledVector(want,6);shake(0.4);}
+        if(B.done()){e.atk=null;B.play('ZeroG_Float',0.25);}}
+      if(e.t>S.T||c.distanceTo(S.o)>30||rockAt(c,1.6)||(e.t>0.6&&pushOutOfShip(_j3.copy(c),1.2,null))){e.atk=null;e.st='back';e.t=0;if(B.curName!=='ZeroG_Float')B.play('ZeroG_Float',0.25);}
       break;}
-    case 'back':incTurn(e,toP,2,dt);glow=2;if(incBack(e,dt)){e.st='land';e.t=0;if(B.curName!=='ZeroG_LandGrip')B.play('ZeroG_LandGrip',0.05);e.cds.leap=6+Math.random()*3;}break;
+    case 'back':incTurn(e,toP,2,dt);glow=2;if(incBack(e,dt)){e.st='land';e.t=0;if(B.curName!=='ZeroG_LandGrip')B.play('ZeroG_LandGrip',0.15);e.cds.leap=7+Math.random()*3;}break;
     case 'hopTake':{const R=e.hopTo;incTurn(e,_j3.subVectors(R.p,e.pos),3,dt);glow=2;
       if(B.at(12)){const d=e.pos.distanceTo(R.p);e.arc={p0:e.pos.clone(),n0:e.n.clone(),p1:R.p.clone(),n1:R.n.clone(),z1:R.z,th1:R.th,d,T:Math.max(1.0,d/11),H:Math.min(7,2.5+d*0.17)};
         e.arc.c=e.arc.p0.clone().add(e.arc.p1).multiplyScalar(0.5).addScaledVector(e.arc.n0.clone().add(e.arc.n1).normalize(),2*e.arc.H);
@@ -222,11 +256,11 @@ function updateInc(e,dt,t){const B=e.B;e.t+=dt;for(const k in e.cds)e.cds[k]-=dt
     case 'hop':{const A=e.arc,u=Math.min(1,e.t/A.T),v=1-u;glow=1.8;
       e.pos.set(0,0,0).addScaledVector(A.p0,v*v).addScaledVector(A.c,2*u*v).addScaledVector(A.p1,u*u);
       e.n.copy(A.n0).lerp(A.n1,u).normalize();const dv=_j3.subVectors(A.c,A.p0).multiplyScalar(2*v).addScaledVector(_j4.subVectors(A.p1,A.c),2*u);if(dv.lengthSq()>1e-6)e.face.copy(dv);
-      if(!A.lg&&A.T-e.t<=9/24){A.lg=1;B.play('ZeroG_LandGrip',0.1);}
+      if(!A.lg&&A.T-e.t<=9/24){A.lg=1;B.play('ZeroG_LandGrip',0.2);}
       if(u>=1){e.pos.copy(A.p1);e.n.copy(A.n1);e.z=A.z1;e.th=A.th1;e.arc=null;e.st='land';e.t=0;if(B.curName!=='ZeroG_LandGrip')B.play('ZeroG_LandGrip',0.05);
-        incStep(e,1.8);shake(Math.max(0.05,0.3-e.pos.distanceTo(P.pos)*0.01));burst(e.pos,0x8a6a40,14);e.cds.hop=6+Math.random()*5;}
+        incStep(e,1.8);shake(Math.max(0.05,0.3-e.pos.distanceTo(P.pos)*0.01));burst(e.pos,0x8a6a40,14);e.cds.hop=9+Math.random()*5;}
       break;}
-    case 'land':if(B.done()){e.st='rise';B.play('Grip_Rise',0.15);}break;
+    case 'land':if(B.done()){e.st='rise';B.play('Grip_Rise',0.25);}break;
     case 'rise':if(B.done())incStalk(e);break;
     case 'charge':incTurn(e,toP,3,dt);incAimTrack(e,dt,2.2);glow=1.5+Math.min(1,e.t/0.6)*2.5;INC_FX.aimOn=1;
       if(e.t>=0.6){e.st='beamStart';e.t=0;B.play('Beam_Start',0.1);}break;
@@ -248,7 +282,7 @@ function updateInc(e,dt,t){const B=e.B;e.t+=dt;for(const k in e.cds)e.cds[k]-=dt
   e.state=e.st;B.glow(glow*(1+e.flash*0.6));incPlace(e);
   if(e.legs)for(const L of e.legs)if(L.s){L.a.quaternion.copy(L.qa);L.b.quaternion.copy(L.qb);L.c.quaternion.copy(L.qc);L.s=false;}
   B.update(dt);B.g.updateMatrixWorld(true);
-  const onHull=!(e.st==='fall'||e.st==='fly'||e.st==='back'||e.st==='hop'||(e.st==='dead'&&e.deadFly));if(onHull)incFeet(e);
+  const onHull=!(e.st==='fall'||e.st==='swim'||e.st==='back'||e.st==='hop'||(e.st==='dead'&&e.deadFly));if(onHull)incFeet(e);
   incSpheres(e);}
 // shared beam / aim-line visuals: shown only while someone is charging or firing
 function incFxFrame(){

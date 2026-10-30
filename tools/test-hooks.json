@@ -16,7 +16,7 @@
  },
  {
   "a": "window.__heads={",
-  "b": "window.__THREE=THREE;window.__scene=scene;window.__camera=camera;window.__sun=sun;window.__bloom=bloom;window.__T={get playT(){return playT},set playT(v){playT=v},get MTUT(){return MTUT},get wave(){return wave},get state(){return state},HATCH,damagePlayer,startWave,get toSpawn(){return toSpawn},set toSpawn(v){toSpawn=v},set score(v){score=v},set pts(v){pts=v},ZONES,PATCHES,R,get cargo(){return cargo},set cargo(v){cargo=v},get score(){return score},get inBreak(){return inBreak},get repairs(){return repairs},leakFrom,set skip(v){skipReq=v},get camOrbit(){return camOrbit},set showcase(v){showcaseT=v}};window.__heads={",
+  "b": "window.__THREE=THREE;window.__scene=scene;window.__camera=camera;window.__sun=sun;window.__bloom=bloom;window.__T={get playT(){return playT},set playT(v){playT=v},get MTUT(){return MTUT},get wave(){return wave},get state(){return state},HATCH,damagePlayer,startWave,get toSpawn(){return toSpawn},set toSpawn(v){toSpawn=v},set score(v){score=v},set pts(v){pts=v},ZONES,PATCHES,R,get cargo(){return cargo},set cargo(v){cargo=v},get score(){return score},get inBreak(){return inBreak},get repairs(){return repairs},leakFrom,set skip(v){skipReq=v},get camOrbit(){return camOrbit},set showcase(v){showcaseT=v},get PCK(){return PCK}};window.__heads={",
   "file": "game"
  },
  {

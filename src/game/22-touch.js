@@ -132,13 +132,16 @@ function tcMarkers(){const box=$('bMk');
   const L=[];for(const pa of PATCHES){if(pa.hp>=CFG.patchHp)continue;const eat=spiders.some(s=>s.state==='eat'&&s.patch===pa);if(pa.hp>0&&!eat)continue;
     const d=P.pos.distanceTo(pa.pos);if(d<CFG.repairR)continue;L.push({pa,d,eat,s:h4proj(pa.pos)});}
   L.sort((a,b)=>a.d-b.d);const shown=[];
-  for(const it of L){if(shown.some(o=>Math.abs(o.s.px-it.s.px)<64&&Math.abs(o.s.py-it.s.py)<56))continue;shown.push(it);if(shown.length>=5)break;}
+  // PC: also keep clear of the rescue / hold markers (they were drawn earlier this frame); try 60 px lower, then higher, else skip
+  const oth=isTouch?null:[...document.querySelectorAll('.mk:not(.brk):not([hidden])')].map(e=>[parseFloat(e.style.left),parseFloat(e.style.top)]).filter(q=>q[0]>=0);
+  const hit=(x,y)=>shown.some(o=>Math.abs(o.s.px-x)<64&&Math.abs(o.s.py-y)<56)||(oth&&oth.some(q=>Math.abs(q[0]-x)<80&&Math.abs(q[1]-y)<56));
+  for(const it of L){if(hit(it.s.px,it.s.py)){if(isTouch)continue;let ok=0;for(const dy of [62,-62]){if(!hit(it.s.px,it.s.py+dy)){it.s.py+=dy;ok=1;break;}}if(!ok)continue;}shown.push(it);if(shown.length>=5)break;}
   for(let i=0;i<shown.length;i++){let m=TC.mk[i];
     if(!m){m=document.createElement('div');m.className='mk brk';m.innerHTML='<img class="ar" alt=""><img class="ic" alt=""><span>ROTURA</span><em></em>';box.appendChild(m);TC.mk[i]=m;
       m.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(m._pa&&state==='play')tcGo({pa:m._pa});});}
     if(!m.dataset.art&&HUD4.art){m.dataset.art=1;m.children[0].src=HUD4.art['flecha-rescate'];m.children[1].src=HUD4.art['icono-fuga'];}
     const it=shown[i];m._pa=it.pa;m.hidden=false;h4apply(m,it.s,m.children[0],180,26);m.classList.toggle('eat',it.eat);
-    {const k=THREE.MathUtils.clamp((it.d-8)/27,0,1);m.style.opacity=(1-0.72*k).toFixed(2);m.style.transform=`translate(-50%,-50%) scale(${(1-0.28*k).toFixed(2)})`;} // v63: 8 m → full, 35 m → faint and smaller
+    {const k=THREE.MathUtils.clamp((it.d-8)/27,0,1);m.style.opacity=(1-(isTouch?0.72:0.38)*k).toFixed(2);m.style.transform=`translate(-50%,-50%) scale(${(1-(isTouch?0.28:0.15)*k).toFixed(2)})`;} // v63: 8 m → full, 35 m → faint and smaller (v68: PC fades less)
     const t=Math.round(it.d)+' m';if(m.children[3].textContent!==t)m.children[3].textContent=t;}
   for(let i=shown.length;i<TC.mk.length;i++)TC.mk[i].hidden=true;}
 // once per frame (touch): show the controls only while playing, keep the markers in place

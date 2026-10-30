@@ -181,6 +181,8 @@ EN.update({'ENEMIGO':'ENEMY','ENEMIGOS':'ENEMIES','s · RESPIRO':'s · BREATHER'
 H.update({'Las arañas <b>se comen la nave</b>.<br>Mira el estado de la <b>NAVE</b> y elimínalas':'The spiders <b>are eating the ship</b>.<br>Watch the <b>SHIP</b> status and take them out'})
 EN.update({'Mátala antes de que destroce la nave':'Kill it before it wrecks the ship',
  'Viene a por ti · su núcleo del pecho es el punto débil':"It's coming for you · the core in its chest is the weak spot"})
+# ---- v68: PC key hints at the bottom left (#pcKeys; SOLDAR, MANTÉN, ASPIRAR and ROTURA already exist above) ----
+EN.update({'IMPULSO':'BOOST','CLIC DERECHO':'RIGHT CLICK','VE A DEJAR LOS TRICOMAS':'DROP OFF THE TRICHOMES','EN LA BODEGA':'IN THE HOLD'})
 # sanity: every tutorial line must exist verbatim in the game code
 for k in H:
     if k not in b: print('TUT NOT FOUND:',k[:60])

@@ -23,6 +23,7 @@ body.hm #msg,body.hm #combo{display:none!important}
 #mFeed .s{font-weight:600;font-size:10.5px;color:#f4e2b8;text-shadow:0 1px 2px #000,0 0 6px #000}
 #mFeed .fe.dg .t{color:#ff6a55}
 #mFeed .fe.cb .t{color:#fff1b0;font-size:14px}
+#mFeed .fe.cb .s{font-size:17px;font-weight:800;color:#ffd36a;letter-spacing:.03em;text-shadow:0 1px 0 #000,0 0 10px rgba(255,170,40,.55)} /* v65: +150 bigger */
 @keyframes feIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
 @keyframes feOut{to{opacity:0;transform:translateX(-10px)}}
 body.ended #mAlert,body.ended #mFeed,body.cine #mAlert,body.cine #mFeed{visibility:hidden}
@@ -45,5 +46,6 @@ body.touch .mk.mid .lb{display:none}
    Same units as the HUD (--u2 = 1 design unit of the 1844 × 853 layout), so it lines up with the score panel on any phone. */
 body.hm #boss{--u2:min(calc(100vw / 1844),calc(100vh / 853));left:auto!important;right:calc(env(safe-area-inset-right,0px) + var(--u2) * 32)!important;
   top:calc(env(safe-area-inset-top,0px) + var(--u2) * 218)!important;transform:none!important;width:calc(var(--u2) * 404)!important;
-  font-size:9.5px;letter-spacing:.14em;text-align:right;font-family:'Saira Condensed','Arial Narrow',system-ui,sans-serif}
-body.hm #boss b{height:5px;margin-top:2px}
+  font-size:13px;font-weight:800;letter-spacing:.12em;text-align:right;color:#ff3b2f;text-shadow:0 1px 0 #000,0 0 8px rgba(255,40,20,.55);font-family:'Saira Condensed','Arial Narrow',system-ui,sans-serif}
+body.hm #boss b{height:6px;margin-top:2px;border-color:#ff3b2f;box-shadow:0 0 8px rgba(255,40,20,.45)}
+body.hm #boss i{background:linear-gradient(90deg,#9a0d05,#ff2a1a)}

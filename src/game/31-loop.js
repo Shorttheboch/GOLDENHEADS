@@ -1,7 +1,7 @@
 /* ================= LOOP ================= */
 let camYaw=0,camPitch=0,camOrbit=0,showcaseT=0,lookInput=0;
 const angDiff=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
-const clock=new THREE.Clock();const camPos=new THREE.Vector3(10,3,14);const aimTarget=new THREE.Vector3();
+const clock=new THREE.Clock();const camPos=new THREE.Vector3(10,3,14);const aimTarget=new THREE.Vector3();const _sf=new THREE.Vector3(); // _sf: how the vacuumed stream follows the astronaut (v65)
 const ray=new THREE.Ray();
 // ---- v55: automatic quality ----
 // Measures the real frame time while playing, in 1 s windows (median, so a one-off hitch such as a shader compiling does not count). Slower than ~48 fps twice in a row -> one level down (two at once below 25 fps),
@@ -54,7 +54,7 @@ function tick(){const _qa0=performance.now();
       if(acc.lengthSq()>1)acc.normalize();const boost=keys.ShiftLeft||keys.ShiftRight||TC.boost?CFG.boost:1;
       P.dashCD=Math.max(0,P.dashCD-dt);
       if(dashReq){dashReq=false;if(P.dashCD<=0){const dir=acc.lengthSq()>0.01?acc.clone().normalize():f3.clone();
-        P.vel.copy(dir).multiplyScalar(CFG.dashSpeed);P.inv=Math.max(P.inv,0.3);P.dashCD=CFG.dashCD;
+        P.vel.copy(dir).multiplyScalar(CFG.dashSpeed);P.inv=Math.max(P.inv,0.3);P.dashCD=CFG.dashCD;P.suckJolt=1; /* v65: the jolt shakes loose part of the vacuumed stream */
         for(const o of jetOrigins(dir))for(let k=0;k<6;k++)puff(o,dir.clone().multiplyScalar(-(9+Math.random()*5)).add(new THREE.Vector3().randomDirection().multiplyScalar(1.2)),0.06,0.5,0.35,0.7);AN.jetDir=dir.clone();AN.jetT=0.4;
         AN.pitchV+=dir.dot(f3)*5;AN.rollV+=dir.dot(right)*6;sfx('dash');shake(0.06);fovK=6;}}
       P.vel.addScaledVector(acc,CFG.thrust*boost*dt);P.vel.multiplyScalar(Math.exp(-CFG.damping*dt));
@@ -137,6 +137,11 @@ function tick(){const _qa0=performance.now();
     if(humOsc)humOsc.frequency.value=92+Math.sin(t*9)*6;
     pickCD-=dt;P.intake=Math.min(2,(P.intake||0)+(pulling?CFG.intakeRate*(calmNow()?1.6:1)*dt:0));
     const drift=state==='play'?CFG.drift*(1+wave*0.08)*dt:0;let loose=0,expired=0;
+    // v65 (Santi): the vacuumed stream keeps up with the astronaut at normal speed (moving no longer drags it away),
+    // but only with part of the extra speed of a Shift boost / dash, so a fast getaway still leaves a few grains behind
+    // and while boosting (faster than normal top speed) nothing new is vacuumed: what was still floating is left behind for later
+    const _sp=P.vel.length(),boosting=_sp>CFG.maxSpeed*1.05;{const fk=_sp>CFG.maxSpeed?(CFG.maxSpeed*0.97+(_sp-CFG.maxSpeed)*0.25)/_sp:0.97;_sf.copy(P.vel).multiplyScalar(fk);}
+    const relD=packOn&&isTouch?17:CFG.suckRange+2; // a grain left this far behind the mouth drops out of the stream and floats again
     for(let i=0;i<DN;i++){if(!dAlive[i])continue;const j=i*3;loose++;
       V1.set(dPos[j],dPos[j+1],dPos[j+2]);
       // magnet prize: fly straight back into the hold
@@ -147,17 +152,20 @@ function tick(){const _qa0=performance.now();
       // floating cargo is lost for good after a while (unless it is already being sucked in)
       if(state==='play'&&!dCap[i]){dAge[i]+=dt;if(dAge[i]>CFG.floatLife){dAlive[i]=0;dPos[j+1]=-9999;lostN++;loose--;expired++;continue;}}
       if(pulling){V2.subVectors(V1,nozTip);const d=V2.length();
-        if(!dCap[i]&&((d<(isTouch?6:CFG.suckRange)&&V2.dot(sdir)/d>CFG.suckCos)||(packOn&&V1.distanceTo(P.pos)<(isTouch?15:CFG.packR))))dCap[i]=1; // v65 phones: reach 6 m, magnet 15 m
+        if(dFree[i]>0)dFree[i]-=dt;
+        if(!dCap[i]&&dFree[i]<=0&&!boosting&&((d<(isTouch?6:CFG.suckRange)&&V2.dot(sdir)/d>CFG.suckCos)||(packOn&&V1.distanceTo(P.pos)<(isTouch?15:CFG.packR))))dCap[i]=1; // v65 phones: reach 6 m, magnet 15 m
+        // a dash shakes loose 1 in 4 of the grains in the stream (they stop and are left behind), or one left too far behind drops out: it floats again and can be picked up later
+        if(dCap[i]&&P.suckJolt&&Math.random()<0.25){dCap[i]=0;dFree[i]=0.8;dVel[j]*=0.15;dVel[j+1]*=0.15;dVel[j+2]*=0.15;}else if(dCap[i]&&d>relD)dCap[i]=0;
         if(dCap[i]){
           // swallowed when it reaches the tip (or slips just behind the mouth plane)
           if(d<0.07||(V2.dot(sdir)<0&&d<0.14)){
             if(P.carry<CFG.tankCap&&P.intake>=1){P.intake-=1;dAlive[i]=0;dCap[i]=0;dPos[j+1]=-9999;P.carry++;if(pickCD<=0){sfx('pick');pickCD=0.06;}continue;}
-            if(P.carry>=CFG.tankCap)dCap[i]=0;else{dVel[j]=P.vel.x*0.95;dVel[j+1]=P.vel.y*0.95;dVel[j+2]=P.vel.z*0.95;dPos[j]+=dVel[j]*dt;dPos[j+1]+=dVel[j+1]*dt;dPos[j+2]+=dVel[j+2]*dt;continue;}}
+            if(P.carry>=CFG.tankCap)dCap[i]=0;else{dVel[j]=_sf.x;dVel[j+1]=_sf.y;dVel[j+2]=_sf.z;dPos[j]+=dVel[j]*dt;dPos[j+1]+=dVel[j+1]*dt;dPos[j+2]+=dVel[j+2]*dt;continue;}}
           else{
           // steer straight into the nozzle, faster as it gets closer (stream)
-          // v65 (Santi): the stream rides along with the astronaut (85 % of its speed, so a small trail is left) and is faster — a dash no longer leaves it behind
+          // v65 (Santi): the stream rides along with the astronaut (_sf) and is faster
           const spd=Math.min(Math.max(3,3+(CFG.suckRange-d)*1.6),d/dt*0.9);const k=1-Math.exp(-13*dt);
-          dVel[j]+=(P.vel.x*0.85-V2.x/d*spd-dVel[j])*k;dVel[j+1]+=(P.vel.y*0.85-V2.y/d*spd-dVel[j+1])*k;dVel[j+2]+=(P.vel.z*0.85-V2.z/d*spd-dVel[j+2])*k;
+          dVel[j]+=(_sf.x-V2.x/d*spd-dVel[j])*k;dVel[j+1]+=(_sf.y-V2.y/d*spd-dVel[j+1])*k;dVel[j+2]+=(_sf.z-V2.z/d*spd-dVel[j+2])*k;
           dPos[j]+=dVel[j]*dt;dPos[j+1]+=dVel[j+1]*dt;dPos[j+2]+=dVel[j+2]*dt;continue;}}}
       else dCap[i]=0;
       // the product slowly disperses away from the ship; past lostR it is lost in space
@@ -169,6 +177,7 @@ function tick(){const _qa0=performance.now();
       dPos[j]+=dVel[j]*dt;dPos[j+1]+=dVel[j+1]*dt;dPos[j+2]+=dVel[j+2]*dt;
       if(dPos[j]*dPos[j]+dPos[j+1]*dPos[j+1]+dPos[j+2]*dPos[j+2]>CFG.lostR*CFG.lostR){dAlive[i]=0;dPos[j+1]=-9999;lostN++;}}
     dGeo.attributes.position.needsUpdate=true;updateClusters(t);updateMist(dt);
+    P.suckJolt=0;
     if(expired){EXP.n+=expired;}EXP.t-=dt;if(EXP.n>0&&EXP.t<=0){floatText(P.pos.clone().addScaledVector(UP,1.1),'−'+EXP.n+' tricomas perdidos','loss');EXP.n=0;EXP.t=2.5;}
     if(MAG.on){MAG.t+=dt;if(!dMag.some(v=>v)||MAG.t>6){for(let i=0;i<DN;i++)if(dMag[i]){dMag[i]=0;dAlive[i]=0;dPos[i*3+1]=-9999;cargo++;MAG.got++;}
       MAG.on=false;floatText(HATCH.clone().add(new THREE.Vector3(0.9,0.7,0)),'+'+MAG.got+' a bordo','gain');sfx('deposit');}}

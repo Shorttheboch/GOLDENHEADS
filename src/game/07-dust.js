@@ -2,7 +2,7 @@
 const CLOUDS=[[1.5,6.5,3,2.2],[-4,7.5,-1,2.4],[5,9,-4,2.6],[-2,11,6,2.2],[7,4.5,10,2.0],[-7,5,4,2.3],[2,13.5,-2,2.5],[-6,9,-8,2.4],[3,3,-12,2.0]];
 const PER=90, DN=CLOUDS.length*PER;
 const dCap=new Uint8Array(DN);const dPos=new Float32Array(DN*3),dVel=new Float32Array(DN*3),dAlive=new Uint8Array(DN),dHome=new Float32Array(DN*3);
-const dAge=new Float32Array(DN),dMag=new Uint8Array(DN); // seconds afloat · pulled home by the magnet prize
+const dAge=new Float32Array(DN),dMag=new Uint8Array(DN),dFree=new Float32Array(DN); // dFree (v65): seconds before a grain shaken loose by a dash can be vacuumed again // seconds afloat · pulled home by the magnet prize
 const dGeo=new THREE.BufferGeometry();dGeo.setAttribute('position',new THREE.BufferAttribute(dPos,3));
 const dMat=new THREE.PointsMaterial({size:0.24,map:dotTex,color:new THREE.Color(0xffc860).multiplyScalar(1.6),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
 // each unit of cargo is drawn as a small cluster of grains, so a leak reads as a dense cloud without inflating the count

@@ -11,6 +11,7 @@ const VPS=(process.env.HEADS_VP||'1920x1080').split(',').map(v=>v.split('x').map
  const full=w===1920&&h===1080,pre=(full&&LANG==='es')?'pc_info_':'pc_info_'+w+'x'+h+'_'+LANG+'_';
  console.log('=====',w+'x'+h,LANG);
  const p=await b.newPage({viewport:{width:w,height:h}});const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ await p.route(/fonts\.(googleapis|gstatic)\.com/,r=>r.abort()); // no internet here: do not wait for the web font
  await p.addInitScript(l=>{window.__noTip=0;window.__noTut=0;if(l==='en')window.__lang='en';},LANG);
  await p.goto(BASE+'/test.html?q=3');
  await p.waitForFunction(()=>document.getElementById('play')&&!document.getElementById('play').disabled,null,{timeout:300000});

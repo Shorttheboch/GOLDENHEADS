@@ -54,7 +54,19 @@ function startMenuIntro(){const art=document.getElementById('menuArt'),lw=docume
   lw.style.setProperty('--ix',(innerWidth/2-(r.left+r.width/2))+'px');lw.style.setProperty('--iy',(innerHeight/2-(r.top+r.height/2))+'px');lw.style.setProperty('--is',is.toFixed(3));
   art.classList.add('go');const mn=document.getElementById('menu');if(mn)mn.classList.add('mgo');
   const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
-  [...document.querySelectorAll('#menuArt .mh.dec')].forEach((el,i)=>menuDecode(el,reduce?0:1640+i*70));}
+  [...document.querySelectorAll('#menuArt .mh.dec')].forEach((el,i)=>menuDecode(el,reduce?0:1640+i*70));
+  // machinery sounds (v70, public/menusfx.js), on the timeline of 02-menu-pc.css; a cue that comes >180 ms late (busy or hidden tab) is dropped.
+  // Silent until the browser allows audio (the language picker click/Enter already does). Reduced motion: only the JUGAR chime.
+  const t0=performance.now(),cue=(n,ms,v,r)=>setTimeout(()=>{if(performance.now()-t0-ms<180&&window.menuSfx)menuSfx(n,v,r);},ms);
+  if(!reduce){cue('land',90,.85);   // logo slams in (flash, ring, shake)
+    cue('logo',380);                // logo travels to its place (.42-.96 s)
+    cue('bar',700,1,1.5);           // top bar drops in and seats (.82-1.12 s): faster, higher take of the rail sound
+    cue('unfold',1060);             // middle and bottom panels unfold downward (1.06-1.68 s)
+    cue('land',1470,.75);           // ...and hit the bottom (the clank at 1.47 s)
+    cue('lock',1600);}              // headers lock in as the blue light comes on (1.64 s)
+  const gb=document.getElementById('menuGo');   // JUGAR chime: when the panel is built and the game is ready to start
+  if(gb)setTimeout(()=>{const bell=()=>{if(window.menuSfx)menuSfx('button');};if(!gb.disabled)return bell();
+    const mo=new MutationObserver(()=>{if(!gb.disabled){mo.disconnect();bell();}});mo.observe(gb,{attributes:true,attributeFilter:['disabled']});},reduce?0:2600);}
 // menu first: shown as soon as its own small kit (menuui.js) is here, without waiting for the 3D engine
 (function(){const art=document.getElementById('menuArt');if(!art||matchMedia('(pointer:coarse)').matches)return;
   buildMenuText(MENU_TXT);

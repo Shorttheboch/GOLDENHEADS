@@ -85,6 +85,7 @@ function makeSpiderRig(kind){
     if(o.isMesh){o.frustumCulled=false;o.castShadow=true;
       let m=o.material.clone();
       if(isTouch&&m.isMeshPhysicalMaterial){const sm=new THREE.MeshStandardMaterial();THREE.MeshStandardMaterial.prototype.copy.call(sm,m);m=sm;}
+      if(m.isMeshPhysicalMaterial)capSpec(m,1.5); // v69: same clearcoat glint (HDR 100-7000 in one pixel) as the Incineradora
       m.side=THREE.FrontSide;o.material=m;
       const nm=m.name||'';mats[nm.includes('Eye')?'eye':nm.includes('Fang')?'fang':nm.includes('Tube')?'tube':'body']=m;}});
   const tint=SK_TINT[kind]||SK_TINT.hunter;mats.body.color.setRGB(tint[0],tint[1],tint[2]);
@@ -138,6 +139,7 @@ function makeBiped(scale=1){if(!BIPED_GLB)return null;bipedFlipClip();
   inner.traverse(o=>{if(o.isBone)bones[o.name]=o;
     if(o.isMesh){o.frustumCulled=false;o.castShadow=true;let m=o.material.clone();
       if(isTouch&&m.isMeshPhysicalMaterial){const sm=new THREE.MeshStandardMaterial();THREE.MeshStandardMaterial.prototype.copy.call(sm,m);m=sm;}
+      if(m.isMeshPhysicalMaterial)capSpec(m,1.5); // v69: the clearcoat caught the sun in single pixels (HDR 400+) that bloomed into white squares
       o.material=m;mat=m;}});
   g.add(inner);g.scale.setScalar(scale);
   const mixer=new THREE.AnimationMixer(inner),acts={};

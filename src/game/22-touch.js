@@ -132,10 +132,16 @@ function tcMarkers(){const box=$('bMk');
   const L=[];for(const pa of PATCHES){if(pa.hp>=CFG.patchHp)continue;const eat=spiders.some(s=>s.state==='eat'&&s.patch===pa);if(pa.hp>0&&!eat)continue;
     const d=P.pos.distanceTo(pa.pos);if(d<CFG.repairR)continue;L.push({pa,d,eat,s:h4proj(pa.pos)});}
   L.sort((a,b)=>a.d-b.d);const shown=[];
-  // PC: also keep clear of the rescue / hold markers (they were drawn earlier this frame); try 60 px lower, then higher, else skip
+  // PC: keep clear of the rescue / hold markers (drawn earlier this frame), the key hints (bottom left) and the tank (bottom right):
+  // try 74 px away, then 125 px towards the middle, else skip
   const oth=isTouch?null:[...document.querySelectorAll('.mk:not(.brk):not([hidden])')].map(e=>[parseFloat(e.style.left),parseFloat(e.style.top)]).filter(q=>q[0]>=0);
-  const hit=(x,y)=>shown.some(o=>Math.abs(o.s.px-x)<64&&Math.abs(o.s.py-y)<56)||(oth&&oth.some(q=>Math.abs(q[0]-x)<80&&Math.abs(q[1]-y)<56));
-  for(const it of L){if(hit(it.s.px,it.s.py)){if(isTouch)continue;let ok=0;for(const dy of [62,-62]){if(!hit(it.s.px,it.s.py+dy)){it.s.py+=dy;ok=1;break;}}if(!ok)continue;}shown.push(it);if(shown.length>=5)break;}
+  const pk=isTouch?null:$('pcKeys'),pr=pk&&!pk.hidden?pk.getBoundingClientRect():null,tk=isTouch?null:$('hTk'),tr=tk?tk.getBoundingClientRect():null;
+  const hit=(x,y)=>(pr&&x<pr.right+40&&y>pr.top-36)||(tr&&x>tr.left-40&&y>tr.top-80)||shown.some(o=>Math.abs(o.s.px-x)<64&&Math.abs(o.s.py-y)<56)||(oth&&oth.some(q=>Math.abs(q[0]-x)<115&&Math.abs(q[1]-y)<72));
+  for(const it of L){const x=it.s.px,y=it.s.py;
+    if(hit(x,y)){if(isTouch)continue;const d=y>innerHeight*0.6?[-74,74]:[74,-74],mx=x>innerWidth/2?-125:125;let ok=0;
+      for(const [ox,oy] of [[0,d[0]],[0,d[1]],[mx,0],[mx,d[0]],[mx,d[1]]])if(!hit(x+ox,y+oy)){it.s.px+=ox;it.s.py+=oy;ok=1;break;}
+      if(!ok)continue;}
+    shown.push(it);if(shown.length>=5)break;}
   for(let i=0;i<shown.length;i++){let m=TC.mk[i];
     if(!m){m=document.createElement('div');m.className='mk brk';m.innerHTML='<img class="ar" alt=""><img class="ic" alt=""><span>ROTURA</span><em></em>';box.appendChild(m);TC.mk[i]=m;
       m.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(m._pa&&state==='play')tcGo({pa:m._pa});});}

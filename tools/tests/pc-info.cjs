@@ -12,6 +12,7 @@ const VPS=(process.env.HEADS_VP||'1920x1080').split(',').map(v=>v.split('x').map
  const full=!process.env.HEADS_LAYOUT,pre=(w===1920&&h===1080&&LANG==='es')?'pc_info_':'pc_info_'+w+'x'+h+'_'+LANG+'_';
  console.log('=====',w+'x'+h,LANG);
  const p=await b.newPage({viewport:{width:w,height:h}});const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ p.on('crash',()=>{console.log('PAGE CRASHED');process.exit(3);});b.on('disconnected',()=>{if(!global.__fin){console.log('BROWSER GONE (out of memory?)');process.exit(3);}});
  await p.route(/fonts\.(googleapis|gstatic)\.com/,r=>r.abort()); // no internet here: do not wait for the web font
  await p.addInitScript(l=>{window.__noTip=0;window.__noTut=0;if(l==='en')window.__lang='en';},LANG);
  await p.goto(BASE+'/test.html?q=3');
@@ -54,4 +55,4 @@ const VPS=(process.env.HEADS_VP||'1920x1080').split(',').map(v=>v.split('x').map
  console.log('after 20 vacuumed',JSON.stringify(await info()));await snap('5_aprendido.png');
  }
  console.log('errors',JSON.stringify(errs.slice(0,3)));await p.close();}
- await b.close();})();
+ global.__fin=1;await b.close();})();

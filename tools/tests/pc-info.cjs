@@ -1,6 +1,7 @@
 // PC info (v68): breach markers, bigger/brighter loose trichomes, a readable tank bar and the key hints at the bottom left.
 // Run on dist-test. Screenshots: pc_info_<n>_<name>.png (1920x1080, Spanish); other sizes / English get a prefix.
-//   HEADS_LANG=en  → English        HEADS_VP=1280x720,2560x1080  → only the layout checks (1-2) at those sizes
+//   HEADS_LANG=en  → English        HEADS_VP=1600x900  → another size (the layout is in vh, so 16:9 sizes look the same; smaller = less memory)
+//   HEADS_LAYOUT=1 HEADS_VP=1280x720,2560x1080  → only the layout checks (steps 1-2) at those sizes
 const {chromium}=require('playwright');
 const {BASE,ARGS,shot}=require('./lib.cjs');
 const LANG=process.env.HEADS_LANG||'es';
@@ -8,7 +9,7 @@ const VPS=(process.env.HEADS_VP||'1920x1080').split(',').map(v=>v.split('x').map
 (async()=>{
  const b=await chromium.launch({args:ARGS});
  for(const [w,h] of VPS){
- const full=w===1920&&h===1080,pre=(full&&LANG==='es')?'pc_info_':'pc_info_'+w+'x'+h+'_'+LANG+'_';
+ const full=!process.env.HEADS_LAYOUT,pre=(w===1920&&h===1080&&LANG==='es')?'pc_info_':'pc_info_'+w+'x'+h+'_'+LANG+'_';
  console.log('=====',w+'x'+h,LANG);
  const p=await b.newPage({viewport:{width:w,height:h}});const errs=[];p.on('pageerror',e=>errs.push(e.message));
  await p.route(/fonts\.(googleapis|gstatic)\.com/,r=>r.abort()); // no internet here: do not wait for the web font

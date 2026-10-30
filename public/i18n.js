@@ -56,7 +56,10 @@ function startMenuIntro(){const art=document.getElementById('menuArt'),lw=docume
   const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
   [...document.querySelectorAll('#menuArt .mh.dec')].forEach((el,i)=>menuDecode(el,reduce?0:1640+i*70));}
 // menu first: shown as soon as its own small kit (menuui.js) is here, without waiting for the 3D engine
-(function(){const art=document.getElementById('menuArt');if(!art||matchMedia('(pointer:coarse)').matches)return;
+(function(){const art=document.getElementById('menuArt');
+  if(matchMedia('(pointer:coarse)').matches){ // v66 phones: only the fonts of this kit (~34 KB), for the phone menu and the tutorial
+    import(new URL('assets/menuui.js',document.baseURI).href).then(m=>{const M=m.default;for(const [u,w] of [[M.f600,'600'],[M.f700,'700'],[M.f900,'900']])try{new FontFace('TitilliumH',`url(${u})`,{weight:w}).load().then(f=>document.fonts.add(f)).catch(()=>{});}catch(e){}}).catch(()=>{});return;}
+  if(!art)return;
   buildMenuText(MENU_TXT);
   // (the big images go on the one element that uses each of them: as inherited variables on the root they made every style update heavy)
   // (the big images go on the one element that uses each of them: never as inherited variables on the root)

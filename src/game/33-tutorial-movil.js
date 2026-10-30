@@ -5,8 +5,10 @@
 // or with a tap (the first two only after 1 s, so they are not skipped by accident); SALTAR ends it.
 // Remembered on the phone; the pause menu has CÓMO SE JUEGA to see it again.
 // Touch only (isTouch): PC does not change. Design: Design canvas "Controles móvil", boards 5–11.
-const MTUT={on:false,done:false,list:[],i:0,k:'',t0:0,tap0:0,last:0,at:6,dur:4200,up:[],bod:false,D:null,L:null,title:''};
-try{MTUT.done=localStorage.getItem('heads_tut')==='1';}catch(_){}
+const MTUT={on:false,done:false,list:[],i:0,k:'',t0:0,tap0:0,last:0,at:5,played:0,pl:0,dur:4200,up:[],bod:false,D:null,L:null,title:''};
+// remembered per phone; the key changes when the tutorial changes, so everybody sees the new one once · add ?tutorial to the address to always see it
+const MTUT_KEY='heads_tut2';
+try{MTUT.done=localStorage.getItem(MTUT_KEY)==='1'&&!/[?&]tutorial\b/.test(location.search);}catch(_){}
 const MTUT_ORDER=['move','aim','tri','collect','life'];
 const MTUT_S={
   move:{t:'MUÉVETE',l:['<b>Pulgar izquierdo</b>: empuja para moverte.','<b class="c">Doble empuje</b> = acelerón.'],art:'stick',lb:'PULGAR IZQUIERDO'},
@@ -94,7 +96,7 @@ function mtutShow(){const k=MTUT.list[MTUT.i],S=MTUT_S[k],L=MTUT.L,D=MTUT.D,n=MT
   L.classList.remove('in');void L.offsetWidth;L.classList.add('in');}
 function mtutNext(){if(++MTUT.i>=MTUT.list.length)mtutEnd();else mtutShow();}
 function mtutEnd(){if(!MTUT.on)return;mtutDrop();MTUT.on=false;MTUT.D.hidden=MTUT.L.hidden=true;document.body.classList.remove('mtut');
-  MTUT.done=true;try{localStorage.setItem('heads_tut','1');}catch(_){}
+  MTUT.done=true;try{localStorage.setItem(MTUT_KEY,'1');}catch(_){}
   P.inv=Math.max(P.inv,1.2); // a moment of grace when the game starts again
   // the side tips that say the same no longer need to show
   TIP.done.shoot=TIP.done.suck=TIP.done.deliver=1;TUT.shown.eat=TUT.shown.leak=1;}
@@ -103,7 +105,10 @@ function mtutFrame(){const now=performance.now();if(TC.paused)MTUT.t0+=now-MTUT.
   const el=now-MTUT.t0;MTUT.L.querySelector('.mtBar i').style.width=Math.min(100,el/MTUT.dur*100).toFixed(1)+'%';
   if(!TC.paused&&el>=MTUT.dur+(MTUT.k==='life'?800:0))mtutNext();}
 // every frame of play: open it after MTUT.at s of play the first time, and step 4 on its own when trichomes first float
-function mtutTick(){if(!isTouch||MTUT.on||window.__noTut||state!=='play'||CINE.on||TC.paused||!MHUD.on)return;
-  if(!MTUT.done&&playT>=MTUT.at)mtutStart();}
+// (only real play counts: not the opening cinematic, not the pause)
+function mtutTick(){const d=playT-MTUT.pl;MTUT.pl=playT;
+  if(!isTouch||MTUT.on||window.__noTut||state!=='play'||CINE.on||TC.paused||!MHUD.on)return;
+  if(d>0&&d<0.5)MTUT.played+=d;
+  if(!MTUT.done&&MTUT.played>=MTUT.at)mtutStart();}
 // pause menu: CÓMO SE JUEGA shows it all again
 function mtutAgain(){tcSetPause(false);mtutOpen(MTUT_ORDER.slice());}

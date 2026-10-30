@@ -448,7 +448,7 @@ body.cine .h4,body.cine .mk,body.cine #flare{opacity:0!important;transition:opac
   #hVit{top:calc(8px + env(safe-area-inset-top,0px))}
   #hTank{top:calc(14px + min(230px,34vw)*0.28 + env(safe-area-inset-top,0px))}
 }
-#menuArt{display:none}@media (pointer:fine){#menuArt{display:block}#menuPanel{display:none}}#menuArt.fail{display:none!important}#menuArt.fail+#menuPanel{display:block!important}
+#menuArt{display:none}@media (pointer:fine){#menuArt{display:block}#menuPanel{display:none}}@media (pointer:coarse){#menuPanel{display:none}} /* v66: no old text menu on phones while loading */#menuArt.fail{display:none!important}#menuArt.fail+#menuPanel{display:block!important}
 #menuBg{position:absolute;inset:-60px;background:var(--menu-bg) center/cover no-repeat;filter:blur(38px) brightness(.5) saturate(1.1)}
 @keyframes goGlow{from{background:rgba(255,240,190,0)}to{background:rgba(255,240,190,.13)}}
 #tip{left:50%;bottom:calc(25% + env(safe-area-inset-bottom,0px));transform:translate(-50%,10px);display:flex;align-items:center;gap:16px;padding:12px 22px 12px 14px;

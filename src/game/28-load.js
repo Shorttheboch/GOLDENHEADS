@@ -2,13 +2,12 @@
 (async()=>{
   try{
     const prog={a:0,s:0};const upd=()=>$('load').textContent=`Cargando modelos ${Math.round((prog.a+prog.s)/2*100)}%`;
-    loadMod('assets/hud4.js').then(m=>{const H=m.default;for(const el of document.querySelectorAll('img[data-k]'))if(H[el.dataset.k])el.src=H[el.dataset.k];
+    loadMod('assets/hud4.js').then(m=>{const H=m.default,pcOnly=isTouch&&window.HUD?'#hVit,#hScore,#hTank,#hTk,#hTop':null; // v66: phones skip the PC panels' art
+      for(const el of document.querySelectorAll('img[data-k]'))if(H[el.dataset.k]&&!(pcOnly&&el.closest(pcOnly)))el.src=H[el.dataset.k];
       const rs=document.documentElement.style;rs.setProperty('--mira',`url(${H['mira']})`);rs.setProperty('--fill-en',`url(${H['energia-relleno']})`);rs.setProperty('--ico-en',`url(${H['icono-energia']})`);
       HUD4.art=H;}).catch(e=>console.warn('hud4 art',e));
     loadMod('assets/endui.js').then(m=>{const E=m.default;$('endPanel').style.setProperty('--end-frame',`url(${E.frame})`);$('again').style.setProperty('--end-btn',`url(${E.button})`);
       try{new FontFace('TekturE',`url(${E.font})`,{weight:'400 900'}).load().then(f=>document.fonts.add(f)).catch(e=>console.warn('end font',e));}catch(e){}}).catch(e=>console.warn('end ui',e));
-    loadMod('assets/hud.js').then(m=>{const H=m.default;$('dBase').src=H.base;$('dSegs').src=H.segs;
-      for(let k=0;k<4;k++)$('dz'+k).firstChild.src=H['z'+k];}).catch(e=>console.warn('hud art',e));
     const [ship,astro,spi,crb,gun,egg,bip,gun2]=await Promise.all([
       loadGLB('assets/ship.glb',e=>{if(e.total){prog.s=e.loaded/e.total;upd();}}),
       loadGLB('assets/astronaut.glb',e=>{if(e.total){prog.a=e.loaded/e.total;upd();}}),

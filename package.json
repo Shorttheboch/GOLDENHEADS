@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node --check public/i18n.js && vite build",
-    "build:test": "node --check public/i18n.js && vite build --mode test",
+    "build": "node --check public/i18n.js && node --check public/menusfx.js && vite build",
+    "build:test": "node --check public/i18n.js && node --check public/menusfx.js && vite build --mode test",
     "preview": "vite preview"
   },
   "dependencies": {

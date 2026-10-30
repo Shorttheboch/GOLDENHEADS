@@ -10,6 +10,7 @@ async function game(b,lang,store){
   await p.goto(BASE+'/test.html?q=3');
   await p.waitForFunction(()=>{const g=document.getElementById('mmGo');return g&&!g.disabled;},null,{timeout:300000});
   await p.waitForTimeout(2500);await p.tap('#mmGo');
+  await p.evaluate(()=>{__T.MTUT.dur=1e9;}); // slow software rendering must not pass the first screens by itself
   return {ctx,p,errs,step:s=>p.evaluate(n=>__step(n),Math.round(s/0.05))};}
 const st=p=>p.evaluate(()=>{const L=document.getElementById('mTutL'),q=s=>L&&L.querySelector(s);
   return {open:!!L&&!L.hidden,step:L?L.className.replace(/\s*in\b/,''):'',title:q('.mtH')&&q('.mtH').textContent,lines:q('.mtX')&&q('.mtX').innerText.replace(/\n+/g,' / '),

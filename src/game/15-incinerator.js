@@ -1,6 +1,6 @@
 /* ================= INCINERADORA: the four-armed biped (Santi, SPIDER_BIPED_v1) ================= */
 // A 3.3 m mini-boss that comes alone (with a few small spiders) in round 8 and every 3 rounds after. It cares about killing YOU:
-// an orange chest laser that sweeps after you (outrun it, dash or hide), zero-g leaps across space at you, claws and a bite up close.
+// an orange chest laser that sweeps after you (outrun it, dash or hide), it SWIMS through space after you (v69) and claws you, claws and a bite up close.
 // Shot from the front again and again it covers up with its four arms; while it charges/fires, the glowing chest core takes triple damage.
 const INC_SC=3.0,INCS=[];let incN=0;
 const isIncRound=i=>i>=7&&(i-7)%3===0;
@@ -28,7 +28,7 @@ function incRayLen(o,d,max=48){let L=max;const rt=rockRay(o,_j1.copy(d).multiply
   for(let s=1.2;s<L;s+=0.4){const p=_j1.copy(o).addScaledVector(d,s);if(wingAt(p)||(p.z>HZ0&&p.z<HZ1&&pushOutOfShip(_j2.copy(p),0,null))){L=s;ship=true;break;}}
   return [L,ship];}
 function spawnInc(cine){const B=makeBiped(INC_SC);if(!B)return null;incN++;const k=incN-1;
-  const e={isInc:true,B,mesh:B.g,gen:incN,pos:new THREE.Vector3(),n:new THREE.Vector3(),face:new THREE.Vector3(),vel:new THREE.Vector3(),aim:new THREE.Vector3(),z:0,th:0,hop:0,
+  const e={isInc:true,B,mesh:B.g,gen:incN,pos:new THREE.Vector3(),n:new THREE.Vector3(),face:new THREE.Vector3(),vel:new THREE.Vector3(),aim:new THREE.Vector3(),z:0,th:0,hop:0,sdir:new THREE.Vector3(),sc:new THREE.Vector3(),sspd:0,sa:0,sl:0,sw:null,lp:null,clk:0,rk:null,rockStops:0,lastRock:null,
     hp:0,maxHp:0,st:'fall',state:'fall',t:0,cds:{beam:2.0,leap:5,melee:0,guard:0,stag:0,hop:3},roam:null,roamT:0,front:[],stagAcc:0,coreHit:0,flash:0,hs:[],side:Math.random()<0.5?1:-1,sideT:2,
     lookH:0.5,topH:1.15,camD:7.5};
   e.hp=e.maxHp=Math.round(50*(1+0.2*k)); // v67: 95 -> 50 (+20 % each time, was +25 %): Santi found it far too strong
@@ -63,7 +63,7 @@ function incStep(e,k=1){const v=Math.max(0.15,1-e.pos.distanceTo(P.pos)/40);if(!
 function incBeamSnd(on){if(!AC)return;
   if(on&&!INC_SND.s){if(SFXB&&SFXB.laserLoop){const g=AC.createGain();g.gain.value=0;g.connect(master);g.gain.setTargetAtTime(0.6,AC.currentTime,0.02);INC_SND.g=g;INC_SND.s=loopSrc(SFXB.laserLoop[0],(SFXL&&SFXL.laserLoop)||2.5,g);}else sfx('zap');}
   if(!on&&INC_SND.s){try{INC_SND.g.gain.setTargetAtTime(0,AC.currentTime,0.05);INC_SND.s.stop(AC.currentTime+0.4);}catch(err){}INC_SND.s=null;}}
-function incStalk(e){e.st='stalk';e.t=0;e.hop=0;}
+function incStalk(e){e.st=e.rk?'rock':'stalk';e.t=0;e.hop=0;e.sa=0;e.sl=0;} // v69: back to what it was doing: stalking on the hull, or perched on a rock
 // a new spot on the hull around you: anywhere from 6 to 18 m along the ship and up to ~65 degrees around it
 // v67 (Santi): far enough from where it stands that it RUNS there across the hull
 function incPickRoam(e){const hq=hullParam(P.pos);
@@ -72,6 +72,135 @@ function incPickRoam(e){const hq=hullParam(P.pos);
   return null;}
 // long zero-g leap from one part of the ship to another: an arc a few metres over the hull
 function incHullLeap(e,R){e.st='hopTake';e.t=0;e.hopTo=R;e.B.play('ZeroG_Takeoff',0.15);}
+// ================= v69 (Santi): it SWIMS whenever it leaves the hull, and it GRABS ROCKS =================
+// stalk -> swimStart (crouch, push off at f11) -> swim (Swim_Loop; Swim_Slash up close; Swim_Turn180 if you get behind it) -> swimBack (to a hull spot or a rock,
+// turning first if the spot is behind it) -> swimLand (hooks the surface at f8, drops, guard) -> stalk on the hull, or 'rock' on an asteroid (it sticks to it, turns to you,
+// fires the laser once, then leaves with Swim_Start). The old zero-g jump clips stay only for hull-to-hull leaps and the fall from space.
+// In the swim pose the body lies along e.face with its back along e.n; e.pos is the root (the legs hang under the body), the swim moves the body centre e.sc.
+const INC_CO=0.55*INC_SC; // root -> body centre along e.n (the same as incCenter)
+const ZERO3=new THREE.Vector3();
+const _w1=new THREE.Vector3(),_w2=new THREE.Vector3(),_w3=new THREE.Vector3(),_w4=new THREE.Vector3(),_h1=new THREE.Vector3(),_h2=new THREE.Vector3(),_h3=new THREE.Vector3(),_rp1=new THREE.Vector3(),_rp2=new THREE.Vector3();
+// off the surface: no foot IK there, and a death in the air flies back to the hull first
+const incAir=e=>e.st==='fall'||e.st==='hop'||e.st==='swim'||e.st==='swimBack'||(e.st==='swimStart'&&!!e.sa)||(e.st==='swimLand'&&!e.sl)||(e.st==='dead'&&!!e.deadFly);
+// ---- rocks: signed distance to the rock surface, its normal, the surface point in a direction from the centre
+function incRockF(R,p){const d=_rp1.subVectors(p,R.c),L=d.length();if(L<1e-6)return -R.r;d.multiplyScalar(1/L);return L-rockR(R,d);}
+function incRockNormal(R,p,out){const h=0.08,q=_rp2,f=(x,y,z)=>incRockF(R,q.set(p.x+x,p.y+y,p.z+z));return out.set(f(h,0,0)-f(-h,0,0),f(0,h,0)-f(0,-h,0),f(0,0,h)-f(0,0,-h)).normalize();}
+function incRockPoint(R,rd,p,n){p.copy(R.c).addScaledVector(rd,rockR(R,rd));return incRockNormal(R,p,n);}
+// a rock it may land on: solid (not fading in or drifting away), not the one it just left, and at most 2 rock stops per trip so it does come back to the ship
+const incRockOK=(e,R)=>R.fade>=0.999&&!R.leaving&&R!==e.lastRock&&e.rockStops<2;
+// a rock in its way: the body centre inside it, or 4 m ahead
+function incRockAhead(e){for(const R of ROCKS){if(R===e.lastRock&&e.sw.t<1.5)continue;
+    for(const k of [0,4]){const d=_w4.copy(e.sc).addScaledVector(e.sdir,k).sub(R.c),L=d.length();if(L<R.rmax+1.6&&L>1e-6&&L<rockR(R,d.multiplyScalar(1/L))+(k?1.0:1.6))return R;}}return null;}
+// it stands on a rock: the rock only drifts, so a direction from its centre (e.rk.rd) is all that is stored; position and up are re-derived every frame
+function incRockStick(e){const K=e.rk;incRockPoint(K.R,K.rd,e.pos,e.n);e.face.addScaledVector(e.n,-e.face.dot(e.n));if(e.face.lengthSq()<1e-6)e.face.set(1,0,0).addScaledVector(e.n,-e.n.x);e.face.normalize();e.sc.copy(e.pos).addScaledVector(e.n,INC_CO);}
+// the surface under a point for the foot IK: the rock it stands on, or the hull
+function incSurf(e,C,p,n){if(e.rk){const R=e.rk.R,d=_rp1.subVectors(C,R.c),L=d.length();if(L<1e-4)return false;d.multiplyScalar(1/L);p.copy(R.c).addScaledVector(d,rockR(R,d));incRockNormal(R,p,n);
+    return true;}
+  const hq=hullParam(C);if(hq.z<-14.4||hq.z>21.4)return false;hullPoint(hq.z,hq.th,p,n);return true;}
+function incRockLeave(e){e.st='swimStart';e.t=0;e.sa=0;e.B.play('Swim_Start',0.2);} // off the rock: the same crouch and push as off the hull
+// speed along the stroke: ~5.5 m/s gliding, up to ~10 m/s on the pull (Swim_Loop frames 11-22), ~7.5 m/s on average. The input leads the pull a little because the speed eases in.
+function incStrokeV(f){const sm=THREE.MathUtils.smoothstep;return 5.5+5*sm(f,4,10)*(1-sm(f,18,25));}
+// push off the surface at 8 m/s toward you (never into it); from here on the body centre is what moves
+function incSwimLaunch(e){const C=incCenter(e,_w1),d=_w2.subVectors(P.pos,C).normalize(),k=d.dot(e.n);if(k<0.25)d.addScaledVector(e.n,0.25-k).normalize();
+  const rk=e.rk;if(rk){e.lastRock=rk.R;e.rk=null;}
+  e.sdir.copy(d);e.sspd=8;e.vel.copy(d).multiplyScalar(8);e.sc.copy(C);e.sa=1;e.sw={o:e.pos.clone(),T:(rk?3.5:5)+Math.random(),t:0,sm:'loop',turnT:-9,fr:0};
+  if(!(AC&&playS('tss',0.55,0.6)))sfx('dash');}
+// one frame of swimming. Heavy: the heading eases toward `want` (wide turns) while the speed eases toward `spd`. face: undefined = look where it swims, null = frozen, vector = look there.
+function incSwimMove(e,dt,want,spd,turnK,face){
+  if(want&&turnK>0){e.sdir.lerp(want,1-Math.exp(-turnK*dt));if(e.sdir.lengthSq()<1e-6)e.sdir.copy(e.face);e.sdir.normalize();}
+  e.sspd+=(spd-e.sspd)*(1-Math.exp(-5*dt));e.vel.copy(e.sdir).multiplyScalar(e.sspd);e.sc.addScaledVector(e.vel,dt);
+  if(face!==null){e.face.lerp(face||e.sdir,1-Math.exp(-5*dt)).normalize();
+    e.n.addScaledVector(e.face,-e.n.dot(e.face));if(e.n.lengthSq()<1e-4)e.n.copy(UP).addScaledVector(e.face,-e.face.y);e.n.normalize();
+    // its back drifts toward the sky (a roll around its own axis) so it never swims upside down for long
+    const nr=_w3.copy(UP).addScaledVector(e.face,-UP.dot(e.face));if(nr.lengthSq()>0.09){nr.normalize();
+      e.n.applyAxisAngle(e.face,Math.atan2(e.face.dot(_w4.crossVectors(e.n,nr)),e.n.dot(nr))*(1-Math.exp(-0.9*dt)));}}
+  e.pos.copy(e.sc).addScaledVector(e.n,-INC_CO);}
+// Swim_Turn180 ends facing backwards: flip the entity 180 degrees around its up, move it forward by the clip's pivot shift, and hand the pose to the
+// derived Swim_Turn180_R (same pose in the flipped frame, see bipedFlipClip) with no fade; then a normal crossfade into the loop
+function incSwimFlip(e){const B=e.B,F=B.flip,f=_w1.copy(e.face),x=_w2.crossVectors(e.n,f),n=_w3.copy(e.n),sh=_w4.set(0,0,0).addScaledVector(x,F[0]*INC_SC).addScaledVector(n,F[1]*INC_SC).addScaledVector(f,F[2]*INC_SC);
+  e.pos.add(sh);e.sc.add(sh);e.face.applyAxisAngle(n,Math.PI);e.sdir.copy(e.face);e.vel.copy(e.sdir).multiplyScalar(e.sspd);
+  B.set('Swim_Turn180_R',B.acts.Swim_Turn180.getClip().duration);B.play('Swim_Loop',0.2);}
+// height of p (relative to the target's frame) over the surface: the hull under it, or the rock it is going to
+function incHullH(p){const hq=hullParam(p);hullPoint(hq.z,hq.th,_h1,_h2);return _h3.subVectors(p,_h1).dot(_h2);}
+const incSurfH=(L,p)=>L.ref?incRockF(L.ref,_h3.copy(p).add(L.ref.c)):incHullH(p);
+// the way home: a Hermite curve for the root from here to the landing spot, leaving the way it is heading and arriving ALONG the surface (a bump pushes it out if it would dip).
+// It lives in the target's frame (a rock drifts). The speed is separate from the curve: it ramps up to ~7 m/s and brakes at 7 m/s2 so that the root reaches the spot at 2 m/s.
+// the clearance bump leans toward the end (peak at u=0.6, flat at both ends): the start of the curve keeps its heading
+const incBump=u=>28.935*u*u*u*(1-u)*(1-u);
+function incPathAt(L,u,p,d){const u2=u*u,u3=u2*u;
+  p.copy(L.P0).multiplyScalar(2*u3-3*u2+1).addScaledVector(L.T0,u3-2*u2+u).addScaledVector(L.H,-2*u3+3*u2).addScaledVector(L.T1,u3-u2).addScaledVector(L.n,L.B*incBump(u));
+  if(d)d.copy(L.P0).multiplyScalar(6*u2-6*u).addScaledVector(L.T0,3*u2-4*u+1).addScaledVector(L.H,-6*u2+6*u).addScaledVector(L.T1,3*u2-2*u).addScaledVector(L.n,L.B*28.935*u2*(1-u)*(3-5*u));
+  return p;}
+function incSwimPlan(e){const L=e.lp,R=L.ref,B=e.B;L.sm='path';if(B.curName!=='Swim_Loop')B.play('Swim_Loop',0.2);
+  L.off=R?R.c:ZERO3;L.P0=e.pos.clone().sub(L.off);
+  if(R){L.H=L.rd.clone().multiplyScalar(rockR(R,L.rd));L.n=incRockNormal(R,_w1.copy(L.H).add(R.c),new THREE.Vector3());}else{L.H=L.hullH.clone();L.n=L.hullN.clone();}
+  // arrive along the surface: the way it is facing, or toward you, or along the ship
+  L.fH=null;for(const c of [R?new THREE.Vector3().subVectors(L.H,L.P0):e.face.clone(),e.face.clone(),new THREE.Vector3().subVectors(P.pos,L.H).sub(L.off),new THREE.Vector3(0,0,1)]){c.addScaledVector(L.n,-c.dot(L.n));if(c.lengthSq()>0.12){L.fH=c.normalize();break;}}
+  if(!L.fH)L.fH=new THREE.Vector3(1,0,0).addScaledVector(L.n,-L.n.x).normalize();
+  const V0=e.vel.clone(),sp=V0.length(),d=L.P0.distanceTo(L.H);
+  L.T0=(sp>1?V0.multiplyScalar(1/sp):e.face.clone()).multiplyScalar(Math.max(2,d*0.9));L.T1=L.fH.clone().multiplyScalar(THREE.MathUtils.clamp(d,4,20));L.B=0;
+  for(let k=1;k<=16;k++){const u=k/17;if(u<0.25)continue;const need=Math.min(0.7,(L.ref?6:10)*(1-u))-incSurfH(L,incPathAt(L,u,_w2)),b=incBump(u);if(need>0&&b>0.02)L.B=Math.max(L.B,need/b);}
+  L.B=Math.min(L.B,3,d*0.4);
+  // arc length table, and the parallel-transported back vector along the curve: it ends rolled by L.rho from the surface normal, and that roll is spread over the way (no flips)
+  L.tab=[0];L.bs=[];const pv=L.P0.clone(),b=e.n.clone();
+  for(let k=0;k<=48;k++){incPathAt(L,k/48,_w2,_w3);if(k)L.tab.push(L.tab[k-1]+_w2.distanceTo(pv));pv.copy(_w2);const t=_w3.normalize();
+    b.addScaledVector(t,-b.dot(t));if(b.lengthSq()<1e-6)b.copy(L.n).addScaledVector(t,-L.n.dot(t));b.normalize();L.bs.push(b.clone());}
+  L.rho=Math.atan2(_w3.dot(_w4.crossVectors(L.bs[48],L.n)),L.bs[48].dot(L.n));
+  L.len=L.tab[48];L.s=0;L.vc=THREE.MathUtils.clamp(Math.max(e.sspd,7),7,10);}
+// back to the landing spot. Its nose follows the curve and its back is the carried vector plus the spread roll. Swim_Land starts 8 frames before it arrives:
+// the hands hook the surface at f8 right as the root reaches the spot, then it stays put and the clip drops the body.
+function incSwimPath(e,dt){const L=e.lp,r=Math.max(0,L.len-L.s),tb=L.tab;
+  e.sspd+=THREE.MathUtils.clamp(Math.min(L.vc,Math.sqrt(4+14*r))-e.sspd,-14*dt,5*dt);L.s=Math.min(L.len,L.s+e.sspd*dt);
+  let k=0;while(k<47&&tb[k+1]<L.s)k++;const fr=(L.s-tb[k])/Math.max(1e-6,tb[k+1]-tb[k]),u=(k+fr)/48,x=L.len>1e-3?L.s/L.len:1;
+  incPathAt(L,u,e.pos,_w2);e.pos.add(L.off);if(_w2.lengthSq()>1e-8)_w2.normalize();e.vel.copy(_w2).multiplyScalar(e.sspd);
+  e.face.lerp(_w2,1-Math.exp(-(9+60*THREE.MathUtils.smoothstep(x,0.1,0.4))*dt)).normalize();
+  const n=_w3.lerpVectors(L.bs[k],L.bs[k+1],Math.min(1,fr));n.addScaledVector(_w2,-n.dot(_w2)).normalize();n.applyAxisAngle(_w2,L.rho*THREE.MathUtils.smoothstep(u,0.1,0.92));
+  e.n.copy(n).addScaledVector(e.face,-n.dot(e.face));if(e.n.lengthSq()<1e-4)e.n.copy(L.n).addScaledVector(e.face,-L.n.dot(e.face));e.n.normalize();
+  e.sc.copy(e.pos).addScaledVector(e.n,INC_CO);
+  if(!L.land&&2*Math.max(0,L.len-L.s)/(e.sspd+2)<=8/24){L.land=1;e.st='swimLand';e.t=0;e.B.play('Swim_Land',0.2);}
+  if(L.s>=L.len-1e-3){if(!L.land){e.st='swimLand';e.t=0;e.B.play('Swim_Land',0.05);}
+    e.vel.set(0,0,0);e.sspd=0;e.sl=1;e.cds.leap=7+Math.random()*3;
+    if(L.ref){e.rk={R:L.ref,rd:L.rd.clone(),t0:e.clk,stay:4+Math.random()*3,fired:0};e.rockStops++;e.lastRock=L.ref;incRockStick(e);e.face.copy(L.fH).addScaledVector(e.n,-L.fH.dot(e.n)).normalize();} // a rock stop: it is now glued to it
+    else{e.rk=null;e.rockStops=0;e.lastRock=null;e.pos.copy(L.H);e.n.copy(L.n);e.face.copy(L.fH);e.z=L.z;e.th=L.th;e.sc.copy(e.pos).addScaledVector(e.n,INC_CO);}
+    e.lp=null;incStep(e,1.4);shake(Math.max(0.05,0.25-e.pos.distanceTo(P.pos)*0.01));burst(e.pos,0x8a6a40,10);return true;}
+  return false;}
+// the spot on rock R that is best to land on from here: reached on a shallow glide (not diving into it), close to the way it is heading, with the line in the clear (and, if asked, with a view of you for the laser)
+function incRockSpot(e,R,needSee){const P0=e.pos,V=(e.vel.lengthSq()>1?_h1.copy(e.vel):_h1.copy(e.face)).normalize(),to=new THREE.Vector3().subVectors(e.sc,R.c).normalize(),d=new THREE.Vector3(),H=new THREE.Vector3(),n=new THREE.Vector3(),v=new THREE.Vector3(),q=new THREE.Vector3(),o=new THREE.Vector3();
+  let best=null,bc=1e9;const N=140;
+  for(let i=0;i<N;i++){const y=1-2*(i+0.5)/N,rr=Math.sqrt(1-y*y),ph=i*2.399963;d.set(Math.cos(ph)*rr,y,Math.sin(ph)*rr);if(d.dot(to)<0.1)continue;
+    H.copy(R.c).addScaledVector(d,rockR(R,d));v.subVectors(H,P0);const L=v.length();if(L<1.5)continue;v.multiplyScalar(1/L);
+    incRockNormal(R,H,n);const sa=-v.dot(n);if(sa<0.02)continue; // it comes from above the surface
+    let clear=true;for(let k=1;k<=7;k++){q.copy(P0).addScaledVector(v,L*k/8);if(incRockF(R,q)<0.5){clear=false;break;}}if(!clear)continue;
+    if(needSee){o.copy(H).addScaledVector(n,0.8);if(shipBetween(o,P.pos)||rockRay(o,_h2.subVectors(P.pos,o))>=0)continue;}
+    // how sharply the curve to this spot bends (the same Hermite the plan uses): a heavy swimmer wants the gentlest one
+    const T0=_h3.copy(V).multiplyScalar(Math.max(2,L*0.9)),T1=q.copy(v).addScaledVector(n,sa).normalize().multiplyScalar(THREE.MathUtils.clamp(L,4,20));
+    let pt=null,pp=_h2.copy(P0),worst=0,need=0;
+    for(let k=1;k<=20;k++){const u=k/20,u2=u*u,u3=u2*u;
+      const tg=_w3.copy(P0).multiplyScalar(6*u2-6*u).addScaledVector(T0,3*u2-4*u+1).addScaledVector(H,-6*u2+6*u).addScaledVector(T1,3*u2-2*u),
+        pos=_w4.copy(P0).multiplyScalar(2*u3-3*u2+1).addScaledVector(T0,u3-2*u2+u).addScaledVector(H,-2*u3+3*u2).addScaledVector(T1,u3-u2);
+      if(tg.lengthSq()<1e-6){worst=9;break;}tg.normalize();
+      if(u>=0.25&&u<0.95)need=Math.max(need,Math.min(0.7,6*(1-u))-incRockF(R,pos)); // would the curve dip into the rock before the end?
+      if(pt){const ds=pos.distanceTo(pp);if(ds>1e-4)worst=Math.max(worst,Math.acos(THREE.MathUtils.clamp(tg.dot(pt),-1,1))/ds);}
+      pt=pt?pt.copy(tg):tg.clone();pp.copy(pos);}
+    const c=2.2*worst+1.2*need+3*Math.max(0,sa-0.4)+0.03*L;
+    if(c<bc){bc=c;best=d.clone();}}
+  return best;}
+// time to go home. A rock it ran into is where it lands (if it may); when its time is up, about half the time a rock closer than the hull spot (within ~15 m, with a clear view
+// of you) is as good as the hull. If the spot is behind it, it turns first.
+function incSwimBack(e,rock){const S=e.sw,hp=hullParam(e.sc),[z,th]=freeSpot(THREE.MathUtils.clamp(hp.z,-12,19),hp.th,2),hn=new THREE.Vector3(),H=hullPoint(z,th,new THREE.Vector3(),hn);
+  let R=rock&&incRockOK(e,rock)?rock:null,rd=null;
+  if(!rock&&e.rockStops<2&&Math.random()<0.5){let best=1e9;
+    for(const Q of ROCKS){if(!incRockOK(e,Q))continue;const d=_w1.subVectors(e.sc,Q.c),L=d.length();if(L<1e-4)continue;d.multiplyScalar(1/L);const sd=L-rockR(Q,d);if(sd>=15||sd>=e.sc.distanceTo(H)||sd>=best)continue;
+      const o=_w2.copy(Q.c).addScaledVector(d,rockR(Q,d)+0.8);if(shipBetween(o,P.pos)||rockRay(o,_w3.subVectors(P.pos,o))>=0)continue;best=sd;R=Q;}}
+  if(R){ // inside the rock already (it noticed late)? come out first; then pick the landing spot
+    const f=incRockF(R,e.sc);if(f<1.2){const out=_w1.subVectors(e.sc,R.c).normalize().multiplyScalar(1.2-f);e.sc.add(out);e.pos.add(out);}
+    rd=incRockSpot(e,R,!rock)||(rock?incRockSpot(e,R,false):null);
+    if(!rd){if(rock)rd=new THREE.Vector3().subVectors(e.sc,R.c).normalize();else R=null;}}
+  e.st='swimBack';e.t=0;e.lp={ref:R,rd,hullH:H,hullN:hn,z,th,sm:'path',land:0,B:0};
+  const tgt=R?_w2.copy(R.c).addScaledVector(rd,rockR(R,rd)):H;
+  // the spot is behind it (by where it looks or where it is heading, a bit stricter than in the chase because a U-turn path would whip its body round): turn first
+  const dT=_w1.subVectors(tgt,e.sc).normalize(),hd=e.vel.lengthSq()>1?_w3.copy(e.vel).normalize():e.face;
+  if(Math.min(e.face.dot(dT),hd.dot(dT))<-0.35&&e.clk-S.turnT>2){e.lp.sm='turn';S.turnT=e.clk;e.B.play('Swim_Turn180',0.2);}else incSwimPlan(e);}
 function incCharge(e){e.st='charge';e.t=0;say('inc_beam',4,{cd:25});e.B.play('Idle',0.2);e.aim.subVectors(P.pos,incCore(e,_j1)).normalize();e.coreHit=0;if(!(AC&&playS('laserCharge',0.75,1)))sfx('reload');}
 function incMelee(e,clip){e.st='melee';e.t=0;e.atk=clip;e.B.play(clip,0.12);e.cds.melee=1.8;sfx('chitter',e.pos);}
 function incFall(e,dt){const F=e.fall;F.v=Math.min(70,F.v+(F.cine?40:55)*dt);const d=_j1.subVectors(F.tgt,e.pos),L=d.length(),a=F.cine?40:55,eta=(-F.v+Math.sqrt(F.v*F.v+2*a*L))/a;
@@ -146,26 +275,40 @@ const _f1=new THREE.Vector3(),_f2=new THREE.Vector3(),_f3=new THREE.Vector3(),_f
 const _fN=new THREE.Vector3(),_fq1=new THREE.Quaternion(),_fq2=new THREE.Quaternion(),_fq3=new THREE.Quaternion(),_fq4=new THREE.Quaternion();
 function boneRotWorld(bone,q){const pw=bone.parent.getWorldQuaternion(_fq1),w=bone.getWorldQuaternion(_fq2);w.premultiply(q);bone.quaternion.copy(pw.invert().multiply(w));bone.updateMatrixWorld(true);}
 function boneSetWorld(bone,qw){const pw=bone.parent.getWorldQuaternion(_fq1);bone.quaternion.copy(pw.invert().multiply(qw));bone.updateMatrixWorld(true);}
+// v69: lowest toe tip over the rock under it (perpendicular distance, a bit less than along the radius)
+function incToeClear(e,L){const R=e.rk.R;let m=9;
+  for(const b of L.toes){const w=b.getWorldPosition(_f1),d=_f8.subVectors(w,R.c),l=d.length();if(l<1e-4)continue;d.multiplyScalar(1/l);const r=rockR(R,d);incRockNormal(R,_f2.copy(R.c).addScaledVector(d,r),_f4);m=Math.min(m,(l-r)*Math.max(0.3,d.dot(_f4)));}
+  return m;}
+// one leg re-solved so the ankle sits dS above/below the flat floor of the clip, and the foot lies on nS
+function incLegSolve(e,L,dS,nS){
+  const A=L.a.getWorldPosition(_f1),Bk=L.b.getWorldPosition(_f2),C=L.c.getWorldPosition(_f3);
+  const T=_f7.copy(C).addScaledVector(e.n,dS);
+  const fw0=L.c.getWorldQuaternion(_fq3).clone();
+  if(Math.abs(dS)>0.004){
+    const l1=Bk.distanceTo(A),l2=C.distanceTo(Bk),dir=_f8.subVectors(T,A);let D=dir.length();if(D<1e-4)return;dir.divideScalar(D);D=THREE.MathUtils.clamp(D,Math.abs(l1-l2)+1e-3,l1+l2-1e-3);
+    const pn=_f4.subVectors(Bk,A).cross(_f5.subVectors(C,A));if(pn.lengthSq()<1e-10)return;pn.normalize();
+    const ca=THREE.MathUtils.clamp((l1*l1+D*D-l2*l2)/(2*l1*D),-1,1),sa=Math.sqrt(1-ca*ca);
+    const side=_f5.crossVectors(pn,dir);if(side.dot(_f6.subVectors(Bk,A))<0)side.negate(); // bend the knee the same way as the clip
+    const Bn=_f6.copy(A).addScaledVector(dir,l1*ca).addScaledVector(side,l1*sa);
+    boneRotWorld(L.a,_fq4.setFromUnitVectors(_f4.subVectors(Bk,A).normalize(),_f5.subVectors(Bn,A).normalize()));
+    const C1=L.c.getWorldPosition(_f4),B1=L.b.getWorldPosition(_f5);
+    boneRotWorld(L.b,_fq4.setFromUnitVectors(_f8.subVectors(C1,B1).normalize(),_f6.subVectors(T,B1).normalize()));}
+  // the foot follows the slope under it
+  const qt=_fq4.setFromUnitVectors(e.n,nS);
+  boneSetWorld(L.c,_fq2.copy(qt).multiply(fw0));}
 function incFeet(e){
-  if(!e.legs)e.legs=['L','R'].map(s=>({a:incBone(e.B,'thigh.'+s),b:incBone(e.B,'shin.'+s),c:incBone(e.B,'foot.'+s),qa:new THREE.Quaternion(),qb:new THREE.Quaternion(),qc:new THREE.Quaternion(),s:false})).filter(l=>l.a&&l.b&&l.c);
+  if(!e.legs)e.legs=['L','R'].map(s=>({a:incBone(e.B,'thigh.'+s),b:incBone(e.B,'shin.'+s),c:incBone(e.B,'foot.'+s),qa:new THREE.Quaternion(),qb:new THREE.Quaternion(),qc:new THREE.Quaternion(),s:false,
+    toes:Object.keys(e.B.bones).filter(k=>new RegExp('^toe\\d_03'+s+'$').test(k)).map(k=>e.B.bones[k])})).filter(l=>l.a&&l.b&&l.c);
   for(const L of e.legs){L.qa.copy(L.a.quaternion);L.qb.copy(L.b.quaternion);L.qc.copy(L.c.quaternion);L.s=true;
-    const A=L.a.getWorldPosition(_f1),Bk=L.b.getWorldPosition(_f2),C=L.c.getWorldPosition(_f3);
-    const hq=hullParam(C);if(hq.z<-14.4||hq.z>21.4)continue;hullPoint(hq.z,hq.th,_f5,_f6);const nS=_fN.copy(_f6);
+    const C=L.c.getWorldPosition(_f3);
+    if(!incSurf(e,C,_f5,_f6))continue;const nS=_fN.copy(_f6); // v69: the hull, or the rock it stands on
+    // v69 (Santi): a rock is lumpy, its slope changes within a stride: the sole lies along the chord to the surface under the toes (mean of both normals)
+    if(e.rk){_f4.copy(C).addScaledVector(e.face,0.65);if(incSurf(e,_f4,_f7,_f8))nS.add(_f8).normalize();}
     const dS=THREE.MathUtils.clamp(_f4.subVectors(_f5,e.pos).dot(e.n),-0.9,0.6); // where the real hull is, vs the flat floor of the clip
-    const T=_f7.copy(C).addScaledVector(e.n,dS);
-    const fw0=L.c.getWorldQuaternion(_fq3).clone();
-    if(Math.abs(dS)>0.004){
-      const l1=Bk.distanceTo(A),l2=C.distanceTo(Bk),dir=_f8.subVectors(T,A);let D=dir.length();if(D<1e-4)continue;dir.divideScalar(D);D=THREE.MathUtils.clamp(D,Math.abs(l1-l2)+1e-3,l1+l2-1e-3);
-      const pn=_f4.subVectors(Bk,A).cross(_f5.subVectors(C,A));if(pn.lengthSq()<1e-10)continue;pn.normalize();
-      const ca=THREE.MathUtils.clamp((l1*l1+D*D-l2*l2)/(2*l1*D),-1,1),sa=Math.sqrt(1-ca*ca);
-      const side=_f5.crossVectors(pn,dir);if(side.dot(_f6.subVectors(Bk,A))<0)side.negate(); // bend the knee the same way as the clip
-      const Bn=_f6.copy(A).addScaledVector(dir,l1*ca).addScaledVector(side,l1*sa);
-      boneRotWorld(L.a,_fq4.setFromUnitVectors(_f4.subVectors(Bk,A).normalize(),_f5.subVectors(Bn,A).normalize()));
-      const C1=L.c.getWorldPosition(_f4),B1=L.b.getWorldPosition(_f5);
-      boneRotWorld(L.b,_fq4.setFromUnitVectors(_f8.subVectors(C1,B1).normalize(),_f6.subVectors(T,B1).normalize()));}
-    // the foot follows the slope under it
-    const qt=_fq4.setFromUnitVectors(e.n,nS);
-    boneSetWorld(L.c,_fq2.copy(qt).multiply(fw0));}}
+    incLegSolve(e,L,dS,nS);
+    // v69: on a rock the lowest toe is measured and the ankle moved so it hangs ~10 cm over the stone, as on the hull (one more pass from the clip pose)
+    if(e.rk&&L.toes.length){const sh=THREE.MathUtils.clamp(incToeClear(e,L)-0.1,-0.4,0.5);
+      if(Math.abs(sh)>0.05){L.a.quaternion.copy(L.qa);L.b.quaternion.copy(L.qb);L.c.quaternion.copy(L.qc);L.a.updateMatrixWorld(true);incLegSolve(e,L,THREE.MathUtils.clamp(dS-sh,-1.2,0.6),nS);}}}}
 function incSpheres(e){if(!e.hs.length){e.hs=[{p:new THREE.Vector3(),r:0.11*INC_SC,part:'head'},{p:new THREE.Vector3(),r:0.09*INC_SC,part:'core'}];
     for(let i=0;i<e.bBody.length;i++)if(e.bBody[i])e.hs.push({p:new THREE.Vector3(),r:e.rBody[i]*INC_SC,part:'body',b:e.bBody[i]});}
   e.bHead.getWorldPosition(e.hs[0].p);incCore(e,e.hs[1].p);for(let i=2;i<e.hs.length;i++)e.hs[i].b.getWorldPosition(e.hs[i].p);}
@@ -184,18 +327,18 @@ function incDamage(e,dmg,part,bvel,p){if(e.st==='dead'||e.st==='fall'||e.st==='g
   if(e.hp<=0){killInc(e,m>=2);return;}
   // shot from the front again and again: it covers up with all four arms
   if(front&&!guard){e.front.push(playT);e.front=e.front.filter(x=>playT-x<1.3);
-    if(e.front.length>=4&&e.st==='stalk'&&e.cds.guard<=0){e.st='guardS';e.t=0;e.B.play('Guard_Start',0.1);e.cds.guard=9;e.front.length=0;return;}}
+    if(e.front.length>=4&&(e.st==='stalk'||e.st==='rock')&&e.cds.guard<=0){e.st='guardS';e.t=0;e.B.play('Guard_Start',0.1);e.cds.guard=9;e.front.length=0;return;}}
   // the core cracks while it charges or fires: it reels back and the beam dies
   if(part==='core'&&firing){e.coreHit+=d;if(e.coreHit>=7){incBeamSnd(false);e.st='hit';e.t=0;e.B.play('Hit_Front',0.08);e.cds.beam=3;e.cds.stag=2.5;return;}}
-  e.stagAcc+=d;if(e.stagAcc>=12&&e.cds.stag<=0&&e.st==='stalk'){e.stagAcc=0;e.cds.stag=3;const side=-bd.dot(_j2.crossVectors(e.n,e.face));
+  e.stagAcc+=d;if(e.stagAcc>=12&&e.cds.stag<=0&&(e.st==='stalk'||e.st==='rock')){e.stagAcc=0;e.cds.stag=3;const side=-bd.dot(_j2.crossVectors(e.n,e.face));
     e.st='hit';e.t=0;e.B.play(front?'Hit_Front':side>0?'Hit_Left':'Hit_Right',0.08);}}
-function killInc(e,crit){incBeamSnd(false);const air=e.st==='swim'||e.st==='back'||e.st==='hop';e.st='dead';e.t=0;e.hop=0;e.deadFly=air;
+function killInc(e,crit){incBeamSnd(false);const air=incAir(e);e.st='dead';e.t=0;e.hop=0;e.deadFly=air;
   if(!e.deadFly)e.B.play(crit?'Death_Shot':'Death_Collapse',0.15);e.crit=crit;
   stats.incs=(stats.incs||0)+1;stats.kills++;addPts(800);comboBanner('¡INCINERADORA ABATIDA!','+'+ptsVal(800));say('inc_dead',4);
   const c=incCenter(e,new THREE.Vector3());floatText(c.clone(),(crit?'CRÍTICO +':'+')+ptsVal(800),'crit');
   if(!(AC&&playS('roar',0.9,0.6)))sfx('kill',e.pos);shake(0.5);hitStop=0.08;crossKill();for(let i=0;i<3;i++)burst(c,0xff7a30,20);spawnDrop(c.clone().addScaledVector(e.n,1.2),pickPU());}
 function incRemove(e){burst(incCenter(e,_j1),0xff3020,40);burst(incCenter(e,_j1),0xff9a40,30);deathFlash(e.pos);sfx('kill',e.pos);scene.remove(e.B.g);e.st='gone';INCS.splice(INCS.indexOf(e),1);}
-function updateInc(e,dt,t){const B=e.B;e.t+=dt;for(const k in e.cds)e.cds[k]-=dt;e.flash=Math.max(0,e.flash-dt*5);
+function updateInc(e,dt,t){const B=e.B;e.t+=dt;e.clk+=dt;if(e.rk)incRockStick(e);for(const k in e.cds)e.cds[k]-=dt;e.flash=Math.max(0,e.flash-dt*5);
   const live=state==='play'&&!CINE.on;const toP=new THREE.Vector3().subVectors(P.pos,e.pos),dist=toP.length();let glow=1.4;
   switch(e.st){
     case 'fall':if(!(CINE.on&&CINE.boss===e&&CINE.t<0.35))incFall(e,dt);glow=1.2;break;
@@ -208,7 +351,7 @@ function updateInc(e,dt,t){const B=e.B;e.t+=dt;for(const k in e.cds)e.cds[k]-=dt
       const running=e.roam&&e.roam.p.distanceTo(e.pos)>4.5;const facing=running?e.face.dot(_j3.copy(tan).normalize()):incTurn(e,flat>0.3?tan:e.face,2.4,dt);
       if(live){
         if(dist<4.6&&e.cds.melee<=0&&facing>0.4){incMelee(e,dist<3.3?'Bite':'JumpSlash');break;}
-        if(see&&e.cds.leap<=0&&dist>6&&dist<70&&pH>2.5){e.st='takeoff';e.t=0;B.play('ZeroG_Takeoff',0.15);break;} // v67: also when you shoot it from far off the ship
+        if(see&&e.cds.leap<=0&&dist>6&&dist<70&&pH>2.5){e.st='swimStart';e.t=0;e.sa=0;B.play('Swim_Start',0.2);break;} // v67: also when you shoot it from far off the ship (v69: it swims, no jump clip)
         if(see&&e.cds.beam<=0&&dist<44&&dist>3.5){incCharge(e);break;}}
       // it never stands still: it keeps moving to new spots around you (running, walking or side-stepping while it stares at you)
       // and covers big distances with long leaps across the hull
@@ -230,24 +373,46 @@ function updateInc(e,dt,t){const B=e.B;e.t+=dt;for(const k in e.cds)e.cds[k]-=dt
       else{hitAt(16,14,5.4);hitAt(22,14,5.4);const ft=B.cur.time*24;e.hop=ft>8&&ft<26?Math.sin((ft-8)/18*Math.PI)*1.6:0; // the leap of the slash
         if(ft>8&&ft<22){const tg=toP.clone().addScaledVector(e.n,-toP.dot(e.n));if(tg.length()>2.5)incMove(e,tg.normalize(),3.2,dt);}}
       glow=2.4;if(B.done())incStalk(e);break;}
-    case 'takeoff':incTurn(e,toP,3,dt);glow=2.2;
-      if(B.at(12)){e.vel.subVectors(P.pos,incCenter(e,_j1)).normalize().multiplyScalar(12);e.st='swim';e.t=0;e.sw={T:4.6+Math.random()*1.4,o:e.pos.clone(),ph:0};
-        B.play('ZeroG_Float',0.2);if(!(AC&&playS('tss',0.55,0.6)))sfx('dash');}
+    // v69 (Santi): leaving the hull = swimming. Crouch on the hull, push off at f11 at 8 m/s toward you, swim pose by f25.
+    case 'swimStart':glow=2.2;
+      if(!e.sa){incTurn(e,toP,3,dt);if(B.at(11))incSwimLaunch(e);}
+      else{e.sw.t+=dt;incSwimMove(e,dt,_w1.subVectors(P.pos,e.sc).normalize(),6.5,1.5);}
+      if(B.done()&&e.sa){e.st='swim';e.t=0;e.sw.sm='loop';e.sw.fr=0;B.play('Swim_Loop',0.2);}
       break;
     // v67 (Santi): it doesn't just lunge once. It swims through space after you with heavy strokes and claws at you up close,
     // so floating far off the ship to shoot it from a distance is no longer safe. It can only stay out a few seconds, then it goes back.
-    case 'swim':{const c=incCenter(e,new THREE.Vector3()),want=_j2.subVectors(P.pos,c),dl=want.length(),S=e.sw;glow=2.4;
-      const ph=(e.t*1.55)%1,surge=ph<0.35?Math.sin(ph/0.35*Math.PI):0;if(ph<S.ph&&AC)playS('tss',0.2,0.55+Math.random()*0.1);S.ph=ph; // a surge (and a puff) every ~0.65 s
-      const spd=(e.atk?3:6.5)+surge*6.5;want.normalize();e.vel.lerp(_j3.copy(want).multiplyScalar(spd),1-Math.exp(-(e.atk?1.2:2.0)*dt)); // heavy: it turns wide
-      e.pos.addScaledVector(e.vel,dt);
-      const fwd=e.atk?want:_j3.copy(e.vel).normalize();e.face.lerp(fwd,1-Math.exp(-5*dt)).normalize(); // it faces where it swims (you, while clawing)
-      e.n.addScaledVector(e.face,-e.n.dot(e.face));if(e.n.lengthSq()<1e-4)e.n.copy(UP).addScaledVector(e.face,-e.face.y);e.n.normalize();
-      if(!e.atk&&live&&dl<4.6&&e.cds.melee<=0){e.atk='JumpSlash';B.play('JumpSlash',0.12);e.cds.melee=1.5;sfx('chitter',e.pos);}
-      if(e.atk){for(const f of [16,22])if(B.at(f)&&live&&dl<5.2){damagePlayer(14,want.clone());P.vel.addScaledVector(want,6);shake(0.4);}
-        if(B.done()){e.atk=null;B.play('ZeroG_Float',0.25);}}
-      if(e.t>S.T||c.distanceTo(S.o)>30||rockAt(c,1.6)||(e.t>0.6&&pushOutOfShip(_j3.copy(c),1.2,null))){e.atk=null;e.st='back';e.t=0;if(B.curName!=='ZeroG_Float')B.play('ZeroG_Float',0.25);}
+    // v69: Swim_Loop at ~7.5 m/s (the speed follows the pull of the stroke), Swim_Slash within ~5 m in front of it, Swim_Turn180 when you are >120 degrees behind it.
+    case 'swim':{const S=e.sw,want=_w1.subVectors(P.pos,e.sc),dl=want.length();want.divideScalar(Math.max(dl,1e-4));glow=2.4;S.t+=dt;
+      if(S.sm==='loop'){const fr=B.cur.time*24;
+        if(S.fr<11&&fr>=11&&AC)playS('tss',0.2,0.55+Math.random()*0.1);S.fr=fr; // one puff at the start of every pull
+        const fw=e.face.dot(want);
+        if(live&&fw<-0.5&&e.clk-S.turnT>2){S.sm='turn';S.turnT=e.clk;B.play('Swim_Turn180',0.2);} // more than ~120 degrees behind its facing (at most one turn every 2 s)
+        else if(live&&dl<5&&fw>0.5&&e.cds.melee<=0){S.sm='slash';B.play('Swim_Slash',0.2);e.cds.melee=2.2;sfx('chitter',e.pos);}
+        incSwimMove(e,dt,want,incStrokeV(fr),2.0);}
+      else if(S.sm==='slash'){ // three claws (f9 left, f16 right, f27 left) while it keeps drifting toward you
+        for(const f of [9,16,27])if(B.at(f)&&live&&dl<5.2&&e.face.dot(want)>0.5){damagePlayer(10,want.clone());P.vel.addScaledVector(want,6);shake(0.4);}
+        incSwimMove(e,dt,want,3.5,1.2,want);
+        if(B.done()){S.sm='loop';S.fr=0;B.play('Swim_Loop',0.2);}}
+      else{ // the turn: brake, heading and facing frozen (the clip turns the body); at its end the entity flips 180 degrees
+        incSwimMove(e,dt,null,1.5,0,null);
+        if(B.done()){incSwimFlip(e);S.sm='loop';S.fr=0;}}
+      if(S.sm!=='turn'){const RK=S.t>0.5?incRockAhead(e):null; // a rock in its way: it lands on it (if it may) instead of bouncing back to the hull
+        if(RK||S.t>S.T||e.sc.distanceTo(S.o)>30||(S.t>0.9&&pushOutOfShip(_w2.copy(e.sc),1.2,null)))incSwimBack(e,RK||undefined);}
       break;}
-    case 'back':incTurn(e,toP,2,dt);glow=2;if(incBack(e,dt)){e.st='land';e.t=0;if(B.curName!=='ZeroG_LandGrip')B.play('ZeroG_LandGrip',0.15);e.cds.leap=7+Math.random()*3;}break;
+    case 'swimBack':glow=2;
+      if(e.lp.sm==='turn'){incSwimMove(e,dt,null,1.5,0,null);if(B.done()){incSwimFlip(e);incSwimPlan(e);}}
+      else incSwimPath(e,dt);
+      break;
+    case 'swimLand':glow=2;
+      if(!e.sl)incSwimPath(e,dt);else if(B.done())incStalk(e);
+      break;
+    // v69 (Santi): perched on a rock (glued to it, see incRockStick). It turns to you, fires the chest laser once if it sees you, and after 4-7 s (or when you come within ~6 m)
+    // it leaves with Swim_Start. The laser states go back to this one through incStalk.
+    case 'rock':{const K=e.rk,R=K.R;glow=1.5;incTurn(e,toP,2.4,dt);B.play('Idle',0.25);
+      const core=incCore(e,new THREE.Vector3()),see=!shipBetween(core,P.pos)&&rockRay(core,_j2.subVectors(P.pos,core))<0;
+      if(R.leaving||R.fade<0.98||(live&&(e.clk-K.t0>K.stay||dist<6)))incRockLeave(e);
+      else if(live&&!K.fired&&see&&e.cds.beam<=0&&dist<44&&dist>6){K.fired=1;incCharge(e);}
+      break;}
     case 'hopTake':{const R=e.hopTo;incTurn(e,_j3.subVectors(R.p,e.pos),3,dt);glow=2;
       if(B.at(12)){const d=e.pos.distanceTo(R.p);e.arc={p0:e.pos.clone(),n0:e.n.clone(),p1:R.p.clone(),n1:R.n.clone(),z1:R.z,th1:R.th,d,T:Math.max(1.0,d/11),H:Math.min(7,2.5+d*0.17)};
         e.arc.c=e.arc.p0.clone().add(e.arc.p1).multiplyScalar(0.5).addScaledVector(e.arc.n0.clone().add(e.arc.n1).normalize(),2*e.arc.H);
@@ -271,7 +436,7 @@ function updateInc(e,dt,t){const B=e.B;e.t+=dt;for(const k in e.cds)e.cds[k]-=dt
     case 'beamEnd':glow=2;if(B.done())incStalk(e);break;
     case 'guardS':glow=1.8;if(B.done()){e.st='guard';e.t=0;B.play('Guard_Loop',0.1);}break;
     case 'guard':incTurn(e,toP,2.5,dt);glow=1.8;if(e.t>1.4){e.st='guardE';e.t=0;B.play('Guard_End',0.1);}break;
-    case 'guardE':glow=2.5;if(B.done()){if(dist<5.5)incMelee(e,'JumpSlash');else incCharge(e);}break;
+    case 'guardE':glow=2.5;if(B.done()){if(e.rk)incStalk(e);else if(dist<5.5)incMelee(e,'JumpSlash');else incCharge(e);}break;
     case 'hit':glow=2;if(B.done())incStalk(e);break;
     case 'elec':glow=Math.random()<0.5?5:0.5;if(e.t>3){incStalk(e);e.cds.beam=Math.min(e.cds.beam,1);}break;
     case 'dead':glow=Math.max(0,1.5-e.t*0.8);
@@ -282,7 +447,7 @@ function updateInc(e,dt,t){const B=e.B;e.t+=dt;for(const k in e.cds)e.cds[k]-=dt
   e.state=e.st;B.glow(glow*(1+e.flash*0.6));incPlace(e);
   if(e.legs)for(const L of e.legs)if(L.s){L.a.quaternion.copy(L.qa);L.b.quaternion.copy(L.qb);L.c.quaternion.copy(L.qc);L.s=false;}
   B.update(dt);B.g.updateMatrixWorld(true);
-  const onHull=!(e.st==='fall'||e.st==='swim'||e.st==='back'||e.st==='hop'||(e.st==='dead'&&e.deadFly));if(onHull)incFeet(e);
+  const onHull=!incAir(e);if(onHull)incFeet(e);
   incSpheres(e);}
 // shared beam / aim-line visuals: shown only while someone is charging or firing
 function incFxFrame(){

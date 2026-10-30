@@ -1,4 +1,4 @@
-// Phone tutorial (v66): after 20 s of play the game pauses and five screens explain controls and HUD.
+// Phone tutorial (v66): after 6 s of play the game pauses and five screens explain controls and HUD.
 // Checks: it opens on time and freezes the game, the piece explained is lifted, a tap / the timer pass screens, SALTAR ends it,
 // it is remembered, CÓMO SE JUEGA shows it again, English texts. Run on dist-test. Screenshots: phone_tut_<n>_<step>.png
 const {chromium}=require('playwright');
@@ -20,7 +20,7 @@ const snap=async(p,name)=>{await p.evaluate(()=>{window.__manual=1;});await p.wa
   await p.screenshot({path:shot(name),timeout:180000});};
 (async()=>{
  const b=await chromium.launch({args:ARGS});
- // 1) first game: play 20 s, then the tutorial (with trichomes floating, so step 4 is in)
+ // 1) first game: play 6 s, then the tutorial (with trichomes floating, so step 4 is in)
  {const {ctx,p,errs,step}=await game(b,'es',false);
   await step(1);console.log('at 1 s',JSON.stringify(await st(p)));
   await p.evaluate(()=>{window.__noSpawn=1;for(const s of [...__heads.spiders])__heads.killSpider(s);const P=__heads.P,ps=__T.PATCHES.slice().sort((a,b)=>a.pos.distanceTo(P.pos)-b.pos.distanceTo(P.pos));
@@ -29,7 +29,7 @@ const snap=async(p,name)=>{await p.evaluate(()=>{window.__manual=1;});await p.wa
   await step(2);console.log('frozen (playT unchanged)',(await st(p)).playT===a.playT);
   const names=['1_mueve','2_mira','3_tricomas','4_recoge','5_traje'];
   for(let i=0;i<5;i++){await settle(p);console.log('screen',i+1,JSON.stringify(await st(p)));await snap(p,'phone_tut_'+names[i]+'.png');
-    if(i<4){await p.waitForTimeout(650);await p.touchscreen.tap(420,330);await p.evaluate(()=>__step(1));}}
+    if(i<4){await p.waitForTimeout(1100);await p.touchscreen.tap(420,330);await p.evaluate(()=>__step(1));}}
   // the last screen passes on its own
   await p.evaluate(()=>{__T.MTUT.dur=4200;__T.MTUT.t0=performance.now();});await p.waitForTimeout(5200);await p.evaluate(()=>__step(1));const e=await st(p);console.log('after the last one (timer)',JSON.stringify(e));
   await step(1);console.log('game runs again',(await st(p)).playT>e.playT);
@@ -42,17 +42,17 @@ const snap=async(p,name)=>{await p.evaluate(()=>{window.__manual=1;});await p.wa
   console.log('SALTAR box',JSON.stringify(sk.slice(2)));
   await p.touchscreen.tap(sk[0],sk[1]);await p.evaluate(()=>__step(1));console.log('after SALTAR',JSON.stringify(await st(p)));
   console.log('errors',JSON.stringify(errs.slice(0,5)));await ctx.close();}
- // 2) a phone that has seen it: nothing at 20 s
+ // 2) a phone that has seen it: nothing after 6 s
  {const {ctx,p,errs,step}=await game(b,'es',true);
   await step(0.5);await p.evaluate(()=>{window.__noSpawn=1;for(const s of [...__heads.spiders])__heads.killSpider(s);__T.playT=19.5;});await step(1.5);
   console.log('seen before',JSON.stringify(await st(p)));console.log('errors',JSON.stringify(errs.slice(0,5)));await ctx.close();}
- // 3) English, and no trichomes floating: step 4 waits and shows on its own when they float
+ // 3) English, and no trichomes floating: step 4 still shows (the hold)
  {const {ctx,p,errs,step}=await game(b,'en',false);
   await step(0.5);await p.evaluate(()=>{window.__noSpawn=1;for(const s of [...__heads.spiders])__heads.killSpider(s);__T.playT=19.5;});
   await step(0.8);await p.evaluate(()=>{__T.MTUT.dur=1e9;});await settle(p);console.log('EN opened',JSON.stringify(await st(p)));
-  for(let i=0;i<3;i++){await p.waitForTimeout(650);await p.touchscreen.tap(420,330);await p.evaluate(()=>__step(1));await settle(p);console.log('EN screen',i+2,JSON.stringify(await st(p)));}
-  await p.waitForTimeout(650);await p.touchscreen.tap(420,330);await p.evaluate(()=>__step(1));console.log('EN closed',JSON.stringify(await st(p)));
-  await p.evaluate(()=>{const P=__heads.P,ps=__T.PATCHES.slice().sort((a,b)=>a.pos.distanceTo(P.pos)-b.pos.distanceTo(P.pos)),far=ps[ps.length-1];far.hp=0;__T.leakFrom(far,14);});
-  await step(1);await settle(p);console.log('step 4 later',JSON.stringify(await st(p)));await snap(p,'phone_tut_en_4_later.png');
+  // nothing floating: step 4 is still there, lighting the hold only
+  for(let i=0;i<4;i++){await p.waitForTimeout(1100);await p.touchscreen.tap(420,330);await p.evaluate(()=>__step(1));await settle(p);const x=await st(p);console.log('EN screen',i+2,JSON.stringify(x));
+    if(x.step==='s-collect')await snap(p,'phone_tut_en_4_sin_tricomas.png');}
+  await p.waitForTimeout(1100);await p.touchscreen.tap(420,330);await p.evaluate(()=>__step(1));console.log('EN closed',JSON.stringify(await st(p)));
   console.log('errors',JSON.stringify(errs.slice(0,5)));await ctx.close();}
  await b.close();})();

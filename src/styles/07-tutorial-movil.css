@@ -13,8 +13,8 @@ body.mtut :is(#tut,#tip,#mFeed,#mAlert){visibility:hidden} /* the side tips and 
 .mtut-hl{transform-origin:var(--mto,50% 50%);scale:1.16;filter:brightness(1.25) drop-shadow(0 0 9px rgba(255,200,80,.8));
   animation:mtPop .3s cubic-bezier(.2,1.3,.4,1) both,mtPulse 1.8s .3s ease-in-out infinite!important}
 
-/* Santi's menu drawings (joystick, aim): their black background melts into the dark */
-#mTutD .mtA{position:absolute;display:none;background-repeat:no-repeat;mix-blend-mode:screen;
+/* Santi's menu drawings (joystick, aim), cut out of their black background */
+#mTutD .mtA{position:absolute;display:none;background-repeat:no-repeat;
   -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
 #mTutD .mtA.in{animation:mtArt .25s ease-out both,mtBob 2.4s .25s ease-in-out infinite}
 
@@ -24,15 +24,16 @@ body.mtut :is(#tut,#tip,#mFeed,#mAlert){visibility:hidden} /* the side tips and 
 #mTutL .mtDots{display:flex;gap:6px}
 #mTutL .mtDots i{display:block;width:8px;height:8px;border-radius:50%;background:rgba(243,230,196,.3)}
 #mTutL .mtDots i.on{background:#ffcf4a}
-#mTutL .mtH{margin:0;font:800 34px/1 'TekturE','Oxanium','Segoe UI',sans-serif;letter-spacing:.04em;color:transparent;
-  background:linear-gradient(180deg,#fffbe0 0%,#ffeb9a 18%,#ffd23e 40%,#f4ae18 60%,#e8a014 72%,#f7c849 90%,#ffe79a 100%);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-stroke:.6px rgba(150,86,6,.85);
-  filter:drop-shadow(0 1.5px 0 #9a5a08) drop-shadow(0 2px 3px rgba(0,0,0,.75)) drop-shadow(0 0 8px rgba(255,170,40,.3))}
-#mTutL.s-collect .mtH{font-size:30px}
+/* v66b (Santi): lighter title (not so bold), a clean gold, just a soft shadow */
+#mTutL .mtH{margin:0;font:600 32px/1.05 'TekturE','Oxanium','Segoe UI',sans-serif;letter-spacing:.05em;color:transparent;
+  background:linear-gradient(180deg,#fff6c8 0%,#ffe27a 30%,#ffc935 60%,#f0ad1c 100%);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 1px 0 #8a5208) drop-shadow(0 2px 4px rgba(0,0,0,.8))}
+#mTutL.in .mtH{animation:mtLn .25s cubic-bezier(.2,.8,.2,1) both}
+#mTutL.s-collect .mtH{font-size:28px}
 #mTutL .mtX{display:flex;flex-direction:column;gap:7px}
-#mTutL .mtX p,#mTutL .mtHint,#mTutL .mtLb,#mTutL .mtLb2{text-shadow:0 2px 4px #000,0 0 10px rgba(0,0,0,.9),0 0 2px #000}
-#mTutL .mtX p{margin:0;font-size:20px;line-height:1.25;font-weight:700;animation:mtLn .22s cubic-bezier(.2,.8,.2,1) both}
-#mTutL .mtX b{font-weight:700;color:#ffcf4a}
+#mTutL .mtX p,#mTutL .mtHint,#mTutL .mtLb,#mTutL .mtLb2{text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.85)}
+#mTutL .mtX p{margin:0;font-size:20px;line-height:1.3;font-weight:600;animation:mtLn .25s cubic-bezier(.2,.8,.2,1) both}
+#mTutL .mtX b{font-weight:700;color:#ffd257}
 #mTutL .mtX b.c{color:#56e6ff}
 #mTutL .mtX b.r{color:#ff6a55;white-space:nowrap}
 #mTutL .mtHint{margin:4px 0 0;font-size:13px;font-weight:700;letter-spacing:.22em;color:#ffe9a8}
@@ -57,7 +58,7 @@ body.mtut :is(#tut,#tip,#mFeed,#mAlert){visibility:hidden} /* the side tips and 
 @keyframes mtFade{from{opacity:0}to{opacity:1}}
 @keyframes mtPop{0%{scale:1}60%{scale:1.24}100%{scale:1.16}}
 @keyframes mtPulse{0%,100%{scale:1.14}50%{scale:1.2}}
-@keyframes mtLn{from{opacity:0;transform:translateY(9px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+@keyframes mtLn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes mtArt{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
 @keyframes mtBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @media (prefers-reduced-motion:reduce){#mTutD *,#mTutL *,.mtut-hl{animation-duration:.01s!important;animation-delay:0s!important}}

@@ -1,15 +1,22 @@
 /* ================= HUD v4 ================= */
 $('menuGo').addEventListener('click',()=>{if(!$('play').disabled)$('play').click();});
 setInterval(()=>{if($('menu').hidden)return;const d=$('play').disabled;$('menuGo').disabled=d;if(d){const t=($('load').textContent||'CARGANDO').toUpperCase();if($('menuLoad').textContent!==t)$('menuLoad').textContent=t;}},200);
-// ---- v60: phone start menu from Santi's art (loaded only on touch; if it fails, the old text menu stays) ----
+// ---- v70: phone start menu from Santi's art (loaded only on touch; if it fails, the old text menu stays) ----
+// The stage waits for the art, its fonts and the language, then CSS plays the intro (00-base.css). MM_CUES = the beats of that intro in seconds (menuSfx(name) is the mechanical sound of each).
 const MM={ready:false,go:false};
+const MM_CUES=[['logo',0.64],['bar',1.1],['land',1.2],['unfold',1.55],['lock',2.25],['button',2.65]];
 if(isTouch){
-  loadMod('assets/menumob.js').then(m=>{const A=m.default,ims=[['mmLImg',A.mission],['mmRImg',A.controls],['mmLogo',A.logo]];let n=0;
-    for(const [id,src] of ims){const im=$(id);im.onload=()=>{if(++n===ims.length)MM.ready=true;};im.onerror=()=>document.body.classList.add('mmfail');im.src=src;}})
-   .catch(e=>{console.warn('phone menu art unavailable',e);document.body.classList.add('mmfail');});
+  const mmFail=()=>document.body.classList.add('mmfail');
+  const mmFonts=()=>Promise.race([Promise.all([window.MENU_FONTS,loadMod('assets/endui.js').then(m=>new FontFace('TekturE',`url(${m.default.font})`,{weight:'400 900'}).load()).then(f=>{document.fonts.add(f);})].map(p=>Promise.resolve(p).catch(()=>{}))),new Promise(r=>setTimeout(r,3000))]);
+  loadMod('assets/menumob.js').then(m=>{const A=m.default,ims=[['mmPanel',A.panel],['mmBar',A.bar],['mmLogo',A.logo],['mmPanelGlow',A.panelGlow,1],['mmBarGlow',A.barGlow,1]];
+    // every image loaded and decoded (so the intro never shows half-loaded art), plus the fonts
+    Promise.all([...ims.map(([id,src,opt])=>new Promise(res=>{const im=$(id);im.onerror=()=>{if(!opt)mmFail();res();};im.onload=()=>(im.decode?im.decode():Promise.resolve()).catch(()=>{}).then(res);im.src=src;})),mmFonts()])
+      .then(()=>{MM.ready=true;});})
+   .catch(e=>{console.warn('phone menu art unavailable',e);mmFail();});
   $('mmGo').addEventListener('click',()=>{if(!$('play').disabled)$('play').click();});
   setInterval(()=>{if($('menu').hidden)return;
-    if(MM.ready&&!MM.go&&$('langPick').hidden){MM.go=true;$('mobMenu').classList.add('go');$('menu').classList.add('mgo');}
+    if(MM.ready&&!MM.go&&$('langPick').hidden){MM.go=true;$('mobMenu').classList.add('go');$('menu').classList.add('mgo');
+      if(!matchMedia('(prefers-reduced-motion:reduce)').matches)for(const [n,s] of MM_CUES)setTimeout(()=>{try{window.menuSfx&&menuSfx(n);}catch(e){}},s*1000);}
     const d=$('play').disabled;$('mmGo').disabled=d;const t=TR(d?($('load').textContent||'CARGANDO').toUpperCase():'JUGAR');if($('mmGoT').textContent!==t)$('mmGoT').textContent=t;},200);}
 const HUD4={art:null,last:{},hot:{},seal:0,fug0:0,cl:[],clT:0,pool:[],score:-1};
 const fmtN=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,window.I18N&&I18N.lang==='en'?',':'.');

@@ -15,7 +15,7 @@ const {BASE,ARGS,shot}=require('./lib.cjs');
   const info=await p.evaluate(()=>{const S=window.__SFXB&&__SFXB();const css=getComputedStyle(document.documentElement);
     return {sfxKeys:S?Object.keys(S).length:-1,sfxBufs:S?Object.values(S).reduce((n,v)=>n+(Array.isArray(v)?v.length:1),0):-1,vo:__VO().n,
       mira:css.getPropertyValue('--mira').slice(0,60),dash:!!document.getElementById('dBase').naturalWidth,
-      mobMenu:document.getElementById('mmLImg')?document.getElementById('mmLImg').naturalWidth:null,text:document.getElementById('menuGo')?document.getElementById('menuGo').textContent:''};});
+      mobMenu:document.getElementById('mmPanel')?document.getElementById('mmPanel').naturalWidth:null,text:document.getElementById('menuGo')?document.getElementById('menuGo').textContent:''};});
   console.log(lang,touch?'phone':'pc',JSON.stringify(info));
   console.log('  files by folder',JSON.stringify(got));
   console.log('  bad',JSON.stringify(bad.slice(0,10)),'errors',JSON.stringify(errs.slice(0,3)));

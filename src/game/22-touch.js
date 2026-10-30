@@ -47,8 +47,7 @@ function tcReset(){TC.stickId=TC.lookId=TC.fireId=null;st.x=st.y=0;TC.mag=0;TC.b
    else if(a==='vo'){voOn=!voOn;if(!voOn&&voSrc){try{voSrc.stop();}catch(_){}$('sub').classList.remove('show');if(MHUD.on)window.HUD.hideSay();}tcPauseLabels();}});
  // perfect weld: tap the weld bar while the fill is inside the golden band (a miss just keeps welding)
  $('rep').addEventListener('pointerdown',e=>{if(!isTouch||state!=='play'||!R.pa)return;e.preventDefault();e.stopPropagation();
-   const p=R.pa.prog;if(R.useBand&&p>=R.band&&p<=R.band+CFG.bandW){repairPatch(R.pa,true);R.pa=null;R.on=false;}
-   else{const el=$('rep');el.classList.remove('miss');void el.offsetWidth;el.classList.add('miss');}});
+   if(tcWeldTap()==='miss'){const el=$('rep');el.classList.remove('miss');void el.offsetWidth;el.classList.add('miss');}});
  // the hold marker: tap = fly to the hold
  $('hBod').addEventListener('pointerdown',e=>{if(!isTouch||state!=='play')return;e.preventDefault();e.stopPropagation();tcGo({hatch:true});});
  if(isTouch){
@@ -58,6 +57,12 @@ function tcReset(){TC.stickId=TC.lookId=TC.fireId=null;st.x=st.y=0;TC.mag=0;TC.b
    document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='play')tcSetPause(true);});
    const lb=document.querySelector('#lbB span');if(lb)lb.textContent='TOCA PARA SALTAR';setTimeout(tcOrient,0);}
 }
+// v65: perfect weld on phones = ONE try per plate. Missing doesn't punish (it keeps welding), but that plate can no longer be perfect,
+// so tapping the bar over and over until it hits is no longer a trick. On PC releasing F outside the band already jams the weld.
+function tcWeldTap(){if(state!=='play'||!R.pa)return null;const pa=R.pa,p=pa.prog;
+  if(!R.useBand||pa.noPerf)return 'used';
+  if(p>=R.band&&p<=R.band+CFG.bandW){repairPatch(pa,true);R.pa=null;R.on=false;return 'perfect';}
+  pa.noPerf=true;sfx('jam');return 'miss';}
 function tcPauseLabels(){const M=$('tPauseM');M.querySelector('[data-a=mus]').textContent=musicOn?'MÚSICA ON':'MÚSICA OFF';
   M.querySelector('[data-a=vo]').textContent=voOn?'VOCES ON':'VOCES OFF';M.querySelector('[data-a=next]').disabled=!(inBreak||WB.calm);}
 // v57 (iPhone): Safari stops the game's audio when the opening film plays (state "interrupted") or another app takes the sound,
@@ -77,7 +82,7 @@ function tcFull(){if(!isTouch)return;const de=document.documentElement,rq=de.req
   const lock=()=>{try{const o=screen.orientation;if(o&&o.lock)o.lock('landscape').catch(()=>{});}catch(_){}};
   if(rq&&!(document.fullscreenElement||document.webkitFullscreenElement)){try{const p=rq.call(de,{navigationUI:'hide'});if(p&&p.then)p.then(lock).catch(()=>{});else lock();}catch(_){}}else lock();}
 // ---- touch: trichomes come to the hose on their own when you pass near (Sonic rings) ----
-function tcNearDust(){let best=49,bi=-1;const p=P.pos; // 7 m
+function tcNearDust(){const r=PU.pack>0?15:4.5;let best=r*r,bi=-1;const p=P.pos; // v65: 4.5 m (was 7: you have to go and fetch them) · 15 m with the backpack magnet prize
   for(let i=0;i<DN;i++){if(!dAlive[i]||dMag[i])continue;const j=i*3,dx=dPos[j]-p.x,dy=dPos[j+1]-p.y,dz=dPos[j+2]-p.z,d=dx*dx+dy*dy+dz*dz;if(d<best){best=d;bi=j;}}
   return bi<0?null:_tcD.set(dPos[bi],dPos[bi+1],dPos[bi+2]);}
 // ---- touch: tap a breach marker / the hold marker = the astronaut flies there on his own (you keep aiming and shooting);

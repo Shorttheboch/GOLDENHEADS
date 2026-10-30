@@ -147,16 +147,17 @@ function tick(){const _qa0=performance.now();
       // floating cargo is lost for good after a while (unless it is already being sucked in)
       if(state==='play'&&!dCap[i]){dAge[i]+=dt;if(dAge[i]>CFG.floatLife){dAlive[i]=0;dPos[j+1]=-9999;lostN++;loose--;expired++;continue;}}
       if(pulling){V2.subVectors(V1,nozTip);const d=V2.length();
-        if(!dCap[i]&&((d<CFG.suckRange&&V2.dot(sdir)/d>CFG.suckCos)||(packOn&&V1.distanceTo(P.pos)<CFG.packR)))dCap[i]=1;
+        if(!dCap[i]&&((d<(isTouch?6:CFG.suckRange)&&V2.dot(sdir)/d>CFG.suckCos)||(packOn&&V1.distanceTo(P.pos)<(isTouch?15:CFG.packR))))dCap[i]=1; // v65 phones: reach 6 m, magnet 15 m
         if(dCap[i]){
           // swallowed when it reaches the tip (or slips just behind the mouth plane)
           if(d<0.07||(V2.dot(sdir)<0&&d<0.14)){
             if(P.carry<CFG.tankCap&&P.intake>=1){P.intake-=1;dAlive[i]=0;dCap[i]=0;dPos[j+1]=-9999;P.carry++;if(pickCD<=0){sfx('pick');pickCD=0.06;}continue;}
-            if(P.carry>=CFG.tankCap)dCap[i]=0;else{dVel[j]*=0.5;dVel[j+1]*=0.5;dVel[j+2]*=0.5;continue;}}
+            if(P.carry>=CFG.tankCap)dCap[i]=0;else{dVel[j]=P.vel.x*0.95;dVel[j+1]=P.vel.y*0.95;dVel[j+2]=P.vel.z*0.95;dPos[j]+=dVel[j]*dt;dPos[j+1]+=dVel[j+1]*dt;dPos[j+2]+=dVel[j+2]*dt;continue;}}
           else{
           // steer straight into the nozzle, faster as it gets closer (stream)
-          const spd=Math.min(1.6+(CFG.suckRange-d)*1.1,d/dt*0.9);const k=1-Math.exp(-9*dt);
-          dVel[j]+=(-V2.x/d*spd-dVel[j])*k;dVel[j+1]+=(-V2.y/d*spd-dVel[j+1])*k;dVel[j+2]+=(-V2.z/d*spd-dVel[j+2])*k;
+          // v65 (Santi): the stream rides along with the astronaut (85 % of its speed, so a small trail is left) and is faster — a dash no longer leaves it behind
+          const spd=Math.min(Math.max(3,3+(CFG.suckRange-d)*1.6),d/dt*0.9);const k=1-Math.exp(-13*dt);
+          dVel[j]+=(P.vel.x*0.85-V2.x/d*spd-dVel[j])*k;dVel[j+1]+=(P.vel.y*0.85-V2.y/d*spd-dVel[j+1])*k;dVel[j+2]+=(P.vel.z*0.85-V2.z/d*spd-dVel[j+2])*k;
           dPos[j]+=dVel[j]*dt;dPos[j+1]+=dVel[j+1]*dt;dPos[j+2]+=dVel[j+2]*dt;continue;}}}
       else dCap[i]=0;
       // the product slowly disperses away from the ship; past lostR it is lost in space
@@ -253,7 +254,7 @@ function tick(){const _qa0=performance.now();
     {const el=$('rep'),tp=isTouch&&tcPause&&!!R.pa&&R.pa===near,show=state==='play'&&R.pa&&(R.on||P.jam>0||tp);el.classList.toggle('show',!!show);el.classList.toggle('jam',P.jam>0);
      el.classList.toggle('paused',tp);if(tp&&!TC.wPaused)sfx('jam');TC.wPaused=tp;$('tip').classList.toggle('wHide',!!show);
      if(R.pa){$('repLbl').textContent='REPARANDO '+R.pa.zone.name;$('repFill').style.width=Math.min(100,R.pa.prog*100)+'%';
-       const bd=$('repBand');bd.hidden=!R.useBand;bd.style.left=(R.band*100)+'%';bd.style.width=(CFG.bandW*100)+'%';}
+       const bd=$('repBand');bd.hidden=!R.useBand||!!R.pa.noPerf;bd.style.left=(R.band*100)+'%';bd.style.width=(CFG.bandW*100)+'%';}
      const pr=$('repPrompt');let showP=state==='play'&&near&&!R.on&&!(isTouch&&tcPause&&R.pa===near);
      if(showP){_pv.copy(near.pos).addScaledVector(near.n,0.6).project(camera);showP=_pv.z<1&&Math.abs(_pv.x)<0.95&&Math.abs(_pv.y)<0.95;
        if(showP){pr.style.left=((_pv.x+1)/2*innerWidth)+'px';pr.style.top=((1-_pv.y)/2*innerHeight)+'px';pr.classList.toggle('blocked',blocked);

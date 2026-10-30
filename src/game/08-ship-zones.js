@@ -85,7 +85,7 @@ function damagePatch(pa,dmg){if(pa.hp<=0||state!=='play')return;const before=pa.
       showMsg('¡NIDO EN '+Z.art+Z.name+'!','Las arañas entran por ahí · repárala para cerrarlo',3);sfx('nest');shake(0.2);
       if(Z.name==='BODEGA'){tutorialEvent('nestBodega');say('zn_hold_nest',4);}}}
   if(shipHp()<=0)endGame(false,'ship');}
-function repairPatch(pa,perfect,free=false){pa.hp=CFG.patchHp;pa.prog=0;pa.leak=0;const Z=pa.zone;
+function repairPatch(pa,perfect,free=false){pa.hp=CFG.patchHp;pa.prog=0;pa.leak=0;pa.noPerf=false;const Z=pa.zone;
   if(!free){repairs++;if(perfect)stats.perfect++;addPts(perfect?PTS.perfect:PTS.repair);}
   if(Z.nest){Z.nest=false;if(!free){showMsg(Z.name+' SELLADA','Nido cerrado',2);say('zn_sealed',3);}}
   burst(_lk.copy(pa.pos).addScaledVector(pa.n,0.2),perfect?0xffe08a:0x7fffd0,perfect?28:14);

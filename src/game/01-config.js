@@ -7,7 +7,7 @@ const CFG={
   suckRange:10, suckCos:Math.cos(THREE.MathUtils.degToRad(32)),
   // cargo: the trichomes start on board; holes in the hull let them escape into space
   cargo:1000, tankCap:60, depositR:3.2, depositRate:28, spillFrac:0.35,
-  drift:0.3, lostR:42, intakeRate:14,
+  drift:0.3, lostR:42, intakeRate:20,
   // hull: 4 zones x 4 patches; spiders chew patches open, the astronaut welds them shut
   patchHp:25, repairTime:2.0, repairR:3.8, bandW:0.15, leakPerHp:0.8, bodegaLeak:1.6, breakTime:12,
   camLag:7, gunCap:30, gunRegen:15, gunDelay:0.5, gunLock:1.3, reloadT:1.0,

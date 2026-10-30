@@ -9,7 +9,7 @@ const dMat=new THREE.PointsMaterial({size:0.24,map:dotTex,color:new THREE.Color(
 const DK=10,dOff=new Float32Array(DN*DK*3),cPos=new Float32Array(DN*DK*3);
 for(let i=0;i<DN*DK;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(0.1+Math.pow(Math.random(),0.7)*0.6);dOff[i*3]=v.x;dOff[i*3+1]=v.y;dOff[i*3+2]=v.z;cPos[i*3+1]=-9999;}
 const cGeo=new THREE.BufferGeometry();cGeo.setAttribute('position',new THREE.BufferAttribute(cPos,3));
-dMat.size=0.19;dMat.color.setHex(0xf2c25a);dMat.blending=THREE.NormalBlending;dMat.opacity=0.9;
+dMat.size=isTouch?0.25:0.19;dMat.color.setHex(0xf2c25a);dMat.blending=THREE.NormalBlending;dMat.opacity=0.9; // v65: bigger grains on phones (small screen)
 const dust=new THREE.Points(cGeo,dMat);dust.frustumCulled=false;scene.add(dust);
 function updateClusters(t){for(let i=0;i<DN;i++){const base=i*DK*3;
     if(!dAlive[i]){if(cPos[base+1]!==-9999)for(let k=0;k<DK;k++)cPos[base+k*3+1]=-9999;continue;}
@@ -28,7 +28,7 @@ function updateMist(dt){for(const p of MIST){if(p.life<=0)continue;p.life-=dt;co
     p.s.scale.setScalar(p.s0+(1-k)*2.4);p.s.material.opacity=p.a*Math.min(1,(1-k)*6)*k;if(p.life<=0)p.s.visible=false;}}
 // soft golden haze drawn from the same particles: overlapping halos merge each leak into one glowing cloud
 const dHaze=new THREE.Points(dGeo,new THREE.PointsMaterial({size:1.1,map:dotTex,color:new THREE.Color(0xffb840).multiplyScalar(0.45),transparent:true,opacity:0.18,depthWrite:false,blending:THREE.AdditiveBlending}));
-dHaze.frustumCulled=false;scene.add(dHaze);
+dHaze.frustumCulled=false;scene.add(dHaze);if(isTouch)dHaze.material.opacity=0.24; // v65: a bit more glow around them on phones
 function resetDust(){dAlive.fill(0);dCap.fill(0);for(let i=0;i<DN;i++)dPos[i*3+1]=-9999;dGeo.attributes.position.needsUpdate=true;if(typeof cPos!=='undefined'){for(let i=0;i<DN*DK;i++)cPos[i*3+1]=-9999;cGeo.attributes.position.needsUpdate=true;}}
 resetDust();
 let lostN=0;

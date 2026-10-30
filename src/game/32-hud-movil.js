@@ -9,9 +9,8 @@ function mhudMount(){if(MHUD.on||!isTouch||!window.HUD)return;const H=window.HUD
   MHUD.on=true;document.body.classList.add('hm');
   H.on('pause',()=>{if(state==='play'&&!TC.paused)tcSetPause(true);});
   // perfect weld: tap the weld bar while the fill is inside the golden band (a miss just keeps welding, as before)
-  H.on('weldTap',()=>{if(state!=='play'||!R.pa)return;const p=R.pa.prog;
-    if(R.useBand&&p>=R.band&&p<=R.band+CFG.bandW){MHUD.perf={s:R.band,w:CFG.bandW};repairPatch(R.pa,true);R.pa=null;R.on=false;MHUD.perfT=performance.now();H.weldResult('perfect');}
-    else H.weldResult('miss');});}
+  H.on('weldTap',()=>{const band={s:R.band,w:CFG.bandW},r=tcWeldTap(); // one try per plate (v65)
+    if(r==='perfect'){MHUD.perf=band;MHUD.perfT=performance.now();H.weldResult('perfect');}else if(r==='miss')H.weldResult('miss');});}
 // voices: the crew line goes to the HUD subtitles
 function mhudSay(who,txt,ms){if(!MHUD.on)return false;window.HUD.say(who==='P'?'PILOTO':'INGENIERÍA',txt,ms);return true;}
 // once per frame (from tick): send the game state to the HUD, only what changed
@@ -43,7 +42,7 @@ function mhudFrame(){if(!isTouch)return;if(!MHUD.on){mhudMount();if(!MHUD.on)ret
   // weld bar: shown when the game shows its own (#rep); after a perfect weld it stays full for a moment
   const rep=$('rep');let w=null;
   if(performance.now()-MHUD.perfT<450&&MHUD.perf)w={progress:1,sweet:MHUD.perf.s,width:MHUD.perf.w};
-  else if(R.pa&&rep.classList.contains('show'))w={progress:Math.min(1,R.pa.prog),sweet:R.band,width:CFG.bandW,band:R.useBand,paused:rep.classList.contains('paused')};
+  else if(R.pa&&rep.classList.contains('show'))w={progress:Math.min(1,R.pa.prog),sweet:R.band,width:CFG.bandW,band:R.useBand&&!R.pa.noPerf,paused:rep.classList.contains('paused')};
   const wk=w?[w.progress.toFixed(3),w.sweet,w.band,w.paused].join('|'):'';
   if(ch('weld',wk))H.weld(w||false);}
 // ---- v63: clean screen on phones. Messages no longer cover the middle: ----

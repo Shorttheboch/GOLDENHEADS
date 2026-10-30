@@ -16,7 +16,6 @@ body.hm #msg,body.hm #combo{display:none!important}
 #mAlert.on{opacity:1}
 #mAlert .t{font-weight:800;font-size:15px;letter-spacing:.06em;color:#ff5a45;text-shadow:0 1px 0 #000,0 0 10px rgba(0,0,0,.9)}
 #mAlert .s{font-weight:600;font-size:11px;color:#f4e2b8;margin-top:1px;text-shadow:0 1px 2px #000,0 0 8px #000}
-body:has(#boss:not([hidden])) #mAlert{top:calc(env(safe-area-inset-top,0px) + 132px)} /* under the boss bar */
 #mFeed{left:calc(env(safe-area-inset-left,0px) + 16px);top:calc(env(safe-area-inset-top,0px) + 82px);max-width:30vw;display:flex;flex-direction:column;gap:5px}
 #mFeed .fe{animation:feIn .22s ease-out both}
 #mFeed .fe.out{animation:feOut .4s ease-in both}
@@ -42,3 +41,9 @@ body.touch .mk:not(.brk):not(.bod) .lb{font-size:9.5px}
 body.touch .mk.mid .lb{display:none}
 /* v63: "GIRA EL TELÉFONO" goes over everything, also over the language picker (ESPAÑOL / ENGLISH) and the opening film */
 #tRot{z-index:70!important}
+/* v65: boss bar (ESCUPIDORA / INCINERADORA) on phones: small, top right under the score panel (it sat in the middle of the view).
+   Same units as the HUD (--u2 = 1 design unit of the 1844 × 853 layout), so it lines up with the score panel on any phone. */
+body.hm #boss{--u2:min(calc(100vw / 1844),calc(100vh / 853));left:auto!important;right:calc(env(safe-area-inset-right,0px) + var(--u2) * 32)!important;
+  top:calc(env(safe-area-inset-top,0px) + var(--u2) * 218)!important;transform:none!important;width:calc(var(--u2) * 404)!important;
+  font-size:9.5px;letter-spacing:.14em;text-align:right;font-family:'Saira Condensed','Arial Narrow',system-ui,sans-serif}
+body.hm #boss b{height:5px;margin-top:2px}

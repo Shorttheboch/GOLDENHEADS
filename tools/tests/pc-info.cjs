@@ -24,7 +24,7 @@ const VPS=(process.env.HEADS_VP||'1920x1080').split(',').map(v=>v.split('x').map
    const ov=[],ks=Object.keys(bx);for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){const A=bx[ks[i]],B=bx[ks[j]];if(A[0]<B[2]&&B[0]<A[2]&&A[1]<B[3]&&B[1]<A[3])ov.push(ks[i]+'×'+ks[j]);}
    const r=el=>{const q=el.getBoundingClientRect();return [q.left,q.top,q.width,q.height].map(Math.round).join(',');};
    return {brk:[...document.querySelectorAll('#bMk .mk')].filter(vis).map(m=>m.textContent.trim()+'@'+r(m)),
-     keys:vis(document.getElementById('pcKeys'))?[...document.querySelectorAll('#pcKeys .pk')].filter(vis).map(e=>e.innerText.replace(/\n+/g,' ')):'hidden',
+     keys:vis(document.getElementById('pcKeys'))?[...document.querySelectorAll('#pcKeys .pk')].filter(e=>!e.hidden&&getComputedStyle(e).display!=='none').map(e=>e.innerText.replace(/\n+/g,' ')):'hidden',
      lit:[...document.querySelectorAll('#pcKeys .pk.lit')].map(r=>r.dataset.k),boxes:bx,overlaps:ov,playT:+__T.playT.toFixed(1)};});
  // 1) right at the start: the key hints and the tutorial line
  await step(1.5);console.log('start',JSON.stringify(await info()));await snap('1_inicio.png');

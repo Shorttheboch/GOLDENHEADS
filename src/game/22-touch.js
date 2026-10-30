@@ -126,8 +126,9 @@ function tcAutopilot(acc){const A=TC.ap;if(!A)return;
   const d=P.pos.distanceTo(T);if(d<A.best-0.4){A.best=d;A.bestT=playT;}else if(playT-A.bestT>1.5){A.replan=true;A.bestT=playT;} // stuck: plan again from here
   if(playT-A.t0>30)TC.ap=null;}
 // ---- touch: one marker over each breach (broken plates and plates being eaten), visible from afar; tap = go there ----
+// v68: on PC too (Santi), with ROTURA and the distance; there they can't be clicked
 function tcMarkers(){const box=$('bMk');
-  if(!isTouch||state!=='play'||CINE.on||TC.paused){for(const m of TC.mk)m.hidden=true;return;}
+  if(state!=='play'||CINE.on||TC.paused){for(const m of TC.mk)m.hidden=true;return;}
   const L=[];for(const pa of PATCHES){if(pa.hp>=CFG.patchHp)continue;const eat=spiders.some(s=>s.state==='eat'&&s.patch===pa);if(pa.hp>0&&!eat)continue;
     const d=P.pos.distanceTo(pa.pos);if(d<CFG.repairR)continue;L.push({pa,d,eat,s:h4proj(pa.pos)});}
   L.sort((a,b)=>a.d-b.d);const shown=[];
@@ -141,7 +142,7 @@ function tcMarkers(){const box=$('bMk');
     const t=Math.round(it.d)+' m';if(m.children[3].textContent!==t)m.children[3].textContent=t;}
   for(let i=shown.length;i<TC.mk.length;i++)TC.mk[i].hidden=true;}
 // once per frame (touch): show the controls only while playing, keep the markers in place
-function tcFrame(){if(!isTouch)return;tcOrientTick();const on=state==='play'&&!TC.paused&&!CINE.on;
+function tcFrame(){if(!isTouch){tcMarkers();return;}tcOrientTick();const on=state==='play'&&!TC.paused&&!CINE.on;
   if($('touch').hidden===on){$('touch').hidden=!on;$('tZone').hidden=!on;if(!on)tcReset();}
   tcMarkers();tcAvoid();}
 // touch: markers stuck to the screen edge keep clear of the SHOOT and pause buttons

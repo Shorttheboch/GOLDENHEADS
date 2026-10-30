@@ -2,7 +2,7 @@
 (async()=>{
   try{
     const prog={a:0,s:0};const upd=()=>$('load').textContent=`Cargando modelos ${Math.round((prog.a+prog.s)/2*100)}%`;
-    loadMod('assets/hud4.js').then(m=>{const H=m.default,pcOnly=isTouch&&window.HUD?'#hVit,#hScore,#hTank,#hTk,#hTop':null; // v66: phones skip the PC panels' art
+    loadMod('assets/hud4.js').then(m=>{const H=m.default,pcOnly=isTouch&&window.HUD?'#hVit,#hScore,#hTank,#hTk,#hTop,#pcKeys':null; // v66: phones skip the PC panels' art
       for(const el of document.querySelectorAll('img[data-k]'))if(H[el.dataset.k]&&!(pcOnly&&el.closest(pcOnly)))el.src=H[el.dataset.k];
       const rs=document.documentElement.style;rs.setProperty('--mira',`url(${H['mira']})`);rs.setProperty('--fill-en',`url(${H['energia-relleno']})`);rs.setProperty('--ico-en',`url(${H['icono-energia']})`);
       HUD4.art=H;}).catch(e=>console.warn('hud4 art',e));

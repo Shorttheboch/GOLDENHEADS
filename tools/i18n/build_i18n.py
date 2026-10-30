@@ -164,17 +164,20 @@ H.update({
 # ---- v56: phone controls (right stick) ----
 EN.update({'Joystick izq.':'Left stick','Joystick dcho.':'Right stick','Girar rápido · un toque corto da la vuelta':'Fast turn · a short push spins you around',
  'Apuntar fino (mitad derecha)':'Fine aim (right half)'})
-# ---- v60: phone start menu ----
-EN.update({'TU MISIÓN':'YOUR MISSION','DEFIENDE':'DEFEND','Elimina arañas antes de que devoren el casco.':'Kill the spiders before they devour the hull.',
- 'REPARA':'REPAIR','Acércate a una rotura: se suelda sola.':'Get close to a breach: it welds itself.',
- 'RECOGE':'COLLECT','Pasa cerca del polvo dorado: son tricomas.':'Pass near the golden dust: those are trichomes.',
- 'ENTREGA':'DELIVER','Llévalos a la bodega cian. A bordo suman puntos cada ronda.':'Take them to the cyan hold. Cargo aboard scores every round.',
- 'Sobrevive tantas rondas como puedas.':'Survive as many rounds as you can.',
- 'Pierdes: nave al 0 %, sin carga a bordo o traje roto.':'You lose if: ship at 0 %, no cargo aboard or suit breached.',
- 'CONTROLES TÁCTILES':'TOUCH CONTROLS','MOVERSE':'MOVE','Pulgar izquierdo':'Left thumb','Doble empuje: acelerón.':'Double push: boost.',
- 'APUNTAR Y DISPARAR':'AIM AND SHOOT','Arrastra a la derecha para apuntar.':'Drag on the right to aim.','Mantén':'Hold','y desliza.':'and slide.',
- 'Toca un aviso:':'Tap an alert:','ve a la rotura o bodega.':'fly to the breach or the hold.','Pausa:':'Pause:',
- 'música, voces y adelantar ronda.':'music, voices and start the round early.','Aspirar, soldar y descargar: automáticos.':'Vacuuming, welding and unloading: automatic.'})
+# ---- v70: phone start menu (Santi's new panel; every line of text is its own text node, line breaks are <br> in index.html) ----
+EN.update({'PROTEGE LA NAVE. SALVA LOS TRICOMAS.':'PROTECT THE SHIP. SAVE THE TRICHOMES.',
+ 'Las arañas rompen el casco y la carga escapa. Sobrevive tantas rondas como puedas.':'The spiders break the hull and the cargo escapes. Survive as many rounds as you can.',
+ '1 · DEFIENDE':'1 · DEFEND','Elimina las arañas':'Kill the spiders','antes de que devoren':'before they devour','el casco.':'the hull.',
+ '2 · REPARA':'2 · REPAIR','Acércate y mira la rotura.':'Get close and look at the breach.','Quédate cerca:':'Stay near:','se suelda sola.':'it welds itself.',
+ '3 · RECOGE':'3 · COLLECT','Acércate a las bolitas':'Get close to the floating','doradas que flotan:':'golden balls:','son tu carga.':'they are your cargo.',
+ '4 · ENTREGA':'4 · DELIVER','Llévalas a la bodega cian.':'Take them to the cyan hold.','La carga de la nave suma':"The ship's cargo scores",'puntos al terminar la ronda.':'points when the round ends.',
+ 'Pierdes si se rompe el traje, se destruye la nave o se agota su carga.':'You lose if the suit breaks, the ship is destroyed or its cargo runs out.',
+ 'IZQUIERDA · MOVERSE':'LEFT · MOVE','Arrastra el joystick.':'Drag the joystick.',
+ 'DERECHA · MIRAR':'RIGHT · LOOK','Desliza para girar':'Slide to turn','y apuntar.':'and aim.',
+ 'Mantén y desliza':'Hold and slide','para apuntar.':'to aim.',
+ 'A tope → afloja → a tope':'Full → ease off → full','Mismo lado · menos de 0,3 s':'Same side · under 0.3 s'})
+EN.update({'Mantén':'Hold'})
+# (DISPARAR, IMPULSO, JUGAR and CARGANDO already exist above)
 # ---- v62: phone HUD (Santi's design, src/hud/hud.js) ----
 EN.update({'ENEMIGO':'ENEMY','ENEMIGOS':'ENEMIES','s · RESPIRO':'s · BREATHER','s · CALMA':'s · CALM'})
 # ---- v63: phones, shorter messages (no Shift on a phone) ----

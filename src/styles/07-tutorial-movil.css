@@ -14,8 +14,7 @@ body.mtut :is(#tut,#tip,#mFeed,#mAlert){visibility:hidden} /* the side tips and 
   animation:mtPop .3s cubic-bezier(.2,1.3,.4,1) both,mtPulse 1.8s .3s ease-in-out infinite!important}
 
 /* Santi's menu drawings (joystick, aim), cut out of their black background */
-#mTutD .mtA{position:absolute;display:none;background-repeat:no-repeat;
-  -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+#mTutD .mtA{position:absolute;display:none;background-repeat:no-repeat}
 #mTutD .mtA.in{animation:mtArt .25s ease-out both,mtBob 2.4s .25s ease-in-out infinite}
 
 /* text: no box, gold title, short white lines */

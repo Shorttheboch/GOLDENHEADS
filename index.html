@@ -76,25 +76,26 @@
     <div class="mL" id="mTopW"><img id="mTop" alt=""><div class="mT"><div class="mh dec" data-k="mov" style="left:16.255%;top:36.645%"></div><div class="mh dec" data-k="ver" style="left:38.577%;top:36.645%"></div><div class="mh dec" data-k="rat" style="left:60.977%;top:36.645%"></div><div class="mh dec" data-k="acc" style="left:83.666%;top:36.645%"></div></div></div>
     <div class="mL" id="mFx"><div id="mBlue"></div><div id="mGold"></div></div>
     <div id="mLogoW"><img id="mLogo" alt="HEADS Rescue"><div id="mLogoBlue"></div><div id="mLogoShine"></div></div></div>
-  <div id="mobMenu"><div id="mmStage">
-    <div class="mmP" id="mmL"><img id="mmLImg" alt="">
-      <div class="mmT mmTx" style="left:49.6%;top:7.5%">TU MISIÓN</div>
-      <div class="mmRow mmTx" style="top:22.3%"><b>DEFIENDE</b><span>Elimina arañas antes de que devoren el casco.</span></div>
-      <div class="mmRow mmTx" style="top:40%"><b>REPARA</b><span>Acércate a una rotura: se suelda sola.</span></div>
-      <div class="mmRow mmTx" style="top:57.7%"><b>RECOGE</b><span>Pasa cerca del polvo dorado: son tricomas.</span></div>
-      <div class="mmRow mmTx" style="top:75.6%"><b>ENTREGA</b><span>Llévalos a la bodega cian. A bordo suman puntos cada ronda.</span></div>
-      <div class="mmFoot mmTx"><span class="w">Sobrevive tantas rondas como puedas.</span><span class="r">Pierdes: nave al 0 %, sin carga a bordo o traje roto.</span></div>
-    </div>
-    <div class="mmP" id="mmR"><img id="mmRImg" alt="">
-      <div class="mmT mmTx" style="left:50%;top:11.5%">CONTROLES TÁCTILES</div>
-      <div class="mmCap mmTx" style="left:29.6%"><b>MOVERSE</b><span>Pulgar izquierdo</span><span class="c">Doble empuje: acelerón.</span></div>
-      <div class="mmCap mmTx" style="left:71%"><b>APUNTAR Y DISPARAR</b><span>Arrastra a la derecha para apuntar.</span><span>Mantén <em>DISPARAR</em> y desliza.</span></div>
-      <div class="mmLine mmTx" style="top:60.4%"><b>Toca un aviso:</b> ve a la rotura o bodega.</div>
-      <div class="mmLine mmTx" style="top:68%"><b>Pausa:</b> música, voces y adelantar ronda.</div>
-      <div class="mmNote mmTx">Aspirar, soldar y descargar: automáticos.</div>
-      <button id="mmGo" type="button" disabled><span id="mmGoT">CARGANDO</span></button>
-    </div>
+  <div id="mobMenu"><div id="mmStage"> <!-- v70: phone start menu. --x/--y/--d are stage units (1764 x 866) and the entrance delay in seconds -->
+    <div id="mmPanelW"><img id="mmPanel" alt=""><img id="mmPanelGlow" alt=""></div>
+    <div id="mmBarW"><img id="mmBar" alt=""><img id="mmBarGlow" alt=""></div>
+    <h2 class="mmTx mmH" style="--x:882.5;--y:183;--d:1.9">PROTEGE LA NAVE. SALVA LOS TRICOMAS.</h2>
+    <p class="mmTx mmSub" style="--x:881.5;--y:216.5;--d:1.96">Las arañas rompen el casco y la carga escapa. Sobrevive tantas rondas como puedas.</p>
+    <div class="mmTx mmTab" style="--x:290.5;--y:279;--d:2.02">1 · DEFIENDE</div>
+    <div class="mmTx mmTab" style="--x:690.5;--y:279;--d:2.08">2 · REPARA</div>
+    <div class="mmTx mmTab" style="--x:1083;--y:279;--d:2.14">3 · RECOGE</div>
+    <div class="mmTx mmTab" style="--x:1484;--y:279;--d:2.2">4 · ENTREGA</div>
+    <p class="mmTx mmCap" style="--x:282;--y:506;--d:2.12">Elimina las arañas<br>antes de que devoren<br>el casco.</p>
+    <p class="mmTx mmCap" style="--x:687;--y:506;--d:2.18">Acércate y mira la rotura.<br>Quédate cerca:<br>se suelda sola.</p>
+    <p class="mmTx mmCap" style="--x:1079.5;--y:506;--d:2.24">Acércate a las bolitas<br>doradas que flotan:<br>son tu carga.</p>
+    <p class="mmTx mmCap" style="--x:1483.5;--y:506;--d:2.3">Llévalas a la bodega cian.<br>La carga de la nave suma<br>puntos al terminar la ronda.</p>
+    <p class="mmTx mmWarn" style="--x:903.5;--y:619.5;--d:2.38">Pierdes si se rompe el traje, se destruye la nave o se agota su carga.</p>
+    <div class="mmTx mmCtl" style="--x:213;--y:662.5;--d:2.44"><b>IZQUIERDA · MOVERSE</b><span>Arrastra el joystick.</span></div>
+    <div class="mmTx mmCtl" style="--x:669;--y:662.5;--d:2.49"><b>DERECHA · MIRAR</b><span>Desliza para girar<br>y apuntar.</span></div>
+    <div class="mmTx mmCtl" style="--x:1066;--y:662.5;--d:2.54"><b>DISPARAR</b><span>Mantén y desliza<br>para apuntar.</span></div>
+    <div class="mmTx mmCtl s" style="--x:1476;--y:662.5;--d:2.59"><b>IMPULSO</b><span>A tope → afloja → a tope<br>Mismo lado · menos de 0,3 s</span></div>
     <img id="mmLogo" alt="HEADS Rescue">
+    <button id="mmGo" type="button" disabled><span id="mmGoT">CARGANDO</span></button>
   </div></div>
   <div class="panel" id="menuPanel">
     <h1>HEADS</h1>

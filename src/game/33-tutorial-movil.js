@@ -16,15 +16,15 @@ const MTUT_S={
   tri:{t:'TRICOMAS',l:['Es tu carga: <b>mantén la barra llena</b>.','Si llega a <b class="r">0, pierdes</b>.']},
   collect:{t:'RECOGE Y DEPOSITA',l:['<b>1</b> Pasa cerca: se aspiran solos.','<b>2</b> Llévalos a la <b class="c">BODEGA</b>.']},
   life:{t:'TRAJE Y NAVE',l:['<b>TRAJE</b>: tu vida.','<b>NAVE</b>: mata las arañas y suelda las roturas.','Si alguno llega a <b class="r">0, pierdes</b>.']}};
-// the joystick and the aim drawings come from Santi's phone menu art (controls.webp, 990 × 990): x, y, w, h of each
-const MTUT_ART={stick:[80,160,370,320],aim:[520,160,368,330]};
+// the joystick and the aim drawings come from Santi's phone menu panel (panel.webp, 1818 × 763: the two first icons of its bottom row): x, y, w, h of each
+const MTUT_ART={stick:[80,548,116,106],aim:[522,553,122,94]};
 const mtTR=s=>window.TR?window.TR(s):s,mtTRH=h=>window.TRH?window.TRH(h):h;
 // the drawing cut out of the menu art once, its black background turned transparent (brightness becomes opacity)
 const MTUT_CUT={};
-function mtutCut(k){if(MTUT_CUT[k]!==undefined)return MTUT_CUT[k];const im=$('mmRImg');MTUT_CUT[k]=null;
+function mtutCut(k){if(MTUT_CUT[k]!==undefined)return MTUT_CUT[k];const im=$('mmPanel');MTUT_CUT[k]=null;
   if(!im||!im.complete||!im.naturalWidth)return null;
-  try{const [x,y,w,h]=MTUT_ART[k],s=im.naturalWidth/990,c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);
-    const g=c.getContext('2d');g.drawImage(im,x*s,y*s,w*s,h*s,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height),a=d.data;
+  try{const [x,y,w,h]=MTUT_ART[k],s=im.naturalWidth/1818,Z=3,c=document.createElement('canvas');c.width=Math.round(w*s*Z);c.height=Math.round(h*s*Z); // the icons are small: cut at 3x so the edges stay smooth
+    const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(im,x*s,y*s,w*s,h*s,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height),a=d.data;
     for(let i=0;i<a.length;i+=4){const m=Math.max(a[i],a[i+1],a[i+2])/255,al=Math.min(1,Math.max(0,(m-0.06)*2.2));a[i+3]=Math.round(al*255);
       if(al>0){a[i]=Math.min(255,a[i]/Math.max(al,0.35));a[i+1]=Math.min(255,a[i+1]/Math.max(al,0.35));a[i+2]=Math.min(255,a[i+2]/Math.max(al,0.35));}}
     g.putImageData(d,0,0);MTUT_CUT[k]=c.toDataURL('image/png');}catch(e){console.warn('tutorial art',e);}
@@ -70,10 +70,10 @@ function mtutShow(){const k=MTUT.list[MTUT.i],S=MTUT_S[k],L=MTUT.L,D=MTUT.D,n=MT
   T.classList.toggle('c',k==='tri');
   // the SALTAR button sits just under the score panel, right-aligned with it
   {const r=$('hud-score')?$('hud-score').getBoundingClientRect():null,sk=q('.mtSkip');put(sk,(r?r.right:W-18)-128,(r?r.bottom:94)+8);}
-  if(S.art&&img){const [ax,ay,aw,ah]=MTUT_ART[S.art],w=Math.min(k==='move'?230:250,W*0.29,H*0.62),h=ah*w/aw;
+  if(S.art&&img){const [ax,ay,aw,ah]=MTUT_ART[S.art],w=Math.min(k==='move'?150:165,W*0.2,H*0.42),h=ah*w/aw;
     const x=k==='move'?Math.max(W*0.09,52):W*0.535,y=H-h-H*0.11;
     A.style.cssText=`display:block;left:${Math.round(x)}px;top:${Math.round(y)}px;width:${Math.round(w)}px;height:${Math.round(h)}px;background-image:url("${img}");background-size:100% 100%`;
-    A.classList.remove('in');void A.offsetWidth;A.classList.add('in');put(q('.mtLb'),x,y+h+4,w);}
+    A.classList.remove('in');void A.offsetWidth;A.classList.add('in');{const lw=Math.max(w,220);put(q('.mtLb'),x-(lw-w)/2,y+h+4,lw);}}
   if(k==='move')put(T,W*0.52,H*0.27,Math.min(300,W*0.4));
   if(k==='aim'){put(T,Math.max(W*0.06,52),H*0.25,Math.min(340,W*0.4));
     const f=$('tFire');mtutLift(f,'50% 50%');const r=f.getBoundingClientRect();put(q('.mtLb2'),r.left+r.width/2-80,r.top-30,160);}

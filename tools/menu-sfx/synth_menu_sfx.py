@@ -4,7 +4,8 @@ No third-party material: every sample is built here from noise, decaying metal m
 
   python3 tools/menu-sfx/synth_menu_sfx.py [out_dir] [--plot spectrograms.png]
 
-Writes logo / land / bar / unfold / lock / button .mp3 (mono, 44.1 kHz, ~96 kbps) into out_dir
+Writes logo / land / bar / button .mp3 (mono, 44.1 kHz, ~96 kbps) into out_dir (v73: unfold and lock are no longer made here:
+the menu plays Santi's recordings metro.mp3, arma-juguete.mp3 and decoder.mp3, which this script never touches)
 (default public/assets/sfx/menu). Needs numpy, scipy and ffmpeg (matplotlib only for --plot).
 Levels: each cue is scaled so its loudest 200 ms sits near -21 dBFS RMS and its peak stays under -3 dBFS;
 the player (public/menusfx.js) then plays everything at a low master gain, below the game's own effects.
@@ -265,8 +266,10 @@ def make_button():
 
 
 # name: (builder, trim dB, limiter squash in dB: pulls the sharp transient down so the body of short cues is not lost)
+# v73: 'unfold' and 'lock' are NOT rendered any more: the menu uses Santi's recordings metro.mp3 and arma-juguete.mp3 instead
+# (make_unfold / make_lock stay below only as the record of the v70 synth). Do not add them back: they would write over nothing used.
 CUES = {'logo': (make_logo, 0.0, 0), 'land': (make_land, 0.0, 4), 'bar': (make_bar, -1.0, 0),
-        'unfold': (make_unfold, -1.0, 0), 'lock': (make_lock, -0.5, 6), 'button': (make_button, -1.0, 9)}
+        'button': (make_button, -1.0, 9)}
 
 
 # ---------------------------------------------------------------- level, trim, encode

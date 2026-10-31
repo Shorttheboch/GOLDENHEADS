@@ -4,7 +4,9 @@ setInterval(()=>{if($('menu').hidden)return;const d=$('play').disabled;$('menuGo
 // ---- v70: phone start menu from Santi's art (loaded only on touch; if it fails, the old text menu stays) ----
 // The stage waits for the art, its fonts and the language, then CSS plays the intro (00-base.css). MM_CUES = the beats of that intro in seconds (menuSfx(name) is the mechanical sound of each).
 const MM={ready:false,go:false};
-const MM_CUES=[['logo',0.64],['bar',1.1,1.3],['land',1.2],['unfold',1.55],['lock',2.25],['button',2.65]]; // bar at 1.3x: its stop clack lands as the bar finishes (~1.6 s)
+const MM_CUES=[['logo',0.64],['bar',1.1,1.3],['land',1.2],['unfold',1.55],['lock',2.25],['decode',1.9],['button',2.65]]; // bar at 1.3x: its stop clack lands as the bar finishes (~1.6 s)
+// v73: the phone has no letter-by-letter decoding: its texts come in one after another (--d 1.9 s ... 2.59 s, 0.28 s each), which is where the decoder sound goes; it is longer (1.5 s) than that (to 2.87 s), so it fades out there
+const MM_DECODE_END=2.87;
 if(isTouch){
   const mmFail=()=>document.body.classList.add('mmfail');
   const mmFonts=()=>Promise.race([Promise.all([window.MENU_FONTS,loadMod('assets/endui.js').then(m=>new FontFace('TekturE',`url(${m.default.font})`,{weight:'400 900'}).load()).then(f=>{document.fonts.add(f);})].map(p=>Promise.resolve(p).catch(()=>{}))),new Promise(r=>setTimeout(r,3000))]);
@@ -16,7 +18,8 @@ if(isTouch){
   $('mmGo').addEventListener('click',()=>{if(!$('play').disabled)$('play').click();});
   setInterval(()=>{if($('menu').hidden)return;
     if(MM.ready&&!MM.go&&$('langPick').hidden){MM.go=true;$('mobMenu').classList.add('go');$('menu').classList.add('mgo');
-      if(!matchMedia('(prefers-reduced-motion:reduce)').matches)for(const [n,s,r] of MM_CUES)setTimeout(()=>{try{window.menuSfx&&menuSfx(n,1,r||1);}catch(e){}},s*1000);}
+      if(!matchMedia('(prefers-reduced-motion:reduce)').matches){for(const [n,s,r] of MM_CUES)setTimeout(()=>{try{window.menuSfx&&menuSfx(n,1,r||1);}catch(e){}},s*1000);
+        setTimeout(()=>{try{window.menuSfx&&menuSfx.fade&&menuSfx.fade('decode',0.15);}catch(e){}},MM_DECODE_END*1000);}}
     const d=$('play').disabled;$('mmGo').disabled=d;const t=TR(d?($('load').textContent||'CARGANDO').toUpperCase():'JUGAR');if($('mmGoT').textContent!==t)$('mmGoT').textContent=t;},200);}
 const HUD4={art:null,last:{},hot:{},seal:0,fug0:0,cl:[],clT:0,pool:[],score:-1};
 const fmtN=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,window.I18N&&I18N.lang==='en'?',':'.');

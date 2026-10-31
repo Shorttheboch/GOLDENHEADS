@@ -59,6 +59,12 @@ function minRough(m,v,cap=1.8){m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragm
   .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\n\troughnessFactor=max(roughnessFactor,'+v.toFixed(3)+');')
   .replace('#include <opaque_fragment>','outgoingLight=min(outgoingLight,vec3('+cap.toFixed(2)+'));\n#include <opaque_fragment>');};
   m.customProgramCacheKey=()=>'minR'+v+'_'+cap;m.needsUpdate=true;}
+// v69: the same glint problem on a clearcoat (MeshPhysicalMaterial, clearcoat roughness 0.06): a facet that lines up with the sun reaches HDR 400-1100 in ONE pixel,
+// and the bloom turns it into a glowing white square. Cap only the reflected specular terms (base + clearcoat), never the emissive glow (the Incineradora drives it up to 4x)
+function capSpec(m,cap=1.5){const c=cap.toFixed(2);m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader
+  .replace('vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;','vec3 totalSpecular = min(reflectedLight.directSpecular + reflectedLight.indirectSpecular,vec3('+c+'));')
+  .replace('( clearcoatSpecularDirect + clearcoatSpecularIndirect ) * material.clearcoat;','min(( clearcoatSpecularDirect + clearcoatSpecularIndirect ) * material.clearcoat,vec3('+c+'));');};
+  m.customProgramCacheKey=()=>'capSpec'+c;m.needsUpdate=true;}
 // soft "character light" riding with the camera, so the side of the astronaut we look at never goes black
 const camFill=new THREE.DirectionalLight(0xffe2c0,0.7);scene.add(camFill);scene.add(camFill.target);
 // stars: plain sharp points, no glow — lots of tiny faint ones, a few slightly bigger; a bit denser along the nebula's band

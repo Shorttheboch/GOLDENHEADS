@@ -43,6 +43,7 @@ function tcReset(){TC.stickId=TC.lookId=TC.fireId=null;st.x=st.y=0;TC.mag=0;TC.b
  for(const btn of $('tPauseM').querySelectorAll('button'))btn.addEventListener('click',e=>{e.stopPropagation();const a=btn.dataset.a;
    if(a==='go')tcSetPause(false);
    else if(a==='next'){if(inBreak||WB.calm){skipReq=true;tcSetPause(false);}}
+   else if(a==='tut'){mtutAgain();} // v66: see the tutorial again
    else if(a==='mus'){musicOn=!musicOn;tcPauseLabels();}
    else if(a==='vo'){voOn=!voOn;if(!voOn&&voSrc){try{voSrc.stop();}catch(_){}$('sub').classList.remove('show');if(MHUD.on)window.HUD.hideSay();}tcPauseLabels();}});
  // perfect weld: tap the weld bar while the fill is inside the golden band (a miss just keeps welding)
@@ -125,24 +126,26 @@ function tcAutopilot(acc){const A=TC.ap;if(!A)return;
   const d=P.pos.distanceTo(T);if(d<A.best-0.4){A.best=d;A.bestT=playT;}else if(playT-A.bestT>1.5){A.replan=true;A.bestT=playT;} // stuck: plan again from here
   if(playT-A.t0>30)TC.ap=null;}
 // ---- touch: one marker over each breach (broken plates and plates being eaten), visible from afar; tap = go there ----
+// v68: on PC too (Santi), with ROTURA and the distance; there they can't be clicked
 function tcMarkers(){const box=$('bMk');
-  if(!isTouch||state!=='play'||CINE.on||TC.paused){for(const m of TC.mk)m.hidden=true;return;}
+  if(state!=='play'||CINE.on||TC.paused){for(const m of TC.mk)m.hidden=true;return;}
   const L=[];for(const pa of PATCHES){if(pa.hp>=CFG.patchHp)continue;const eat=spiders.some(s=>s.state==='eat'&&s.patch===pa);if(pa.hp>0&&!eat)continue;
     const d=P.pos.distanceTo(pa.pos);if(d<CFG.repairR)continue;L.push({pa,d,eat,s:h4proj(pa.pos)});}
   L.sort((a,b)=>a.d-b.d);const shown=[];
-  for(const it of L){if(shown.some(o=>Math.abs(o.s.px-it.s.px)<64&&Math.abs(o.s.py-it.s.py)<56))continue;shown.push(it);if(shown.length>=5)break;}
+  // phone: breaches close to each other count once (the nearest shows). PC: all of them (up to 5); h4declutter() keeps every marker apart
+  for(const it of L){if(isTouch&&shown.some(o=>Math.abs(o.s.px-it.s.px)<64&&Math.abs(o.s.py-it.s.py)<56))continue;shown.push(it);if(shown.length>=5)break;}
   for(let i=0;i<shown.length;i++){let m=TC.mk[i];
     if(!m){m=document.createElement('div');m.className='mk brk';m.innerHTML='<img class="ar" alt=""><img class="ic" alt=""><span>ROTURA</span><em></em>';box.appendChild(m);TC.mk[i]=m;
       m.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(m._pa&&state==='play')tcGo({pa:m._pa});});}
     if(!m.dataset.art&&HUD4.art){m.dataset.art=1;m.children[0].src=HUD4.art['flecha-rescate'];m.children[1].src=HUD4.art['icono-fuga'];}
     const it=shown[i];m._pa=it.pa;m.hidden=false;h4apply(m,it.s,m.children[0],180,26);m.classList.toggle('eat',it.eat);
-    {const k=THREE.MathUtils.clamp((it.d-8)/27,0,1);m.style.opacity=(1-0.72*k).toFixed(2);m.style.transform=`translate(-50%,-50%) scale(${(1-0.28*k).toFixed(2)})`;} // v63: 8 m → full, 35 m → faint and smaller
+    {const k=THREE.MathUtils.clamp((it.d-8)/27,0,1);m.style.opacity=(1-(isTouch?0.72:0.38)*k).toFixed(2);m.style.transform=`translate(-50%,-50%) scale(${(1-(isTouch?0.28:0.15)*k).toFixed(2)})`;} // v63: 8 m → full, 35 m → faint and smaller (v68: PC fades less)
     const t=Math.round(it.d)+' m';if(m.children[3].textContent!==t)m.children[3].textContent=t;}
   for(let i=shown.length;i<TC.mk.length;i++)TC.mk[i].hidden=true;}
 // once per frame (touch): show the controls only while playing, keep the markers in place
-function tcFrame(){if(!isTouch)return;tcOrientTick();const on=state==='play'&&!TC.paused&&!CINE.on;
+function tcFrame(dt){if(!isTouch){tcMarkers();h4declutter(dt);return;}tcOrientTick();const on=state==='play'&&!TC.paused&&!CINE.on;
   if($('touch').hidden===on){$('touch').hidden=!on;$('tZone').hidden=!on;if(!on)tcReset();}
-  tcMarkers();tcAvoid();}
+  tcMarkers();h4declutter(dt);tcAvoid();}
 // touch: markers stuck to the screen edge keep clear of the SHOOT and pause buttons
 function tcAvoid(){const W=innerWidth,H=innerHeight;for(const el of document.querySelectorAll('.mk:not([hidden])')){const x=parseFloat(el.style.left),y=parseFloat(el.style.top);if(!(x>=0))continue;
   if(x>W-170&&y>H-160)el.style.top=(H-160)+'px';else if(x<100&&y<74)el.style.top='74px';}}

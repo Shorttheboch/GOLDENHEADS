@@ -33,7 +33,7 @@ function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.text
  else if(QA.on&&!isTouch){if(/swiftshader|basic render|llvmpipe|softpipe/i.test(QA.gpu))qaSet(4);else if(/intel|radeon\(tm\)|radeon graphics|vega/i.test(QA.gpu)&&!/\barc\b/i.test(QA.gpu))qaSet(2);}}
 qaHud();
 function tick(){const _qa0=performance.now();
-  if(TC.paused&&state==='play'){clock.getDelta();tcOrientTick();if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);return;} // touch pause
+  if((TC.paused||MTUT.on)&&state==='play'){clock.getDelta();tcOrientTick();if(MTUT.on)mtutFrame();if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);return;} // touch pause · v66 phone tutorial
   const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;let dt=rdt;if(hitStop>0){hitStop-=rdt;dt=rdt*0.12;} // tiny freeze on kills
   FLOW.dz=(state==='play'||state==='menu')?CFG.worldV*dt:0;
   for(const [o,sp] of ROTORS)o.rotation.z+=sp*dt;
@@ -77,11 +77,12 @@ function tick(){const _qa0=performance.now();
     const fc=new THREE.Vector3(-Math.sin(cyaw)*ccp,Math.sin(cpit),-Math.cos(cyaw)*ccp);
     const rightC=new THREE.Vector3(Math.cos(camYaw),0,-Math.sin(camYaw));
     const pivot=P.pos.clone().addScaledVector(UP,0.5-0.2*w).addScaledVector(rightC,(isTouch?0.8:0.98)*(1-w));
-    const want=pivot.clone().addScaledVector(fc,-((isTouch?2.55:3.3)-0.5*w)); // v56: closer on phones so the astronaut reads biggerpushOutOfShip(want,0.4,null);pushOutOfRocks(want,0.4,null);
-    camPos.lerp(want,1-Math.exp(-12*dt));camera.position.copy(camPos);camera.lookAt(pivot.clone().addScaledVector(fc,20*(1-w)+0.01));
-    if(CINE.on){if(CINE.mode==='boss')bossCam(dt);else{CINE.nPos.copy(camPos);CINE.nLook.copy(pivot).addScaledVector(fc,20);cineCam(dt);}}
+    const want=pivot.clone().addScaledVector(fc,-((isTouch?2.55:3.3)-0.5*w)); // v56: closer on phones so the astronaut reads bigger
+    // v72: camPos is the smoothed wish; the camera itself comes in along the arm when the ship or a rock is in the way (camArm, 05-rocks.js)
+    camPos.lerp(want,1-Math.exp(-12*dt));camera.position.copy(camArm(CAM.head.copy(P.pos).addScaledVector(UP,0.5-0.2*w),pivot,camPos,dt));camera.lookAt(pivot.clone().addScaledVector(fc,20*(1-w)+0.01));
+    if(CINE.on){if(CINE.mode==='boss')bossCam(dt);else{CINE.nPos.copy(camera.position);CINE.nLook.copy(pivot).addScaledVector(fc,20);cineCam(dt);}}
     // lens feel: a short zoom kick on the dash, and a slow, tiny hand-held drift
-    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=62+fovK;if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
+    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=CINE.on&&CINE.fov?CINE.fov:62+fovK; /* v67: a cinematic can set its own lens */if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
     if(!window.__camOv){camera.rotateX(Math.sin(t*0.83)*0.0015+Math.sin(t*2.1)*0.0005);camera.rotateY(Math.sin(t*0.61+1.3)*0.0017+Math.sin(t*1.7)*0.0005);}
     $('cross').style.visibility=w>0.3?'hidden':'';camFill.intensity=0.6+1.3*w;
     if(window.__camOv){camera.position.copy(P.pos).add(window.__camOv);camera.lookAt(P.pos.clone().add(window.__camLook||new THREE.Vector3()));}
@@ -314,7 +315,7 @@ function tick(){const _qa0=performance.now();
   updateMusic();
   // camera shake on top of the follow camera (re-copied from camPos every frame, so it never accumulates)
   if(shakeAmp>0.002){camera.position.x+=(Math.random()-0.5)*shakeAmp;camera.position.y+=(Math.random()-0.5)*shakeAmp;camera.position.z+=(Math.random()-0.5)*shakeAmp;shakeAmp*=Math.exp(-dt*10);}
-  tcFrame();mhudFrame();qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
+  tcFrame(dt);mhudFrame();mtutTick();pckFrame(dt);qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
 camera.position.set(14,4,16);camera.lookAt(0,0,0);
 requestAnimationFrame(tick);
 window.__renderer=renderer;window.__GRADE=GRADE;window.__heads={get CINE(){return CINE},spawnCloud,shipClear,BELT,DUST,get leakMult(){return leakMult()},ROCKS,rockAt,landOnRock,get ammo(){return P.ammo},EGGS,layEgg,tryLayEgg,P,spiders,CLOUDS,killSpider,spawnSpider,spawnSpitter,spitAcid,ACID,hullBlocked,stats,inp,get lost(){return lostN;},get pts(){return pts},PU,DROPS,spawnDrop,applyPU,WB,get cargo(){return cargo}};

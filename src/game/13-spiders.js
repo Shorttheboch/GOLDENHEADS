@@ -85,6 +85,7 @@ function makeSpiderRig(kind){
     if(o.isMesh){o.frustumCulled=false;o.castShadow=true;
       let m=o.material.clone();
       if(isTouch&&m.isMeshPhysicalMaterial){const sm=new THREE.MeshStandardMaterial();THREE.MeshStandardMaterial.prototype.copy.call(sm,m);m=sm;}
+      if(m.isMeshPhysicalMaterial)capSpec(m,1.5); // v69: same clearcoat glint (HDR 100-7000 in one pixel) as the Incineradora
       m.side=THREE.FrontSide;o.material=m;
       const nm=m.name||'';mats[nm.includes('Eye')?'eye':nm.includes('Fang')?'fang':nm.includes('Tube')?'tube':'body']=m;}});
   const tint=SK_TINT[kind]||SK_TINT.hunter;mats.body.color.setRGB(tint[0],tint[1],tint[2]);
@@ -113,21 +114,44 @@ function makeSpiderRig(kind){
   g.userData={rig:R,legs:gibLegs,mBody:mats.body,mEye:mats.eye,sack,S};scene.add(g);return g;}
 function makeSpider(kind){return SPIDER_GLB?makeSpiderRig(kind):makeSpiderOld(kind);}
 // ---- four-armed biped spider (Santi, SPIDER_BIPED_v1): 1 m tall at scale 1, origin between the feet, faces +Z,
-// 31 in-place clips at 24 fps (the game moves and turns the entity). One material: the orange tubes/core/veins are the emissive map.
-const BIPED_LOOP=new Set(['Idle','Walk','Run','Strafe_L','Strafe_R','Beam_Loop','FloorAttack','Guard_Loop','Electrocuted','ZeroG_Float','Grip_Idle']);
-function makeBiped(scale=1){if(!BIPED_GLB)return null;
+// 36 in-place clips at 24 fps (the game moves and turns the entity). One material: the orange tubes/core/veins are the emissive map.
+// v69 (Santi): +5 swim clips (Swim_Start / Swim_Loop / Swim_Slash / Swim_Turn180 / Swim_Land) and the derived Swim_Turn180_R (see bipedFlipClip).
+const BIPED_LOOP=new Set(['Idle','Walk','Run','Strafe_L','Strafe_R','Beam_Loop','FloorAttack','Guard_Loop','Electrocuted','ZeroG_Float','Grip_Idle','Swim_Loop']);
+// v69 (Santi): the swim turn. Swim_Turn180 spins the body 180 degrees in place (the pelvis carries it) and ends facing backwards. When it ends the game flips the
+// entity 180 degrees around its up and moves it BIPED_FLIP forward (the clip's pivot is behind the pelvis), so the finished turn has to be re-expressed in the
+// flipped frame, or the body would spin again. Swim_Turn180_R = the same clip with only the pelvis tracks pre-multiplied by K = A^-1 F^-1 A
+// (A: the pelvis parent's transform in model space, F: model space of the NEW frame -> model space of the OLD one = 180 degrees about +Y plus BIPED_FLIP),
+// so rendering it in the new frame equals rendering Swim_Turn180 in the old one. Every other track is shared, not copied.
+const BIPED_FLIP=[0,0,0.46]; // fitted (model units): Swim_Loop frame 1 -> Swim_Turn180 end pose = 180 degrees about Y + this shift, mean limb error 9 cm
+function bipedFlipClip(){const G=BIPED_GLB,src=G.animations.find(c=>c.name==='Swim_Turn180');if(!src||G.animations.some(c=>c.name==='Swim_Turn180_R'))return;
+  G.scene.updateMatrixWorld(true);const pel=G.scene.getObjectByName('pelvis');if(!pel||!pel.parent)return;
+  const A=new THREE.Matrix4().copy(G.scene.matrixWorld).invert().multiply(pel.parent.matrixWorld);
+  const F=new THREE.Matrix4().makeRotationY(Math.PI).setPosition(BIPED_FLIP[0],BIPED_FLIP[1],BIPED_FLIP[2]);
+  const K=A.clone().invert().multiply(F.clone().invert()).multiply(A),tK=new THREE.Vector3(),qK=new THREE.Quaternion(),sK=new THREE.Vector3();K.decompose(tK,qK,sK);
+  const v=new THREE.Vector3(),q=new THREE.Quaternion();
+  const tracks=src.tracks.map(t=>{
+    if(t.name==='pelvis.position'){const o=new Float32Array(t.values.length);for(let i=0;i<t.times.length;i++)v.fromArray(t.values,i*3).applyQuaternion(qK).add(tK).toArray(o,i*3);return new t.constructor(t.name,t.times,o);}
+    if(t.name==='pelvis.quaternion'){const o=new Float32Array(t.values.length);for(let i=0;i<t.times.length;i++)q.fromArray(t.values,i*4).premultiply(qK).toArray(o,i*4);return new t.constructor(t.name,t.times,o);}
+    return t;});
+  G.animations.push(new THREE.AnimationClip('Swim_Turn180_R',src.duration,tracks));}
+function makeBiped(scale=1){if(!BIPED_GLB)return null;bipedFlipClip();
   const g=new THREE.Group(),inner=skClone(BIPED_GLB.scene),bones={};let mat=null;
   inner.traverse(o=>{if(o.isBone)bones[o.name]=o;
     if(o.isMesh){o.frustumCulled=false;o.castShadow=true;let m=o.material.clone();
       if(isTouch&&m.isMeshPhysicalMaterial){const sm=new THREE.MeshStandardMaterial();THREE.MeshStandardMaterial.prototype.copy.call(sm,m);m=sm;}
+      if(m.isMeshPhysicalMaterial)capSpec(m,1.5); // v69: the clearcoat caught the sun in single pixels (HDR 400+) that bloomed into white squares
       o.material=m;mat=m;}});
   g.add(inner);g.scale.setScalar(scale);
   const mixer=new THREE.AnimationMixer(inner),acts={};
   for(const c of BIPED_GLB.animations){const a=mixer.clipAction(c);const loop=BIPED_LOOP.has(c.name);a.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,Infinity);a.clampWhenFinished=!loop;acts[c.name]=a;}
-  const B={g,inner,bones,mixer,acts,mat,e0:mat?mat.emissiveIntensity:1,cur:null,curName:'',ev:{},
+  const B={g,inner,bones,mixer,acts,mat,e0:mat?mat.emissiveIntensity:1,cur:null,curName:'',ev:{},flip:BIPED_FLIP,
     // crossfade to a clip (0.15-0.25 s); one-shots stop on their last frame
     play(name,fade=0.2,speed=1){const a=acts[name];if(!a)return null;a.timeScale=speed;if(B.cur===a)return a;
       a.reset();a.setEffectiveWeight(1);a.play();if(B.cur)B.cur.crossFadeTo(a,fade,false);B.cur=a;B.curName=name;B.ev={};return a;},
+    // v69: instant switch (no crossfade) to a clip frozen at `time` s: the entity flips 180 degrees under a finished swim turn and the pose must not blend across the flip
+    set(name,time=0){const a=acts[name];if(!a)return null;a.timeScale=1;a.reset();a.time=time;a.setEffectiveWeight(1);a.play();
+      for(const k in acts)if(acts[k]!==a)acts[k].stop(); // the new one is already active, so the shared bone bindings are never released in between
+      B.cur=a;B.curName=name;B.ev={};return a;},
     // fire a clip event once when the playing clip passes frame f (24 fps)
     at(f){const a=B.cur;if(!a||B.ev[f])return false;if(a.time>=f/24){B.ev[f]=1;return true;}return false;},
     done(){const a=B.cur;return !!a&&!BIPED_LOOP.has(B.curName)&&a.time>=a.getClip().duration-1e-3;},

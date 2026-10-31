@@ -94,7 +94,7 @@ function applyPU(k){if(k==='xp'){XP.streak=0;xpStart();return;}const D=PU_DEF[k]
   if(k==='nuke'){const all=spiders.filter(s=>s.state==='crawl'||s.state==='eat'||s.state==='windup').sort((a,b)=>a.pos.z-b.pos.z);
     for(const s of all)if(s.kind==='spitter'){s.hp-=Math.ceil(s.maxHp*0.4);s.flash=1;}
     for(const e of [...INCS]){if(e.st==='dead'||e.st==='fall'||e.st==='gone')continue;e.hp-=Math.ceil(e.maxHp*0.4);e.flash=1;zapArc(P.pos,incCenter(e,new THREE.Vector3()));
-      if(e.hp<=0)killInc(e,false);else if(e.st!=='fly'&&e.st!=='back'){incBeamSnd(false);e.hop=0;e.st='elec';e.t=0;e.B.play('Electrocuted',0.1);}}
+      if(e.hp<=0)killInc(e,false);else if(!incAir(e)){incBeamSnd(false);e.hop=0;e.st='elec';e.t=0;e.B.play('Electrocuted',0.1);}}
     const tg=all.filter(s=>s.kind!=='spitter'||s.hp<=0);for(const s of all)if(s.kind==='spitter'&&s.hp>0)zapArc(P.pos,s.pos);
     let prev=P.pos.clone();for(const s of tg){zapArc(prev,s.pos);prev=s.pos.clone();}
     for(const s of tg)killSpider(s,false,true);

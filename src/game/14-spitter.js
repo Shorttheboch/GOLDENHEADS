@@ -43,7 +43,8 @@ function hullClear(a,b){for(let k=1;k<24;k++){const p=V3.lerpVectors(a,b,k/24);i
 const _hcq=new THREE.Vector3(),_hcn=new THREE.Vector3();
 // the first drop: a low lens on the hull, a few metres away; it tilts up to the sky and follows the spitter all the way down
 // (always whole in frame), the spitter lands on its feet, sinks with the blow and holds; the lens takes the jolt
-function bossCam(dt){CINE.t+=dt;const s=CINE.boss;P.inv=Math.max(P.inv,1);P.vel.multiplyScalar(0.9);
+function bossCam(dt){if(CINE.boss&&CINE.boss.isInc){incCam(dt);return;} // v67: the Incinerator has its own entrance
+  CINE.t+=dt;const s=CINE.boss;P.inv=Math.max(P.inv,1);P.vel.multiplyScalar(0.9);
   if(s&&s.state==='fall'&&CINE.t>=CINE.dur-0.75){if(s.isInc)incFall(s,99);else updateFall(s,99);} // skipped: land now
   if(!CINE.camN&&s){const F=s.fall,tg=F?F.tgt:s.pos,hp=hullParam(tg);CINE.n=(F?F.n:UP).clone();
     // low lens on the straight mid-ship, ~4 m along the hull, just high enough that nothing hides the whole spider

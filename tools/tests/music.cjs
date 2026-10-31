@@ -87,8 +87,10 @@ async function gamePhase(p,tag,{phone}){
   ok(await p.waitForFunction(()=>__VO().n>0,null,{timeout:120000}).then(()=>true,()=>false),'voices decoded');
   await p.waitForTimeout(500);
   const said=await p.evaluate(()=>{const m=__MUS();return m.say('int_01',4);});
-  await p.waitForTimeout(450);await p.evaluate(()=>__MUS().tick());await p.waitForTimeout(300);
-  const d=await G(p);console.log('   voice playing: say()->'+said,JSON.stringify(d));
+  // v74: poll instead of fixed waits: under load (another Chromium on the machine) the fixed waits could outlast the voice line
+  // the snapshot is taken at the moment the level is down (the line is short; a slow page could read the release instead)
+  await until(p,()=>{const m=__MUS();m.tick();const g=m.g.gain.value;if(g<0.5*m.M.vol){window.__duckSnap={gain:+g.toFixed(4),tgt:+m.M.tgt.toFixed(4),vol:m.M.vol,duckTo:m.M.duckTo};return true;}return false;},null,4000);
+  const d=Object.assign(await G(p),await p.evaluate(()=>window.__duckSnap||{}));console.log('   voice playing: say()->'+said,JSON.stringify(d));
   ok(said===true,'a voice line played');
   ok(d.gain<0.5*d.vol&&d.gain>0,'music ducked while the voice plays ('+d.gain+' vs '+d.vol+')');
   ok(Math.abs(d.tgt-d.vol*d.duckTo)<0.002,'duck target is '+d.duckTo+' x level ('+d.tgt+')');

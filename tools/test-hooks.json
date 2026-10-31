@@ -35,8 +35,8 @@
   "file": "game"
  },
  {
-  "a": "'assets/ship.glb'",
-  "b": "'assets/ship_test.glb'",
+  "a": "const SHIP_URL=isTouch?'assets/ship_mobile.glb':'assets/ship.glb';",
+  "b": "const SHIP_URL='assets/ship_test.glb';",
   "file": "game"
  },
  {

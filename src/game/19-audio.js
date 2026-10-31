@@ -1,5 +1,5 @@
-/* ================= AUDIO (procedural, no files) ================= */
-const LOOPS={};let weldG=null,WELD_T=-1e9;let AC=null,master=null,suckGain=null,humOsc=null,musicGain=null,NOISE=null,musicOn=true,musicT=0,beat=0;
+/* ================= AUDIO (procedural effects + the music file) ================= */
+const LOOPS={};let weldG=null,WELD_T=-1e9;let AC=null,master=null,suckGain=null,humOsc=null,musicGain=null,NOISE=null,musicOn=true;
 function loopSrc(buf,L,dst){const n=AC.createBufferSource();n.buffer=buf;n.loop=true;n.loopStart=L*0.5;n.loopEnd=L*1.5;n.connect(dst);n.start(0,L*0.5);return n;}
 function initAudio(){if(AC)return;try{if(isTouch&&navigator.audioSession)try{navigator.audioSession.type='playback';}catch(_){} // v57: iPhone silent switch would mute the game but not the film
   AC=new (window.AudioContext||window.webkitAudioContext)();
@@ -23,7 +23,7 @@ function initAudio(){if(AC)return;try{if(isTouch&&navigator.audioSession)try{nav
   const wn=AC.createBufferSource();wn.buffer=NOISE;wn.loop=true;const wf=AC.createBiquadFilter();wf.type='lowpass';wf.frequency.value=260;
   const lfo=AC.createOscillator();lfo.frequency.value=0.07;const lg=AC.createGain();lg.gain.value=140;lfo.connect(lg).connect(wf.frequency);lfo.start();
   const wg=AC.createGain();wg.gain.value=0.7;wn.connect(wf).connect(wg).connect(amb);wn.start();
-  musicGain=AC.createGain();musicGain.gain.value=0.1;musicGain.connect(master);musicT=AC.currentTime+0.3;
+  musicInit(); // v73: the music file (see the music block at the end of this piece)
 }catch(e){AC=null;}}
 let PJ=1;
 function tone(type,f0,f1,dur,vol,when=0){const t=AC.currentTime+when,o=AC.createOscillator(),g=AC.createGain();if(type==='square'){type='triangle';vol*=1.4;}o.type=type;f0*=PJ;f1*=PJ;
@@ -96,21 +96,45 @@ function sfx(k,pos){if(!AC)return;const v=pos?Math.max(0.15,1-pos.distanceTo(P.p
     case 'splat':noise(0.35,0.25*Math.max(0.3,v),600,'lowpass');tone('sine',140,45,0.3,0.15*Math.max(0.3,v));break;
     case 'chitter':for(let i=0;i<4;i++)tone('square',2400+Math.random()*900,1800,0.03,0.035*v,i*0.06);break;
   }}
-// music: a tense 16-step pulse that adds layers each round and speeds up for the evacuation
-const BASS=[0,0,12,0,3,0,12,0,5,0,12,0,3,0,10,7];
-function musicStep(time,step,lvl){
-  const f=55*Math.pow(2,BASS[step%16]/12);
-  const o=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();o.type='sawtooth';o.frequency.value=f;lp.type='lowpass';lp.frequency.value=300+lvl*140;
-  g.gain.setValueAtTime(0.0001,time);g.gain.exponentialRampToValueAtTime(0.5,time+0.01);g.gain.exponentialRampToValueAtTime(0.0001,time+0.22);
-  o.connect(lp).connect(g).connect(musicGain);o.start(time);o.stop(time+0.25);
-  if(lvl>=1&&step%2===1){const s=AC.createBufferSource();s.buffer=NOISE;const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=7000;const hg=AC.createGain();
-    hg.gain.setValueAtTime(0.16,time);hg.gain.exponentialRampToValueAtTime(0.0001,time+0.05);s.connect(hp).connect(hg).connect(musicGain);s.start(time,Math.random());s.stop(time+0.06);}
-  if(lvl>=2&&step%8===0){const k=AC.createOscillator(),kg=AC.createGain();k.frequency.setValueAtTime(120,time);k.frequency.exponentialRampToValueAtTime(40,time+0.15);
-    kg.gain.setValueAtTime(0.8,time);kg.gain.exponentialRampToValueAtTime(0.0001,time+0.2);k.connect(kg).connect(musicGain);k.start(time);k.stop(time+0.22);}
-  if(lvl>=3&&step%4===2){const a=AC.createOscillator(),ag=AC.createGain();a.type='triangle';a.frequency.value=f*4*(step%8===2?1:1.5);
-    ag.gain.setValueAtTime(0.0001,time);ag.gain.exponentialRampToValueAtTime(0.2,time+0.01);ag.gain.exponentialRampToValueAtTime(0.0001,time+0.3);a.connect(ag).connect(musicGain);a.start(time);a.stop(time+0.32);}}
-function updateMusic(){if(!AC)return;voTick();const duck=AC.currentTime<VOQ.until?0.35:1;musicGain.gain.value=THREE.MathUtils.damp(musicGain.gain.value,(musicOn&&state==='play')?0.1*duck:0,6,0.016);if(state!=='play')return;
-  const lvl=Math.min(4,Math.floor(wave/2));const spb=60/(92+lvl*9)/4;
-  if(musicT<AC.currentTime)musicT=AC.currentTime+0.05;
-  while(musicT<AC.currentTime+0.2){musicStep(musicT,beat++,lvl);musicT+=spb;}}
 
+// ---- music (v73) ----
+// Menu: public/menusfx.js (window.menuMusic). Game: assets/music/game.mp3, ONE file (the five songs mixed DJ-style, baked so its end flows back into its start).
+// It is STREAMED by an <audio> (decoding 7 min would be ~150 MB of PCM) and routed through the game's AC (createMediaElementSource -> musicGain -> master),
+// because iOS ignores el.volume. Quiet on purpose: the voices are what matters (vol = gain of the file, which is about -16 LUFS; the voices are about -16 LUFS too).
+// While a voice line plays (VOQ.until, plus a short hang so back-to-back lines do not pump it) the music drops to duckTo x vol: quick attack, slow release.
+// M / the phone pause button flip musicOn: fade out, the element rests (paused) after the fade, fade in where it was. Phone pause / hidden tab / AC not running: the element is paused.
+// The old synthesized pulse is gone (no fallback: if the file fails to load there is simply no music).
+const MUSIC={url:'assets/music/game.mp3',vol:0.22,duckTo:0.3,hang:0.3,el:null,live:false,ending:false,endAt:0,held:false,asleep:false,wait:false,tgt:0,tgtAt:0,pOn:true,tau:0,err:false,retry:false};
+function musicInit(){musicGain=AC.createGain();musicGain.gain.value=0;musicGain.connect(master);
+  try{const el=new Audio();el.preload='none';el.loop=true;el.setAttribute('playsinline','');el.src=new URL(MUSIC.url,document.baseURI).href;
+    el.addEventListener('error',()=>{MUSIC.err=true;console.warn('music unavailable');});
+    el.addEventListener('playing',()=>{if(MUSIC.wait){MUSIC.wait=false;musicTick();}}); // the fade-in starts when the sound really begins (a slow connection must not eat it)
+    AC.createMediaElementSource(el).connect(musicGain);MUSIC.el=el;AC.addEventListener('statechange',()=>musicSync());}
+  catch(e){MUSIC.el=null;console.warn('music unavailable',e);}}
+// play when the game wants music and the context is running; pause otherwise. gesture===true (inside JUGAR / REINTENTAR) plays even if the context is still waking up (iOS), so the browser lets the element play later on its own
+function musicSync(gesture){const el=MUSIC.el;if(!el||!AC)return;
+  if(!MUSIC.err&&MUSIC.live&&!MUSIC.held&&!MUSIC.asleep&&!document.hidden&&(gesture===true||AC.state==='running')){
+    if(el.paused){try{const p=el.play();if(p&&p.catch)p.catch(e=>{if(e&&e.name==='NotAllowedError')MUSIC.retry=true;});}catch(e){}}}
+  else if(!el.paused)el.pause();}
+for(const ev of ['pointerdown','keydown','touchend'])addEventListener(ev,()=>{if(MUSIC.retry){MUSIC.retry=false;musicSync(true);}},{capture:true,passive:true}); // the browser refused play(): the next gesture tries again
+document.addEventListener('visibilitychange',()=>musicSync());
+// JUGAR with the opening film ahead: the click is the gesture that lets the element play later; it does not play now (never over the film)
+function musicPrime(){const el=MUSIC.el;if(!el)return;try{const p=el.play();if(p&&p.catch)p.catch(()=>{});}catch(e){}el.pause();}
+// the round starts (JUGAR / REINTENTAR, inside the click): from 0, fading in over ~2 s
+function musicStart(){if(!AC||!MUSIC.el||!musicGain)return;const now=AC.currentTime,g=musicGain.gain;
+  MUSIC.live=true;MUSIC.ending=false;MUSIC.asleep=false;MUSIC.wait=true;MUSIC.tau=0.6;MUSIC.tgt=0;MUSIC.tgtAt=now;MUSIC.pOn=true;
+  try{MUSIC.el.currentTime=0;}catch(e){}
+  g.cancelScheduledValues(now);g.setValueAtTime(0,now);musicSync(true);musicTick();}
+// the game is over: fade out over ~sec seconds, then pause
+function musicEnd(sec=2){if(!AC||!MUSIC.live||MUSIC.ending)return;MUSIC.ending=true;MUSIC.endAt=AC.currentTime+sec*1.4;MUSIC.tau=sec/3.2;musicTick();}
+function musicHold(v){MUSIC.held=v;musicSync();} // phone pause menu
+function musicTick(){if(!AC||!musicGain)return;const now=AC.currentTime;
+  if(MUSIC.ending&&now>=MUSIC.endAt){MUSIC.live=MUSIC.ending=false;musicSync();}
+  {const el=MUSIC.el;if(MUSIC.wait&&el&&!el.paused&&el.readyState>=3&&el.currentTime>0.05)MUSIC.wait=false;} // already sounding (a seek inside buffered data fires no 'playing')
+  const want=musicOn&&MUSIC.live&&!MUSIC.ending,on=want&&!MUSIC.wait,duck=VOQ.until>0&&now<VOQ.until+MUSIC.hang?MUSIC.duckTo:1,tgt=on?MUSIC.vol*duck:0;
+  if(want&&MUSIC.asleep){MUSIC.asleep=false;musicSync();} // M on: the element wakes up (the level then fades in from 0)
+  if(Math.abs(tgt-MUSIC.tgt)>1e-5){const g=musicGain.gain,tau=MUSIC.tau||(tgt<MUSIC.tgt?(on===MUSIC.pOn?0.05:0.2):(on===MUSIC.pOn?0.2:0.35)); // attack 0.15 s · release 0.6 s · M off 0.6 s · M on 1 s
+    MUSIC.tau=0;if(AC.state==='running'){g.cancelScheduledValues(now);g.setTargetAtTime(tgt,now,tau);}else{g.cancelScheduledValues(0);g.value=tgt;} // not running (phone pause): nothing to fade, just set it
+    MUSIC.tgt=tgt;MUSIC.tgtAt=now;MUSIC.pOn=on;}
+  if(!want&&MUSIC.live&&!MUSIC.ending&&!MUSIC.asleep&&now>MUSIC.tgtAt+1.6){MUSIC.asleep=true;musicSync();}} // M off: once it has faded (checked AFTER the level change above, which stamps tgtAt), the element rests
+function updateMusic(){if(!AC)return;voTick();musicTick();}

@@ -15,13 +15,13 @@ const loadMod=p=>window.__A&&window.__A[p]!==undefined?Promise.resolve({default:
 // v61: assets are real files (assets/models, assets/sfx, assets/vo, assets/ui); the small assets/*.js manifests list their paths.
 // A base64 string (the old packaging, still used by a single-file build through window.__A) keeps working.
 const isAssetPath=s=>typeof s==='string'&&/^(assets\/|\.\/|\/|https?:)/.test(s);
-const assetBuf=s=>isAssetPath(s)?fetch(new URL(s,document.baseURI).href).then(r=>{if(!r.ok)throw new Error(r.status+' '+s);return r.arrayBuffer();})
+const assetBuf=(s,low)=>isAssetPath(s)?fetch(new URL(s,document.baseURI).href,low?{priority:'low'}:undefined).then(r=>{if(!r.ok)throw new Error(r.status+' '+s);return r.arrayBuffer();}) // v74: low = background download, behind whatever the player is waiting for
   :Promise.resolve(Uint8Array.from(atob(s),c=>c.charCodeAt(0)).buffer);
 // v61: start all the downloads of a sound list at once (the browser fetches them in parallel); the decoding still goes in the original order
 const assetBufs=D=>{const o={};for(const [id,arr] of Object.entries(D))if(id.slice(0,2)!=='__'&&Array.isArray(arr))o[id]=arr.map(s=>{const q=assetBuf(s);q.catch(()=>{});return q;});return o;};
-async function loadGLB(url,onP){
+async function loadGLB(url,onP,low){
   const A=window.__A&&window.__A[url+'.js'];
-  const bin=A!==undefined?Uint8Array.from(atob(A),c=>c.charCodeAt(0)).buffer:await assetBuf(url.replace(/^assets\//,'assets/models/'));
+  const bin=A!==undefined?Uint8Array.from(atob(A),c=>c.charCodeAt(0)).buffer:await assetBuf(url.replace(/^assets\//,'assets/models/'),low);
   onP&&onP({loaded:1,total:1});
   return new Promise((res,rej)=>loader.parse(bin,'',res,rej));}
 

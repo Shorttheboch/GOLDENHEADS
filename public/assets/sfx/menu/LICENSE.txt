@@ -1,14 +1,15 @@
-HEADS Rescate Dorado - start-menu machinery sounds (v70)
+HEADS Rescate Dorado - start-menu machinery sounds (v70, three replaced in v73)
 
-logo.mp3     servo whoosh while the logo travels to its place
-land.mp3     soft heavy metallic thunk and settle
-bar.mp3      long bar sliding out on a rail (servo, friction, detents, stop)
-unfold.mp3   hydraulic / pneumatic unfolding with a light linkage rattle
-lock.mp3     latch / clamp locking into place
-button.mp3   small mechanical click and a soft power-up (JUGAR ready)
+logo.mp3          servo whoosh while the logo travels to its place              (synthesized)
+land.mp3          soft heavy metallic thunk and settle                          (synthesized)
+bar.mp3           long bar sliding out on a rail (servo, friction, detents)     (synthesized)
+button.mp3        small mechanical click and a soft power-up (JUGAR ready)      (synthesized)
+metro.mp3         a tape measure pulled out: the panel unfolds     (key "unfold") (Santi's recording)
+arma-juguete.mp3  a toy gun cocking: the expanded panel locks in   (key "lock")   (Santi's recording)
+decoder.mp3       sci-fi text decoding: the headers decode         (key "decode") (Santi's recording)
 
-Source: synthesized for HEADS, no third-party material.
-Every file is generated from noise, decaying metal resonances and swept servo tones by
-tools/menu-sfx/synth_menu_sfx.py (numpy + scipy, encoded with ffmpeg/libmp3lame to mono 44.1 kHz ~96 kbps).
-No recordings, samples or sound packs were used, so there is nothing to attribute and no outside licence applies.
-Re-render with:  python3 tools/menu-sfx/synth_menu_sfx.py
+The four synthesized files are generated from noise, decaying metal resonances and swept servo tones by
+tools/menu-sfx/synth_menu_sfx.py (numpy + scipy, encoded with ffmpeg/libmp3lame to mono 44.1 kHz ~96 kbps); no recordings,
+samples or sound packs were used for them. Do NOT re-render over unfold/lock: the script no longer produces them (their
+files are metro.mp3 and arma-juguete.mp3, which are Santi's own recordings, trimmed and levelled, 44.1 kHz stereo 112 kbps).
+Re-render the synthesized ones with:  python3 tools/menu-sfx/synth_menu_sfx.py

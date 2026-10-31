@@ -201,9 +201,10 @@ function tick(){const _qa0=performance.now();
     updateRocks();
     for(const s of [...spiders])updateSpider(s,dt,t);updateSilk(t);
     for(const e of [...INCS])updateInc(e,dt,t);incFxFrame();
-    if(state==='play'&&!inBreak&&WB.bossT>0){WB.bossT-=dt;if(WB.bossT<=0){WB.bossT=0;spawnSpitter(true);}}
-    if(state==='play'&&!inBreak&&WB.incT>0){WB.incT-=dt;if(WB.incT<=0){WB.incT=0;spawnInc(incN===0);}}
-    if(state==='play'&&!inBreak&&WB.spitQ&&WB.spitQ.length){WB.spitQ[0]-=dt;if(WB.spitQ[0]<=0){WB.spitQ.shift();spawnSpitter();}}
+    // v74: these three wait (their timer stops, the round stays open) while the crab / biped model is still downloading in the background
+    if(state==='play'&&!inBreak&&WB.bossT>0&&lateOk('crab')){WB.bossT-=dt;if(WB.bossT<=0){WB.bossT=0;spawnSpitter(true);}}
+    if(state==='play'&&!inBreak&&WB.incT>0&&lateOk('bip')){WB.incT-=dt;if(WB.incT<=0){WB.incT=0;spawnInc(incN===0);}}
+    if(state==='play'&&!inBreak&&WB.spitQ&&WB.spitQ.length&&lateOk('crab')){WB.spitQ[0]-=dt;if(WB.spitQ[0]<=0){WB.spitQ.shift();spawnSpitter();}}
     if(state==='play'&&!inBreak&&cloudPlan<0&&cloudLastW!==wave&&wave>=2&&cargo<CFG.cargo*0.6){const W0=waveDef(wave);cloudPlan=Math.min(0.9,(W0.n-toSpawn)/Math.max(1,W0.n)+0.1);cloudLastW=wave;} // dropped below 60 % mid-round
     if(state==='play'&&!inBreak&&cloudPlan>=0){const W0=waveDef(wave);if((W0.n-toSpawn)/Math.max(1,W0.n)>=cloudPlan){cloudPlan=-1;spawnCloud();}}
     WB.rt=(WB.rt||0)+dt;

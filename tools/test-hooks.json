@@ -35,8 +35,8 @@
   "file": "game"
  },
  {
-  "a": "'assets/ship.glb'",
-  "b": "'assets/ship_test.glb'",
+  "a": "const SHIP_URL=isTouch?'assets/ship_mobile.glb':'assets/ship.glb';",
+  "b": "const SHIP_URL='assets/ship_test.glb';",
   "file": "game"
  },
  {
@@ -102,6 +102,11 @@
  {
   "a": "function camArm(head,pivot,cam,dt){",
   "b": "window.__cam={camArm,camSolid,camRay,CAM};function camArm(head,pivot,cam,dt){",
+  "file": "game"
+ },
+ {
+  "a": "const MUSIC={url:",
+  "b": "window.__MUS=()=>({M:MUSIC,g:musicGain,say,endGame,tick:musicTick,VOQ,on:musicOn});const MUSIC={url:",
   "file": "game"
  }
 ]

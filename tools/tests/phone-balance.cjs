@@ -1,7 +1,7 @@
 // Phone balance (v65): one try at the golden band per plate, auto-collect 4.5 m (15 m with the magnet prize), boss bar small at the top right.
 // Run on dist-test. Screenshot: phone_boss.png
 const {chromium}=require('playwright');
-const {BASE,ARGS,shot}=require('./lib.cjs');
+const {BASE,ARGS,shot,lateReady}=require('./lib.cjs');
 (async()=>{
  const b=await chromium.launch({args:ARGS});
  const ctx=await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:2,isMobile:true,hasTouch:true});const p=await ctx.newPage();
@@ -9,7 +9,7 @@ const {BASE,ARGS,shot}=require('./lib.cjs');
  await p.addInitScript(()=>{window.__lang='es';});
  await p.goto(BASE+'/test.html?q=3');
  await p.waitForFunction(()=>{const g=document.getElementById('mmGo');return g&&!g.disabled;},null,{timeout:300000});
- await p.waitForTimeout(2500);await p.tap('#mmGo');
+ await lateReady(p);await p.waitForTimeout(2500);await p.tap('#mmGo');
  const step=s=>p.evaluate(n=>__step(n),Math.round(s/0.05));
  await step(0.5);
  // weld: next to a broken plate during combat (the band is there), first tap outside the band, then inside it

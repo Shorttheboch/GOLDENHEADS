@@ -56,9 +56,10 @@ const rel=log=>{const t0=log.length?log[0].t:0;return log.map(c=>c.n+(c.ok?'':'(
  // ---- 3) no gesture at all (picker skipped): everything skipped, nothing queued
  console.log('3) no user gesture');
  p=await newPage(b,{},()=>{window.__lang='es';});
- await p.waitForFunction(()=>menuSfx.log.length>=6,null,{timeout:60000}).catch(()=>{});await p.waitForTimeout(500);
+ // wait for the whole intro, JUGAR's 'button' cue included (at 2.6 s): a click before it would rightly let it play on time
+ await p.waitForFunction(()=>menuSfx.log.some(c=>c.n==='button'),null,{timeout:60000}).catch(()=>{});await p.waitForTimeout(500);
  log=await p.evaluate(()=>menuSfx.log.slice());console.log('  cues:',rel(log));
- ok(log.length>=6&&log.every(c=>!c.ok),'all cues skipped without a gesture');
+ ok(log.length>=7&&log.every(c=>!c.ok),'all cues skipped without a gesture');
  await p.mouse.click(40,40);await p.waitForTimeout(600);
  ok((await p.evaluate(()=>window.__starts)).length===0,'nothing played late after the click');
  ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs.slice(0,3)));await p.context().close();

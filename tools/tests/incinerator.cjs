@@ -2,7 +2,9 @@
 // and it GRABS ROCKS (lands on them with Swim_Land, stays glued, fires the laser once, leaves with Swim_Start).
 // Swim: flip continuity, speeds per phase, claw frames, chase turn, smooth return and landing. Rocks: landing, glue to a drifting rock, laser, pounce, never the same rock
 // twice in a row, at most 2 rock stops per trip, death on a rock.
-// Run on dist-test. Screenshots: inc_cine_<t>.png, inc_v69_swim / slash / turn / land .png, inc_v69_rock_side / rock_front .png
+// v71 (Santi: "arréglalo"): on a rock BOTH FEET ARE ON THE STONE. Body fitted to the plane under the feet (tilt and lower, eased over ~0.1 s), each foot re-solved so its toe tips follow
+// the stone (and slides to that pose, no snapping). Measured here with the true closest-point distance to the lumpy surface: at the real landing spots, and on 5 rocks x 6 spots x 4 facings.
+// Run on dist-test. Screenshots: inc_cine_<t>.png, inc_v69_swim / slash / turn / land .png, inc_v69_rock_side / rock_front .png, inc_v71_rock_lumpy_side / lumpy_front .png
 const {chromium}=require('playwright');
 const {BASE,ARGS,shot}=require('./lib.cjs');
 // helpers installed inside a page: run frames holding the astronaut where it floats, heal it, count the damage; rocks put out of the way (z=400: faded out, not usable)
@@ -22,6 +24,31 @@ const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P
     const dir=R.c.clone().sub(q).normalize(),far=R.c.clone().addScaledVector(dir,R.rmax+14);window.__hold=far;P.pos.copy(far);P.vel.set(0,0,0);P.inv=0;window.__dmg=0;
     e.st='swimStart';e.t=0;e.sa=0;e.B.play('Swim_Start',0.2);window.__go(260,()=>e.st==='rock');return e.st==='rock';};
   window.__home=()=>{window.__hold=null;window.__inv0=0;window.__go(700,i=>i>10&&__inc.st==='stalk');}; // let it finish the trip and walk again
+  // v71: true distance (closest point of the lumpy surface, negative inside) of a world point to rock R. rockR is the game's own radius function, copied here.
+  window.__rR=(R,d)=>{const e=1/Math.sqrt((d.x/R.ax)**2+(d.y/R.ay)**2+(d.z/R.az)**2),s=R.seed;
+    let n=0.16*Math.sin(d.x*3.1+s)*Math.sin(d.y*2.7+s*1.3)*Math.sin(d.z*3.4+s*0.7)+0.07*Math.sin(d.x*7.3+d.y*5.1+s*2.1)+0.04*Math.sin(d.y*11.0-d.z*9.0+s)+0.028*Math.sin(d.x*19+d.y*13+s*3)*Math.sin(d.z*17-d.x*11+s)+0.016*Math.sin(d.x*31-d.z*27+s*5)*Math.sin(d.y*29+s*2);
+    for(const c of R.cr){const a=d.dot(c.d);if(a>c.cos){const u=(a-c.cos)/(1-c.cos);n-=c.dep*Math.sin(Math.min(1,u*1.6)*Math.PI*0.5)-c.dep*0.35*Math.max(0,1-Math.abs(u-0.12)*8);}}
+    return R.r*e*(1+n);};
+  {const T=__THREE,dd=new T.Vector3(),q=new T.Vector3(),u=new T.Vector3(),v2=new T.Vector3(),d0=new T.Vector3(),v=new T.Vector3();
+   window.__sd=(R,w)=>{v.copy(w).sub(R.c);const L=v.length();if(L<1e-6)return -R.r;d0.copy(v).multiplyScalar(1/L);
+     u.crossVectors(d0,Math.abs(d0.y)<0.9?T.Object3D.DEFAULT_UP:new T.Vector3(1,0,0)).normalize();v2.crossVectors(d0,u);
+     let best=1e9,ba=0,bb=0;const tr=(a,b)=>{dd.copy(d0).addScaledVector(u,a).addScaledVector(v2,b).normalize();q.copy(R.c).addScaledVector(dd,window.__rR(R,dd));const dist=q.distanceTo(w);if(dist<best){best=dist;ba=a;bb=b;}};
+     for(let a=-0.6;a<=0.601;a+=0.1)for(let b=-0.6;b<=0.601;b+=0.1)tr(a,b);
+     let a0=ba,b0=bb;for(let a=-0.1;a<=0.1001;a+=0.02)for(let b=-0.1;b<=0.1001;b+=0.02)tr(a0+a,b0+b);
+     a0=ba;b0=bb;for(let a=-0.02;a<=0.02001;a+=0.005)for(let b=-0.02;b<=0.02001;b+=0.005)tr(a0+a,b0+b);
+     return L<window.__rR(R,d0)?-best:best;};}
+  // the six toe tips (the last bone of the three front toes of each foot) over the stone of rock R
+  window.__toeDist=(e,R)=>Object.keys(e.B.bones).filter(k=>/^toe\d_03[LR]$/.test(k)).map(k=>+window.__sd(R,e.B.bones[k].getWorldPosition(new __THREE.Vector3())).toFixed(3));
+  // rock ri put 12 m over the hull; the creature glued to it at direction dir (from the rock centre) facing faceDeg round its up, you far off along its facing; `frames` frames later: the toes
+  window.__stand=(ri,dir,faceDeg,frames)=>{const H=__heads,e=__inc,R=H.ROCKS[ri],P=H.P,T=__THREE,cd={melee:e.cds.melee,leap:e.cds.leap};
+    window.__hide();window.__put(ri,4,1.57,12);__step(2);
+    e.cds.melee=99;e.cds.leap=99;e.roam=null;e.lastRock=null;e.rockStops=0;e.hop=0;e.sa=0;e.sl=0;e.lp=null;e.fall=null;
+    const rd=new T.Vector3().fromArray(dir).normalize(),p0=R.c.clone().addScaledVector(rd,window.__rR(R,rd));
+    const t1=new T.Vector3().crossVectors(rd,Math.abs(rd.y)<0.9?new T.Vector3(0,1,0):new T.Vector3(1,0,0)).normalize(),fc=t1.applyAxisAngle(rd,faceDeg*Math.PI/180);
+    e.rk={R,rd,t0:e.clk-5,stay:9999,fired:0};e.st='rock';e.t=0;e.face.copy(fc);e.B.play('Idle',0);
+    window.__hold=p0.clone().addScaledVector(fc,40);P.pos.copy(window.__hold);window.__go(frames);
+    const toes=window.__toeDist(e,R),root=+window.__sd(R,e.pos).toFixed(3);e.cds.melee=cd.melee;e.cds.leap=cd.leap;return {toes,root};};
+  window.__fib=(i,n)=>{const y=1-2*(i+0.5)/n,rr=Math.sqrt(1-y*y),ph=i*2.399963;return [Math.cos(ph)*rr,y,Math.sin(ph)*rr];}; // i-th of n directions spread over a sphere
   window.__hide();__step(2);};
 (async()=>{
  const b=await chromium.launch({args:ARGS});const errs=[];
@@ -145,19 +172,24 @@ const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P
    const dir=R.c.clone().sub(q).normalize(),far=R.c.clone().addScaledVector(dir,R.rmax+14);window.__hold=far;P.pos.copy(far);P.vel.set(0,0,0);P.inv=0;window.__dmg=0;
    e.st='swimStart';e.t=0;e.sa=0;e.B.play('Swim_Start',0.2);
    const log=[],ev={};let last='',t=0,pr=false,lp,lf,ln;const land={maxStep:0,maxFaceDeg:0,maxNDeg:0};
+   // v71: while it is glued to the rock, every frame: root and pelvis (in the rock's frame), toe tips (in its own body frame), face and up
+   const snaps=[],tipK=Object.keys(e.B.bones).filter(k=>/^toe\d_0[23][LR]$/.test(k));
+   const snap=()=>{const c=R.c,x=new T.Vector3().crossVectors(e.n,e.face).normalize(),loc=w=>{const d=w.clone().sub(e.pos);return new T.Vector3(d.dot(x),d.dot(e.n),d.dot(e.face));};
+     snaps.push({root:e.pos.clone().sub(c),pel:loc(e.B.bones.pelvis.getWorldPosition(new T.Vector3())),tips:tipK.map(k=>loc(e.B.bones[k].getWorldPosition(new T.Vector3()))),face:e.face.clone(),n:e.n.clone(),st:e.st});};
    const step=()=>{window.__go(1);t++;const k=e.st+'/'+e.B.curName+(e.st==='swim'?'/'+e.sw.sm:e.st==='swimBack'?'/'+e.lp.sm+(e.lp.ref?'*rock':''):'')+(e.rk?'+glued':'');if(k!==last){last=k;log.push((t*0.05).toFixed(2)+' '+k);}
      const ret=(e.st==='swimBack'&&e.lp&&e.lp.sm==='path')||e.st==='swimLand';if(ret&&pr){land.maxStep=Math.max(land.maxStep,e.pos.distanceTo(lp));land.maxFaceDeg=Math.max(land.maxFaceDeg,window.__ang(e.face,lf));land.maxNDeg=Math.max(land.maxNDeg,window.__ang(e.n,ln));}
-     pr=ret;lp=e.pos.clone();lf=e.face.clone();ln=e.n.clone();};
+     pr=ret;lp=e.pos.clone();lf=e.face.clone();ln=e.n.clone();if(e.rk)snap();};
    // 1. to the rock
    for(let i=0;i<200&&e.st!=='rock';i++)step();
    ev.onRockAt=+(t*0.05).toFixed(2);ev.onRock=e.st==='rock'&&e.rk&&e.rk.R===R;ev.stayS=e.rk?+e.rk.stay.toFixed(1):null;ev.landJumps={maxStep:+land.maxStep.toFixed(3),maxFaceDeg:+land.maxFaceDeg.toFixed(1),maxNDeg:+land.maxNDeg.toFixed(1)};
    if(!ev.onRock)return {log,ev};
+   ev.toesAtLanding=window.__toeDist(e,R); // (a few frames after the push of the landing; the pose is eased in over 0.7 s)
    ev.upVsRockNormalDeg=+window.__ang(e.n,e.pos.clone().sub(R.c).normalize()).toFixed(1); // (the radial direction is only close to the normal)
    e.rk.stay=99;window.__mr=window.__mr||Math.random;Math.random=()=>0.99; // from here on: no second rock stop
    // 2. glue: the rock drifts 1.2 m/s in z and 0.4 m/s in x for 3 s (the game's own drift is 0.6 m/s)
    const off0=e.pos.clone().sub(R.c);let maxDrift=0;
    for(let i=0;i<60;i++){R.c.z-=0.06;R.c.x+=0.02;R.mesh.position.copy(R.c);step();maxDrift=Math.max(maxDrift,e.pos.clone().sub(R.c).distanceTo(off0));}
-   ev.glueMaxDriftCm=+(maxDrift*100).toFixed(2);ev.rockMovedM=+(Math.hypot(3.6,1.2)).toFixed(1);
+   ev.glueMaxDriftCm=+(maxDrift*100).toFixed(2);ev.rockMovedM=+(Math.hypot(3.6,1.2)).toFixed(1);ev.toesSettled=window.__toeDist(e,R);
    // 3. you appear in the clear: it turns toward you and fires the laser once
    const pl=e.pos.clone().addScaledVector(e.n,16).addScaledVector(new T.Vector3().crossVectors(e.n,e.face).normalize(),10);window.__hold=pl;P.pos.copy(pl);window.__beamOK=1;e.cds.beam=0;
    let shots=0,sawBeam=false,prev='';
@@ -169,6 +201,12 @@ const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P
    // 4. it leaves (time up): Swim_Start off the rock, swims after you, then back to the hull (Math.random is pinned so no second rock)
    e.rk.stay=0;const h2=e.pos.clone().addScaledVector(e.n,22);window.__hold=h2;P.pos.copy(h2);
    for(let i=0;i<500;i++){step();if(e.st==='stalk')break;}
+   // v71 pop numbers over every frame standing on the rock (state rock: the stand, the turn to you, the laser aftermath): how far (cm) the root moved per frame in the rock's frame,
+   // how far the toe tips / pelvis moved per frame in its own body frame (the clip's breathing, the turn and the IK), and how much face and up turned per frame (deg)
+   {const mx=(f)=>{let m=0;for(let i=1;i<snaps.length;i++)if(snaps[i].st==='rock'&&snaps[i-1].st==='rock')m=Math.max(m,f(snaps[i],snaps[i-1]));return m;}; // (standing, Idle: not the Swim_Land / Swim_Start clips, whose feet and pelvis move fast by themselves)
+    const ang=(a,b)=>Math.acos(Math.min(1,Math.max(-1,a.dot(b))))*180/Math.PI;
+    ev.pop={frames:snaps.length,rootStepCm:+(mx((a,b)=>a.root.distanceTo(b.root))*100).toFixed(2),pelvisStepCm:+(mx((a,b)=>a.pel.distanceTo(b.pel))*100).toFixed(2),
+      tipStepCm:+(mx((a,b)=>Math.max(...a.tips.map((q,j)=>q.distanceTo(b.tips[j]))))*100).toFixed(2),faceStepDeg:+mx((a,b)=>ang(a.face,b.face)).toFixed(2),upStepDeg:+mx((a,b)=>ang(a.n,b.n)).toFixed(2)};}
    Math.random=window.__mr;ev.end=e.st;ev.totalS=+(t*0.05).toFixed(2);ev.rockStopsOnHull=e.rockStops;ev.rkCleared=e.rk===null;
    const hp=__hullParam(e.pos);ev.endHullHeightM=+window.__hh(e.pos).toFixed(2);
    return {log,ev};});
@@ -192,6 +230,7 @@ const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P
    const step=()=>{window.__go(1);t++;const k=e.st+(e.st==='swimBack'?'/'+e.lp.sm+(e.lp.ref?'*'+rocks.indexOf(e.lp.ref):''):'')+(e.rk?'@'+rocks.indexOf(e.rk.R):'');if(k!==last){last=k;log.push((t*0.05).toFixed(2)+' '+k);}};
    for(let i=0;i<260&&e.st!=='rock';i++)step();
    out.firstStopOnA=e.st==='rock'&&e.rk.R===A;if(!out.firstStopOnA){out.log=log;return out;}
+   window.__go(16);out.toesA=window.__toeDist(e,A); // v71: its real landing spot on A
    // leave A, you float to its side; once it swims, put rock X 11 m beside it and force the return (Math.random pinned to 0 = "take a rock if you may"); A is nearer than X
    const leaveAndReturn=(X,beside)=>{e.rk.stay=0;const sd0=new T.Vector3().crossVectors(e.n,e.face).normalize(),pl=e.pos.clone().addScaledVector(sd0,24).addScaledVector(e.n,5);window.__hold=pl;P.pos.copy(pl);
      for(let i=0;i<120&&!(e.st==='swim'&&e.sw.t>0.8);i++)step();
@@ -204,6 +243,7 @@ const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P
    for(let i=0;i<400&&e.st!=='rock'&&e.st!=='stalk';i++)step();
    out.secondStopOnB=e.st==='rock'&&e.rk&&e.rk.R===B;out.rockStopsAfterTwo=e.rockStops;
    if(!out.secondStopOnB){out.log=log;return out;}
+   window.__go(16);out.toesB=window.__toeDist(e,B); // v71: and on B
    out.r2=leaveAndReturn(C,8);
    for(let i=0;i<500&&e.st!=='stalk';i++)step();
    out.end=e.st;out.rockStopsOnHull=e.rockStops;out.log=log;window.__hold=null;return out;});
@@ -225,20 +265,31 @@ const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P
    return res;});
  console.log('pounce',JSON.stringify(pounce));
  check('rock: you within 6 m -> it leaves with Swim_Start at once, glue released at the push',pounce.landed&&pounce.leftWithinFrames<=2&&pounce.clip==='Swim_Start'&&pounce.rkAfterLaunch,pounce);
- // 5d) standing on the rock: Idle, the back along the rock normal, the toe tips near the surface (the hull baseline with the same IK is 0.1-0.25 m; on a lumpy rock 0-0.5 m)
+ // 5d) standing on the rock (rock 4 again): Idle, the back along the rock normal, root near the surface, every toe tip over the stone: true closest-point distance
  const stand=await p.evaluate(()=>{const e=__inc,H=__heads,T=__THREE;window.__hold=null;if(e.st!=='rock')window.__toRock();
    if(e.rk){e.rk.stay=999;const P=H.P,pl=e.pos.clone().addScaledVector(e.n,16).addScaledVector(new T.Vector3().crossVectors(e.n,e.face).normalize(),10);window.__hold=pl;P.pos.copy(pl);window.__go(40);}
-   const clr=w=>{let lo=-3,hi=6;for(let k=0;k<14;k++){const m=(lo+hi)/2;if(H.rockAt(w,m))hi=m;else lo=m;}return +hi.toFixed(2);};
-   // true distance to the lumpy surface (closest of ~200 surface points around the radial direction), not just along the radius
-   const R=e.rk?e.rk.R:H.ROCKS[4],surfR=d=>{let lo=0,hi=R.rmax+3;for(let k=0;k<16;k++){const m=(lo+hi)/2;if(H.rockAt(R.c.clone().addScaledVector(d,m),0)===R)lo=m;else hi=m;}return hi;};
-   const near=C=>{const d=C.clone().sub(R.c).normalize(),u=new T.Vector3().crossVectors(d,Math.abs(d.y)<0.9?new T.Vector3(0,1,0):new T.Vector3(1,0,0)).normalize(),v=new T.Vector3().crossVectors(d,u);
-     let best=1e9;for(let a=-0.7;a<=0.71;a+=0.1)for(let b=-0.7;b<=0.71;b+=0.1){const dd=d.clone().addScaledVector(u,a).addScaledVector(v,b).normalize();best=Math.min(best,C.distanceTo(R.c.clone().addScaledVector(dd,surfR(dd))));}
-     return +(H.rockAt(C,0)===R?-best:best).toFixed(2);};
-   const toes=Object.keys(e.B.bones).filter(k=>/^toe\d_03[LR]$/.test(k)).map(k=>near(e.B.bones[k].getWorldPosition(new T.Vector3())));
-   const root=clr(e.pos);window.__hold=null;
+   const R=e.rk?e.rk.R:H.ROCKS[4],toes=window.__toeDist(e,R),root=+window.__sd(R,e.pos).toFixed(3);window.__hold=null;
    return {st:e.st,clip:e.B.curName,onRock:!!e.rk,rootClearanceM:root,toeTipClearanceM:toes};});
  console.log('on the rock',JSON.stringify(stand));
- check('rock: stands on it idle, root on the surface, toe tips over the stone (none sunk > 5 cm, the lowest within 35 cm, none above 65 cm: the rock is lumpy and the legs have a limited reach)',stand.st==='rock'&&stand.clip==='Idle'&&Math.abs(stand.rootClearanceM)<0.05&&stand.toeTipClearanceM.length>0&&stand.toeTipClearanceM.every(c=>c>-0.05&&c<0.65)&&Math.min(...stand.toeTipClearanceM)<0.35,stand);
+ const TOE_LO=-0.05,TOE_HI=0.25; // metres: no toe sunk more than 5 cm, none floating more than 25 cm (the clip itself holds the tips ~10 cm over its flat ground)
+ const okToes=a=>a.length>0&&a.every(c=>c>=TOE_LO&&c<=TOE_HI);
+ check('rock: stands on it idle, root within 25 cm of the surface',stand.st==='rock'&&stand.clip==='Idle'&&stand.onRock&&Math.abs(stand.rootClearanceM)<0.25,stand);
+ check('rock: every toe tip within -5..+25 cm of the stone (landing spot of the swim, 5 s after landing)',okToes(stand.toeTipClearanceM),stand.toeTipClearanceM);
+ check('rock: toes still on the stone after 3 s glued to the drifting rock (rock trip)',okToes(rt.ev.toesSettled),rt.ev.toesSettled);
+ check('rock: toes on the stone as soon as it stands (the pose is eased in over 0.7 s, Swim_Land is over by then)',okToes(rt.ev.toesAtLanding),rt.ev.toesAtLanding);
+ check('rock: toes on both landing spots of the two-rock trip (A, B)',okToes(two.toesA)&&okToes(two.toesB),[two.toesA,two.toesB]);
+ check('rock: no pops while standing (steps of 0.05 s): root < 3 cm, pelvis < 8 cm, toe tips < 15 cm; face < 12 and back < 4 degrees (measured 0.8, 2.5, 4.4; 6.9, 1.2)',rt.ev.pop.rootStepCm<3&&rt.ev.pop.pelvisStepCm<8&&rt.ev.pop.tipStepCm<15&&rt.ev.pop.faceStepDeg<12&&rt.ev.pop.upStepDeg<4,rt.ev.pop);
+ // 5e) the grid: 5 rocks x 6 spots spread over the rock x 4 facings, each stand 6 frames after being put there (the pose is already eased in), true distances
+ const grid=await p.evaluate(()=>{const all=[];window.__hold=null;
+   for(const ri of [4,9,7,1,5])for(let i=0;i<6;i++)for(const fd of [0,90,180,270]){const r=window.__stand(ri,window.__fib(i*2+1,12),fd,6);all.push({ri,i,fd,toes:r.toes,root:r.root});}
+   const flat=all.flatMap(a=>a.toes).sort((a,b)=>a-b),pc=q=>flat[Math.min(flat.length-1,Math.floor(q*flat.length))];
+   const worst=all.map(a=>({ri:a.ri,i:a.i,fd:a.fd,mx:Math.max(...a.toes),mn:Math.min(...a.toes)}));
+   return {stands:all.length,toes:flat.length,min:flat[0],p5:pc(0.05),median:pc(0.5),p95:pc(0.95),max:flat[flat.length-1],
+     floatOver25:flat.filter(x=>x>0.25).length,sunkOver5:flat.filter(x=>x<-0.05).length,
+     rootMin:Math.min(...all.map(a=>a.root)),rootMax:Math.max(...all.map(a=>a.root)),
+     worstFloat:worst.sort((a,b)=>b.mx-a.mx).slice(0,3),worstSunk:worst.sort((a,b)=>a.mn-b.mn).slice(0,3)};});
+ console.log('toe grid',JSON.stringify(grid));
+ check('grid: 600 toes of 5 rocks x 6 spots x 4 facings: none sunk more than 6 cm, none above 35 cm, p95 at most 22 cm, at most 1 % above 25 cm (measured -3.5 cm .. +24.6 cm, p95 18 cm; with v69: -37 .. +65 cm, 144 above 25 cm)',grid.min>=-0.06&&grid.max<=0.35&&grid.p95<=0.22&&grid.floatOver25<=grid.toes*0.01,grid);
  // 6) easier to kill: body shots from the front at ~6.7 shots/s (one every 3 frames), as a player would
  await p.evaluate(()=>{const e=__inc;window.__hold=null;e.rk=null;e.rockStops=0;e.lastRock=null;window.__hide();const hp=__hullParam(e.pos);const [q,n]=__hullPoint(2,1.57);e.pos.copy(q);e.n.copy(n);e.z=2;e.th=1.57;e.sa=0;e.sl=0;e.st='stalk';});
  const kill=await p.evaluate(()=>{const e=__inc,P=__heads.P;e.st='stalk';e.cds.guard=0;let shots=0,frames=0;const o=e.pos.clone().addScaledVector(e.n,1.2).addScaledVector(e.face,8);
@@ -282,13 +333,19 @@ const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P
    await pg.evaluate(()=>{window.__hold=null;});await until("e.st==='swimBack'||e.st==='swimLand'",600);
    console.log('shot land hook: after',await until("e.st==='swimLand'&&e.sl&&e.B.cur.time*24>9",600),'frames',JSON.stringify(await side(12,1.5)));await snapOn(pg,'inc_v69_land.png');});
  await group('rock',async pg=>{await ready(pg);
-   console.log('on the rock for the pictures',await pg.evaluate(()=>{const ok=window.__toRock(),e=__inc,P=__heads.P;if(ok){e.rk.stay=999;const pl=e.pos.clone().addScaledVector(e.n,16).addScaledVector(new __THREE.Vector3().crossVectors(e.n,e.face).normalize(),10);window.__hold=pl;P.pos.copy(pl);window.__go(40);}return ok;}));
-   const cams=await pg.evaluate(()=>{const e=__inc,T=__THREE,H=__heads,side=new T.Vector3().crossVectors(e.n,e.face).normalize(),c=e.pos.clone().addScaledVector(e.n,1.5);
+   // lens positions outside every rock: from its left (side) and from in front of it (front); the camera's up is the rock normal under the creature
+   await pg.evaluate(()=>{window.__camPick=()=>{const e=__inc,T=__THREE,H=__heads,side=new T.Vector3().crossVectors(e.n,e.face).normalize(),c=e.pos.clone().addScaledVector(e.n,1.5);
      const pick=angs=>{for(const a of angs){const r=a*Math.PI/180;for(const dist of [5.5,4.5,7,8.5]){const d=side.clone().multiplyScalar(Math.cos(r)).addScaledVector(e.face,Math.sin(r)),pos=c.clone().addScaledVector(d,dist).addScaledVector(e.n,-0.9);
        if(!H.rockAt(pos,1.4))return {pos:pos.toArray(),look:c.toArray(),up:e.n.toArray()};}}return null;};
-     return {side:pick([0,180,20,-20,160,200,40,-40]),front:pick([90,70,110,50,130,270,250,290])};}); // lens positions outside every rock
-   for(const k of ['side','front']){if(!cams[k]){console.log('no free lens position for',k);continue;}
-     await pg.evaluate(c=>{window.__shotCam=c;__camera.up.fromArray(c.up);},cams[k]);await snapOn(pg,'inc_v69_rock_'+k+'.png');}});
+     return {side:pick([0,180,20,-20,160,200,40,-40]),front:pick([90,70,110,50,130,270,250,290])};};});
+   const shoot=async(prefix)=>{const cams=await pg.evaluate(()=>window.__camPick());
+     for(const k of ['side','front']){if(!cams[k]){console.log('no free lens position for',prefix,k);continue;}
+       await pg.evaluate(c=>{window.__shotCam=c;__camera.up.fromArray(c.up);},cams[k]);await snapOn(pg,prefix+k+'.png');}};
+   console.log('on the rock for the pictures',await pg.evaluate(()=>{const ok=window.__toRock(),e=__inc,P=__heads.P;if(ok){e.rk.stay=999;const pl=e.pos.clone().addScaledVector(e.n,16).addScaledVector(new __THREE.Vector3().crossVectors(e.n,e.face).normalize(),10);window.__hold=pl;P.pos.copy(pl);window.__go(40);}return ok;}));
+   await shoot('inc_v69_rock_');
+   // v71: a lumpy spot (rock 9, the 2nd of 12 spread directions, turned 90 degrees: the worst case of the grid with the v69 code, a toe 65 cm over the stone) on the stone, not the one it picked
+   console.log('lumpy spot',JSON.stringify(await pg.evaluate(()=>{const r=window.__stand(9,window.__fib(1,12),90,14);return {toes:r.toes,rootM:r.root,st:__inc.st};})));
+   await shoot('inc_v71_rock_lumpy_');});
  console.log('errors',JSON.stringify(errs.slice(0,5)));
  check('no page errors',errs.length===0,errs.slice(0,3));
  console.log(fails.length?'FAILED: '+fails.join(' | '):'all checks passed');

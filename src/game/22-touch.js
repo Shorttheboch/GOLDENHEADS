@@ -44,7 +44,7 @@ function tcReset(){TC.stickId=TC.lookId=TC.fireId=null;st.x=st.y=0;TC.mag=0;TC.b
    if(a==='go')tcSetPause(false);
    else if(a==='next'){if(inBreak||WB.calm){skipReq=true;tcSetPause(false);}}
    else if(a==='tut'){mtutAgain();} // v66: see the tutorial again
-   else if(a==='mus'){musicOn=!musicOn;tcPauseLabels();}
+   else if(a==='mus'){musicOn=!musicOn;musicTick();tcPauseLabels();} // v73: the game is paused (sound suspended): set the music level now, not after CONTINUAR
    else if(a==='vo'){voOn=!voOn;if(!voOn&&voSrc){try{voSrc.stop();}catch(_){}$('sub').classList.remove('show');if(MHUD.on)window.HUD.hideSay();}tcPauseLabels();}});
  // perfect weld: tap the weld bar while the fill is inside the golden band (a miss just keeps welding)
  $('rep').addEventListener('pointerdown',e=>{if(!isTouch||state!=='play'||!R.pa)return;e.preventDefault();e.stopPropagation();
@@ -72,7 +72,7 @@ if(isTouch){const wakeAC=()=>{if(AC&&AC.state!=='running'&&AC.state!=='closed'&&
   for(const ev of ['touchend','pointerup','click'])document.addEventListener(ev,wakeAC,{capture:true,passive:true});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakeAC();});}
 // pause (touch only): freezes the game and its sound; music, voices and "start the round now" live here
-function tcSetPause(v){if(!isTouch||TC.paused===v)return;TC.paused=v;$('tPauseM').hidden=!v;
+function tcSetPause(v){if(!isTouch||TC.paused===v)return;TC.paused=v;$('tPauseM').hidden=!v;musicHold(v); // v73: the music element pauses with the game and resumes where it was
   if(v){tcReset();tcPauseLabels();if(typeof AC!=='undefined'&&AC&&AC.state==='running')AC.suspend().catch(()=>{});}
   else if(typeof AC!=='undefined'&&AC&&AC.state==='suspended')AC.resume().catch(()=>{});}
 // phone held upright: warning on top, and the game pauses

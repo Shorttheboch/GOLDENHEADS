@@ -13,7 +13,7 @@ function playOpening(done){const el=$('opening'),v=$('opVid');let fin=false,idle
   document.addEventListener('keydown',kd,true);}
 $('play').addEventListener('click',()=>{tcFull();initAudio();loadVO();loadSfx();$('menu').hidden=true;
   const go=()=>{$('touch').hidden=!isTouch;$('tZone').hidden=!isTouch;
-    $('hint').textContent=isTouch?'':'Haz clic para capturar el ratón · Esc para soltarlo';reset();state='play';
+    $('hint').textContent=isTouch?'':'Haz clic para capturar el ratón · Esc para soltarlo';reset();state='play';musicStart(); // v73: the music begins with the round (after the opening film, never over it)
     if(!isTouch&&canvas.requestPointerLock){try{const r=canvas.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(_){}}};
-  if(!opSeen&&!window.__noOpening){opSeen=true;playOpening(go);}else go();});
+  if(!opSeen&&!window.__noOpening){opSeen=true;musicPrime();playOpening(go);}else go();});
 

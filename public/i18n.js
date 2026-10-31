@@ -48,13 +48,14 @@ function menuDecode(el,delay){const f=el.dataset.t||'',G='ABCDEFGHIJKLMNOPQRSTUV
   setTimeout(()=>{el.classList.add('on','run');const t0=performance.now(),dur=420+f.length*18;
     const step=()=>{const k=Math.min(1,(performance.now()-t0)/dur),n=Math.floor(k*f.length);let s=f.slice(0,n);
       for(let i=n;i<f.length;i++)s+=f[i]===' '?' ':G[Math.floor(Math.random()*G.length)];el.textContent=s;
-      if(k<1)requestAnimationFrame(step);else{el.textContent=f;el.classList.remove('run');}};step();},delay);}
+      if(k<1)requestAnimationFrame(step);else{el.textContent=f;el.classList.remove('run');}};step();},delay);
+  return delay+420+f.length*18;} // v73: when this header finishes decoding (ms from now), for the decoder sound
 function startMenuIntro(){const art=document.getElementById('menuArt'),lw=document.getElementById('mLogoW');if(!art||art.classList.contains('go'))return;
   const r=lw.getBoundingClientRect(),is=Math.min(1.9,innerWidth*0.82/r.width,innerHeight*0.66/r.height);
   lw.style.setProperty('--ix',(innerWidth/2-(r.left+r.width/2))+'px');lw.style.setProperty('--iy',(innerHeight/2-(r.top+r.height/2))+'px');lw.style.setProperty('--is',is.toFixed(3));
   art.classList.add('go');const mn=document.getElementById('menu');if(mn)mn.classList.add('mgo');
   const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
-  [...document.querySelectorAll('#menuArt .mh.dec')].forEach((el,i)=>menuDecode(el,reduce?0:1640+i*70));
+  let decEnd=0;[...document.querySelectorAll('#menuArt .mh.dec')].forEach((el,i)=>{decEnd=Math.max(decEnd,menuDecode(el,reduce?0:1640+i*70));});
   // machinery sounds (v70, public/menusfx.js), on the timeline of 02-menu-pc.css; a cue that comes >180 ms late (busy or hidden tab) is dropped.
   // Silent until the browser allows audio (the language picker click/Enter already does). Reduced motion: only the JUGAR chime.
   const t0=performance.now(),cue=(n,ms,v,r)=>setTimeout(()=>{if(performance.now()-t0-ms<180&&window.menuSfx)menuSfx(n,v,r);},ms);
@@ -63,7 +64,9 @@ function startMenuIntro(){const art=document.getElementById('menuArt'),lw=docume
     cue('bar',700,1,1.5);           // top bar drops in and seats (.82-1.12 s): faster, higher take of the rail sound
     cue('unfold',1060);             // middle and bottom panels unfold downward (1.06-1.68 s)
     cue('land',1470,.75);           // ...and hit the bottom (the clank at 1.47 s)
-    cue('lock',1600);}              // headers lock in as the blue light comes on (1.64 s)
+    cue('lock',1640);               // headers lock in as the blue light comes on (1.64 s): the toy-gun cock is a sharp transient at its start, so it goes on the light
+    cue('decode',1640);             // v73: the first header starts decoding (the others follow, 70 ms apart; the last one is done at decEnd, about 2.6 s)
+    setTimeout(()=>{if(window.menuSfx&&menuSfx.fade)menuSfx.fade('decode',0.15);},decEnd);} // the decoder (1.5 s) runs longer than the text decoding: fade it out when the text is done
   const gb=document.getElementById('menuGo');   // JUGAR chime: when the panel is built and the game is ready to start
   if(gb)setTimeout(()=>{const bell=()=>{if(window.menuSfx)menuSfx('button');};if(!gb.disabled)return bell();
     const mo=new MutationObserver(()=>{if(!gb.disabled){mo.disconnect();bell();}});mo.observe(gb,{attributes:true,attributeFilter:['disabled']});},reduce?0:2600);}

@@ -29,5 +29,5 @@ $('rankForm').addEventListener('submit',e=>{e.preventDefault();if(RANK.sent||!RA
       $('rankForm').hidden=true;$('rankMsg').innerHTML=rkL(`Puesto <b>#${j.rank}</b> de ${fmtN(j.count)} partidas`,`Rank <b>#${j.rank}</b> of ${fmtN(j.count)} runs`);
       rankRender(j,j.id);fitEndPlate();})
     .catch(err=>{RANK.sent=false;$('rankSend').disabled=false;$('rankMsg').textContent=rkL('No se pudo guardar: ','Could not save: ')+err.message;});});
-$('again').addEventListener('click',()=>{tcFull();cancelAnimationFrame(ENDP.raf);$('end').hidden=true;$('end').classList.remove('go');reset();state='play';
+$('again').addEventListener('click',()=>{tcFull();cancelAnimationFrame(ENDP.raf);$('end').hidden=true;$('end').classList.remove('go');reset();state='play';musicStart();
   if(!isTouch&&canvas.requestPointerLock){try{const r=canvas.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(_){}}});

@@ -45,4 +45,4 @@ function endGame(win,reason){if(state!=='play')return;state='dead';xpEnd(true);X
     sub:reason==='ship'?'LAS ARAÑAS DEVORARON EL CASCO':reason==='cargo'?'LOS TRICOMAS SE PERDIERON EN EL VACÍO':'SEÑAL VITAL PERDIDA',
     total,round:wave+1,cargo:fmt(score),combat:fmt(pts),rows,recHTML,isNew});
   rankShow(total,{kills:stats.kills,heads:stats.heads,acc,saved:Math.round(stats.saved),repairs});
-  sfx('boom');}
+  sfx('boom');musicEnd(2);} // v73: the music fades out over ~2 s

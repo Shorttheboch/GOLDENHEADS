@@ -21,6 +21,7 @@ const collect=()=>{__step(1);const W=innerWidth,H=innerHeight,q=id=>document.get
   add('hold',q('hBod'));
   for(const el of document.querySelectorAll('#bMk .mk'))add('breach',el);
   const keep={};for(const id of ['pcKeys','hTk']){const el=q(id);if(vis(el)&&el.getBoundingClientRect().width>0)keep[id]=rc(el);}
+  for(const id of ['tip','sub']){const el=q(id);if(vis(el)&&el.classList.contains('show')&&!el.classList.contains('wHide')&&el.getBoundingClientRect().width>2)keep[id]=rc(el);} // the hint card and the radio line
   return {W,H,mk,keep,st:__T.state,cine:!!__heads.CINE.on};};
 // phone: the corners tcAvoid() protects (marker centre inside) — the FIRE / pause buttons
 const zoneHit=(o,m)=>{const x=(m.box[0]+m.box[2])/2,y=(m.box[1]+m.box[3])/2;return (x>o.W-170&&y>o.H-160)||(x<100&&y<74);};

@@ -71,6 +71,8 @@ function h4declutter(dt){
     if(!pk.hidden){const r=pk.getBoundingClientRect();if(r.width)ob.push({l:r.left-4,t:r.top-4,r:r.right+4,b:r.bottom+4});}
     if(tk){const r=tk.getBoundingClientRect();if(r.width)ob.push({l:r.left-4,t:r.top-4,r:r.right+4,b:r.bottom+4});}}
   else ob.push({l:W-170,t:H-160,r:1e9,b:1e9,c:1},{l:-1e9,t:-1e9,r:100,b:74,c:1});
+  for(const id of ['tip','sub']){const e=$(id);if(!e||e.hidden||!e.classList.contains('show')||e.classList.contains('wHide'))continue; // the hint card and the radio line, while they show
+    const r=e.getBoundingClientRect();if(r.width>2)ob.push({l:r.left-4,t:r.top-4,r:r.right+4,b:r.bottom+4});}
   const kk=1-Math.exp(-(dt||0.016)*DC.EASE);
   for(let i=0;i<L.length;i++){
     const el=L[i],f=F[i],s=el._s;if(!(f.cx>-1e6&&f.cy>-1e6))continue;

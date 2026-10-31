@@ -68,22 +68,30 @@ function camSolid(p,pad){
   for(const e of ENGINES){_w.subVectors(e.b,e.a);const t=THREE.MathUtils.clamp(_v.subVectors(p,e.a).dot(_w)/_w.lengthSq(),0,1);if(p.distanceTo(_w.multiplyScalar(t).add(e.a))<e.r+pad)return true;}
   if(wingAt(p))return true;for(const q of CS_OFF)if(wingAt(_cs.set(p.x+q[0]*pad,p.y+q[1]*pad,p.z+q[2]*pad)))return true;
   return !!rockAt(p,pad);}
-// distance from a to the first spot where the way to b runs into something (or -1). Starting inside (the astronaut can graze the hull) does not count:
-// only going from free to solid does
-const CAM={L:-1,d:new THREE.Vector3(),p:new THREE.Vector3(),head:new THREE.Vector3(),piv:new THREE.Vector3(),out:new THREE.Vector3()};
-function camRay(a,b,pad){const d=CAM.d.subVectors(b,a),L=d.length();if(L<1e-4)return -1;const n=Math.ceil(L/0.07);let inside=camSolid(a,pad);
-  for(let k=1;k<=n;k++){const s=camSolid(CAM.p.copy(a).addScaledVector(d,k/n),pad);
-    if(s&&!inside){let lo=(k-1)/n,hi=k/n;for(let i=0;i<5;i++){const m=(lo+hi)/2;if(camSolid(CAM.p.copy(a).addScaledVector(d,m),pad))hi=m;else lo=m;}return lo*L;}
+// The camera is a ball whose clearance grows with its distance from the astronaut's head (camPad: 0 at the head, CAM_PAD from CAM_RAMP m out), so the ray can start
+// close to a wall (the astronaut grazes the hull) without the start counting as "inside". camRay: distance from a to the first spot where the way to b
+// runs into something (or -1). Starting inside does not count: only going from free to solid does.
+const CAM={L:-1,S:-1,d:new THREE.Vector3(),p:new THREE.Vector3(),head:new THREE.Vector3(),piv:new THREE.Vector3(),out:new THREE.Vector3(),q:new THREE.Vector3()};
+const CAM_PAD=0.3,CAM_RAMP=0.7,CAM_STEP=0.07;
+function camPad(p,f){const x=p.x-CAM.head.x,y=p.y-CAM.head.y,z=p.z-CAM.head.z;return f*CAM_PAD*Math.min(1,Math.sqrt(x*x+y*y+z*z)/CAM_RAMP);}
+function camRay(a,b,f=1){const d=CAM.d.subVectors(b,a),L=d.length();if(L<1e-4)return -1;const n=Math.ceil(L/CAM_STEP);let inside=camSolid(a,camPad(a,f));
+  for(let k=1;k<=n;k++){const q=CAM.p.copy(a).addScaledVector(d,k/n),s=camSolid(q,camPad(q,f));
+    if(s&&!inside){let lo=(k-1)/n,hi=k/n;for(let i=0;i<5;i++){const m=(lo+hi)/2;CAM.p.copy(a).addScaledVector(d,m);if(camSolid(CAM.p,camPad(CAM.p,f)))hi=m;else lo=m;}return lo*L;}
     inside=s;}
   return -1;}
-// the spring arm: from the astronaut's head out to the shoulder, then back to where the camera wants to be. Something in the way: the camera comes in
-// at once (never a frame inside). When the way clears it goes back out smoothly. Returns the camera position (cam itself is the smoothed wish, untouched).
-const CAM_PAD=0.3,CAM_MIN=0.3;
+// the spring arm: from the astronaut's head out to the shoulder (S), then back to where the camera wants to be (L). Something in the way: it comes in at once
+// (never a frame inside), and when the way clears it goes back out smoothly (5/s). Returns the camera position (cam itself is the smoothed wish, untouched).
 function camArm(head,pivot,cam,dt){
-  const h=camRay(head,pivot,0.2),piv=CAM.piv.copy(pivot);
-  if(h>=0)piv.copy(head).addScaledVector(CAM.d.subVectors(pivot,head).normalize(),Math.max(0,h-0.05)); // the shoulder would be in the wall: stay by the head
-  const full=piv.distanceTo(cam),hit=camRay(piv,cam,CAM_PAD),tgt=hit<0?full:Math.max(CAM_MIN,hit);
-  if(CAM.L<0||tgt<CAM.L)CAM.L=tgt;else CAM.L+=(tgt-CAM.L)*(1-Math.exp(-5*(dt||0.016)));
+  CAM.head.copy(head);const k=1-Math.exp(-5*(dt||0.016));
+  const sh=head.distanceTo(pivot),h=camRay(head,pivot),t1=h<0?sh:Math.max(0,h-0.05); // the shoulder would be in the wall: stay nearer the head
+  if(CAM.S<0||t1<CAM.S)CAM.S=t1;else CAM.S+=(t1-CAM.S)*k;
+  if(h<0&&CAM.S>sh-0.02)CAM.S=sh;
+  const piv=CAM.S>=sh?CAM.piv.copy(pivot):CAM.piv.copy(head).addScaledVector(CAM.d.subVectors(pivot,head).normalize(),CAM.S);
+  const full=piv.distanceTo(cam),hit=camRay(piv,cam);let tgt=hit<0?full:Math.max(0,hit-0.02);
+  // line of sight: the straight way from the head to the camera must be clear too (the bent arm can slip round a corner that the straight line cuts)
+  {const u=CAM.out.subVectors(cam,piv).normalize(),c=CAM.q,at=l=>c.copy(piv).addScaledVector(u,l);
+   if(camRay(head,at(tgt),0.5)>=0){let lo=0,hi=tgt;for(let i=0;i<5;i++){const m=(lo+hi)/2;if(camRay(head,at(m),0.5)>=0)hi=m;else lo=m;}tgt=lo;}}
+  if(CAM.L<0||tgt<CAM.L)CAM.L=tgt;else CAM.L+=(tgt-CAM.L)*k;
   if(hit<0&&CAM.L>full-0.02)CAM.L=full;
   if(CAM.L>=full)return CAM.out.copy(cam);
   return CAM.out.copy(piv).addScaledVector(CAM.d.subVectors(cam,piv).normalize(),CAM.L);}

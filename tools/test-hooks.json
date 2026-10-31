@@ -11,7 +11,7 @@
  },
  {
   "a": "if(!window.__noRender)composer.render();requestAnimationFrame(tick);}",
-  "b": "if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);}\nwindow.__step=n=>{window.__manual=1;window.__noRender=1;window.__dt=0.05;for(let i=0;i<n;i++)tick();window.__dt=0;window.__manual=0;window.__noRender=0;};\nwindow.__render=()=>{const o=window.__shotCam;if(o&&o.pos){camera.position.fromArray(o.pos);camera.lookAt(new THREE.Vector3().fromArray(o.look));composer.render();return;}if(o){const q=P.rig.quaternion;const yq=new THREE.Quaternion().setFromAxisAngle(UP,AN.yaw+Math.PI);const f=new THREE.Vector3(0,0,1).applyQuaternion(yq),r=new THREE.Vector3(-1,0,0).applyQuaternion(yq);const d=o==='side'?r:o==='front'?f:o==='left'?r.clone().negate():f.clone().negate();camera.position.copy(P.pos).addScaledVector(d,3.4).addScaledVector(UP,o==='top'?3.2:0.3);camera.lookAt(P.pos.x,P.pos.y+0.1,P.pos.z);}composer.render();};",
+  "b": "if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);}\nwindow.__step=(n,dt)=>{window.__manual=1;window.__noRender=1;window.__dt=dt||0.05;for(let i=0;i<n;i++)tick();window.__dt=0;window.__manual=0;window.__noRender=0;};\nwindow.__render=()=>{const o=window.__shotCam;if(o&&o.pos){camera.position.fromArray(o.pos);camera.lookAt(new THREE.Vector3().fromArray(o.look));composer.render();return;}if(o){const q=P.rig.quaternion;const yq=new THREE.Quaternion().setFromAxisAngle(UP,AN.yaw+Math.PI);const f=new THREE.Vector3(0,0,1).applyQuaternion(yq),r=new THREE.Vector3(-1,0,0).applyQuaternion(yq);const d=o==='side'?r:o==='front'?f:o==='left'?r.clone().negate():f.clone().negate();camera.position.copy(P.pos).addScaledVector(d,3.4).addScaledVector(UP,o==='top'?3.2:0.3);camera.lookAt(P.pos.x,P.pos.y+0.1,P.pos.z);}composer.render();};",
   "file": "game"
  },
  {
@@ -97,6 +97,11 @@
  {
   "a": "let VOB=null,voBus=null,voOn=true,voSrc=null;",
   "b": "let VOB=null,voBus=null,voOn=true,voSrc=null;window.__VO=()=>({n:VOB?Object.keys(VOB).length:-1,on:voOn,until:VOQ.until,q:VOQ.queue.length});",
+  "file": "game"
+ },
+ {
+  "a": "function camArm(head,pivot,cam,dt){",
+  "b": "window.__cam={camArm,camSolid,camRay,CAM};function camArm(head,pivot,cam,dt){",
   "file": "game"
  }
 ]

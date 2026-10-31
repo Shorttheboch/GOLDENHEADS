@@ -6,7 +6,7 @@
 // the stone (and slides to that pose, no snapping). Measured here with the true closest-point distance to the lumpy surface: at the real landing spots, and on 5 rocks x 6 spots x 4 facings.
 // Run on dist-test. Screenshots: inc_cine_<t>.png, inc_v69_swim / slash / turn / land .png, inc_v69_rock_side / rock_front .png, inc_v71_rock_lumpy_side / lumpy_front .png
 const {chromium}=require('playwright');
-const {BASE,ARGS,shot}=require('./lib.cjs');
+const {BASE,ARGS,shot,lateReady}=require('./lib.cjs');
 // helpers installed inside a page: run frames holding the astronaut where it floats, heal it, count the damage; rocks put out of the way (z=400: faded out, not usable)
 const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P.hp);P.hp=100;return d;};window.__hold=null;window.__inv0=0;window.__beamOK=0;
   window.__go=(n,fn)=>{const e=__inc,P=__heads.P;for(let i=0;i<n;i++){__step(1);window.__fd=__keep();window.__dmg=(window.__dmg||0)+window.__fd;P.vel.set(0,0,0);if(window.__hold)P.pos.copy(window.__hold);if(window.__inv0)P.inv=0;if(!window.__beamOK)e.cds.beam=99;if(fn&&fn(i)===true)return i;}return -1;};
@@ -55,7 +55,7 @@ const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P
  const boot=async()=>{const pg=await b.newPage({viewport:{width:960,height:540}});pg.on('pageerror',e=>errs.push(e.message));
    await pg.addInitScript(()=>{let s=20261030;Math.random=()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296;};}); // fixed seed: the run is repeatable (steps have a fixed dt)
    await pg.goto(BASE+'/test.html?q=3');
-   await pg.waitForFunction(()=>document.getElementById('play')&&!document.getElementById('play').disabled,null,{timeout:300000});await pg.evaluate(()=>document.getElementById('play').click());return pg;};
+   await pg.waitForFunction(()=>document.getElementById('play')&&!document.getElementById('play').disabled,null,{timeout:300000});await lateReady(pg);await pg.evaluate(()=>document.getElementById('play').click());return pg;};
  const p=await boot();
  const fails=[];const check=(name,ok,info)=>{console.log((ok?'ok   ':'FAIL ')+name+(info!==undefined?'  '+JSON.stringify(info):''));if(!ok)fails.push(name);};
  const step=s=>p.evaluate(n=>__step(n),Math.round(s/0.05));

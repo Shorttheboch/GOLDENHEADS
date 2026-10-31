@@ -28,6 +28,11 @@ const spiders=[];
 /* ================= SPIDER (rigged GLB + procedural IK) ================= */
 // rest data exported from Blender (model space: origin on the ground, +Z forward, +Y up)
 let SPIDER_GLB=null,CRAB_GLB=null,EGG_GLB=null,BIPED_GLB=null;
+// v74: only what round 1 needs gates the menu. The EXTRA POWER pistol (gun2, round 4), the Escupidora (crab, round 6), the egg and the Incineradora
+// (bip, round 8) download in the background once the menu is ready (lateStart in 28-load.js). LATE.s[k]: 0 still on its way · 1 in · 2 failed
+// (then the old fallback applies). Whoever needs a model that is still on its way asks lateOk(k) and waits a moment instead of spawning without it.
+const LATE={s:{gun2:0,crab:0,egg:0,bip:0}};window.__late=LATE;
+const lateOk=k=>LATE.s[k]!==0;
 // ---- eggs (Santi's EGG_v1): laid on the hull from the round after the first spitter; they throb faster and faster, then burst into a brood ----
 const EGGS=[],EGG_S=0.8;let eggPlan=[];
 function layEgg(z,th,RK,rd){const n=new THREE.Vector3();let p;if(RK){n.copy(rd);p=RK.c.clone().addScaledVector(rd,rockR(RK,rd));}else{[z,th]=freeSpot(z,th,1);p=hullPoint(z,th,new THREE.Vector3(),n);}
@@ -55,7 +60,8 @@ function hatchEgg(e,i){EGGS.splice(i,1);scene.remove(e.g);
 function destroyEgg(e){EGGS.splice(EGGS.indexOf(e),1);scene.remove(e.g);for(let k=0;k<3;k++)burst(e.pos,k?0x6a0606:0xffb040,18);sfx('splat',e.pos);sfx('kill',e.pos);
   addPts(150);floatText(e.pos.clone().addScaledVector(e.n,0.9),'HUEVO DESTRUIDO +'+ptsVal(150),'pts');stats.eggsKilled++;}
 // a crawling spider away from you lays the egg
-function tryLayEgg(){const r=spiders.filter(s=>s.state==='rock'&&s.kind!=='brood'&&s.pos.distanceTo(P.pos)>6);if(r.length&&Math.random()<0.6){const s=r[Math.floor(Math.random()*r.length)];layEgg(0,0,s.rock,s.rd);s.cd=Math.max(s.cd,1.5);return true;}
+function tryLayEgg(){if(!lateOk('egg'))return false; // v74: the egg model may still be downloading: try again next frame
+  const r=spiders.filter(s=>s.state==='rock'&&s.kind!=='brood'&&s.pos.distanceTo(P.pos)>6);if(r.length&&Math.random()<0.6){const s=r[Math.floor(Math.random()*r.length)];layEgg(0,0,s.rock,s.rd);s.cd=Math.max(s.cd,1.5);return true;}
   const c=spiders.filter(s=>(s.state==='crawl'||s.state==='eat')&&s.kind!=='brood'&&s.kind!=='spitter'&&s.pos.distanceTo(P.pos)>7&&s.pos.distanceTo(HATCH)>4);
   if(!c.length)return false;const s=c[Math.floor(Math.random()*c.length)];layEgg(s.z,s.th);s.cd=Math.max(s.cd,1.5);return true;}
 const SPD={tips:{R1:[0.4868,0.0351,0.9445],L1:[-0.4868,0.0351,0.9445],R2:[0.9357,0.0221,0.6481],L2:[-0.9357,0.0221,0.6481],

@@ -41,6 +41,7 @@ function spawnInc(cine){const B=makeBiped(INC_SC);if(!B)return null;incN++;const
   e.face.subVectors(P.pos,e.pos);if(e.face.lengthSq()<1e-4)e.face.set(0,0,1);
   // the chest core (weak spot), measured once on the idle pose in the chest bone's own space
   scene.add(B.g);incPlace(e);B.play('Idle',0);B.update(0.01);B.g.updateMatrixWorld(true);
+  e.fg=incFootGeom(e); // v71: where the Idle clip puts its feet (for standing on rocks)
   e.coreL=e.bChest.worldToLocal(e.bChest.getWorldPosition(new THREE.Vector3()).addScaledVector(e.face,0.075*INC_SC).addScaledVector(e.n,0.02*INC_SC));
   e.fall={tgt:e.pos.clone(),n:e.n.clone(),v:cine?14:18,cine};e.pos.addScaledVector(e.n,cine?48:46);B.play('ZeroG_Float',0);incPlace(e);INCS.push(e);
   if(cine){for(const sh of shards)sh.visible=false;CINE.on=true;CINE.mode='boss';CINE.t=0;CINE.dur=5.6;CINE.boss=e;document.body.classList.add('cine');}
@@ -91,8 +92,47 @@ const incRockOK=(e,R)=>R.fade>=0.999&&!R.leaving&&R!==e.lastRock&&e.rockStops<2;
 // a rock in its way: the body centre inside it, or 4 m ahead
 function incRockAhead(e){for(const R of ROCKS){if(R===e.lastRock&&e.sw.t<1.5)continue;
     for(const k of [0,4]){const d=_w4.copy(e.sc).addScaledVector(e.sdir,k).sub(R.c),L=d.length();if(L<R.rmax+1.6&&L>1e-6&&L<rockR(R,d.multiplyScalar(1/L))+(k?1.0:1.6))return R;}}return null;}
-// it stands on a rock: the rock only drifts, so a direction from its centre (e.rk.rd) is all that is stored; position and up are re-derived every frame
-function incRockStick(e){const K=e.rk;incRockPoint(K.R,K.rd,e.pos,e.n);e.face.addScaledVector(e.n,-e.face.dot(e.n));if(e.face.lengthSq()<1e-6)e.face.set(1,0,0).addScaledVector(e.n,-e.n.x);e.face.normalize();e.sc.copy(e.pos).addScaledVector(e.n,INC_CO);}
+// ---- v71 (Santi: "arréglalo"): standing on a rock with both feet ON the stone.
+// Where the Idle clip puts its feet, in the root frame (x left, y up, z forward, metres): the root, both ankles and the six toe tips. Measured once in spawnInc.
+function incFootGeom(e){const B=e.B,g=B.g,G=[{x:0,y:0,z:0,w:0.6,k:'r'}];
+  const add=(b,w,k)=>{if(!b)return;const l=g.worldToLocal(b.getWorldPosition(_j1)).multiplyScalar(INC_SC);G.push({x:l.x,y:l.y,z:l.z,w,k,n:b.name});};
+  for(const s of ['L','R']){add(incBone(B,'foot.'+s),0.5,'a');for(const b of incTips(B,s))add(b,/_03/.test(b.name)?1:0.7,'t');}
+  return G;}
+const _sk={p:new THREE.Vector3(),n:new THREE.Vector3(),f:new THREE.Vector3()},_sN0=new THREE.Vector3(),_sO=new THREE.Vector3(),_sX=new THREE.Vector3(),_sP=new THREE.Vector3(),_sQ=new THREE.Vector3(),_sM=[0,0,0];
+// how far P is above the rock (negative inside): along the surface normal under it (the surface point straight below P along the radius, and the tangent plane there). Smooth and
+// well behaved on a steep, lumpy surface, where a ray along a tilted axis would graze it. The same number the foot and body fits aim at.
+const _cS=new THREE.Vector3(),_cN=new THREE.Vector3(),_cD=new THREE.Vector3();
+function incClear(R,P){const d=_cD.subVectors(P,R.c),L=d.length();if(L<1e-4)return -R.r;d.multiplyScalar(1/L);
+  _cS.copy(R.c).addScaledVector(d,rockR(R,d));incRockNormal(R,_cS,_cN);return (P.x-_cS.x)*_cN.x+(P.y-_cS.y)*_cN.y+(P.z-_cS.z)*_cN.z;}
+// symmetric 3x3 system [m11 m12 m13; m12 m22 m23; m13 m23 m33] x = r (Cramer), the answer in _sM
+function incSolve3(m11,m12,m13,m22,m23,m33,r1,r2,r3){const a11=m22*m33-m23*m23,a12=m13*m23-m12*m33,a13=m12*m23-m13*m22,d=m11*a11+m12*a12+m13*a13;if(Math.abs(d)<1e-9)return false;
+  _sM[0]=(r1*a11+r2*a12+r3*a13)/d;_sM[1]=(r1*a12+r2*(m11*m33-m13*m13)+r3*(m12*m13-m11*m23))/d;_sM[2]=(r1*a13+r2*(m12*m13-m11*m23)+r3*(m11*m22-m12*m12))/d;return true;}
+// the body frame (root, up, forward) that puts the feet on the stone: start from the rock normal at the spot rd, then 4 times fit a plane h = a+b*x+c*z to the height of the
+// surface under the feet points (weighted) and tilt/lower the body to it. Not a fixed plane under the root: the feet are 0.6-1.3 m ahead of it and the rock curves away there.
+function incStandFit(e,R,rd,fh,out){const G=e.fg,n=out.n,f=out.f,O=_sO,x=_sX,m=_sM,n0=_sN0;
+  O.copy(R.c).addScaledVector(rd,rockR(R,rd));incRockNormal(R,O,n);n0.copy(n);
+  const frame=()=>{f.copy(fh).addScaledVector(n,-fh.dot(n));if(f.lengthSq()<1e-6)f.set(1,0,0).addScaledVector(n,-n.x);f.normalize();x.crossVectors(n,f);};
+  for(let it=0;it<4;it++){frame();
+    let sw=0,sX=0,sZ=0,sXX=0,sXZ=0,sZZ=0,sH=0,sHX=0,sHZ=0;
+    for(const g of G){const h=-incClear(R,_sP.copy(O).addScaledVector(x,g.x).addScaledVector(f,g.z)),w=g.w;sw+=w;sX+=w*g.x;sZ+=w*g.z;sXX+=w*g.x*g.x;sXZ+=w*g.x*g.z;sZZ+=w*g.z*g.z;sH+=w*h;sHX+=w*h*g.x;sHZ+=w*h*g.z;}
+    sXX+=0.1;sZZ+=0.1; // a little ridge so a lumpy bit cannot tilt the body wildly
+    if(!incSolve3(sw,sX,sZ,sXX,sXZ,sZZ,sH,sHX,sHZ))break;const cl=THREE.MathUtils.clamp;
+    O.addScaledVector(n,cl(m[0],-0.5,0.5));n.addScaledVector(x,-cl(m[1],-0.6,0.6)).addScaledVector(f,-cl(m[2],-0.6,0.6)).normalize();}
+  const cn=n.dot(n0);if(cn<0.7){const t=_sQ.copy(n).addScaledVector(n0,-cn);if(t.lengthSq()>1e-8)n.copy(n0).multiplyScalar(0.7).addScaledVector(t.normalize(),0.714);} // never more than ~45 degrees off the rock normal at the spot
+  frame();O.addScaledVector(n,INC_STAND_LIFT);
+  out.p.copy(O);return out;}
+const _sD=new THREE.Vector3(),_sD2=new THREE.Vector3();
+const INC_STAND_LIFT=0.02; // the plane sits this far above the stone-fit: a toe in the stone looks worse than one a hand's breadth over it
+// it stands on a rock: the rock only drifts, so a direction from its centre (e.rk.rd) is all that is stored; position and up are re-derived every frame.
+// v71: the pose is the fitted one (see incStandFit), eased in over 0.7 s after the landing so nothing pops
+function incRockStick(e,dt){const K=e.rk,R=K.R,S=incStandFit(e,R,K.rd,e.face,_sk),k=THREE.MathUtils.smoothstep(e.clk-K.t0,0,0.7);
+  incRockPoint(R,K.rd,_sQ,_sP); // (_sQ = the spot, _sP = the rock normal there)
+  if(!(S.p.x+S.p.y+S.p.z+S.n.x+S.n.y+S.n.z>-1e9))S.p.copy(_sQ),S.n.copy(_sP); // (never NaN into the pose)
+  // the fitted pose as an offset from the spot pose, eased over ~0.1 s: a lump passing under the feet while it turns cannot jerk the body
+  const fp=_sD.subVectors(S.p,_sQ),fn=_sD2.subVectors(S.n,_sP);
+  if(!K.dp){K.dp=fp.clone();K.dn=fn.clone();}else{const a=1-Math.exp(-(dt||0.016)/0.1);K.dp.lerp(fp,a);K.dn.lerp(fn,a);}
+  e.pos.copy(_sQ).addScaledVector(K.dp,k);e.n.copy(_sP).addScaledVector(K.dn,k).normalize();
+  e.face.addScaledVector(e.n,-e.face.dot(e.n));if(e.face.lengthSq()<1e-6)e.face.set(1,0,0).addScaledVector(e.n,-e.n.x);e.face.normalize();e.sc.copy(e.pos).addScaledVector(e.n,INC_CO);}
 // the surface under a point for the foot IK: the rock it stands on, or the hull
 function incSurf(e,C,p,n){if(e.rk){const R=e.rk.R,d=_rp1.subVectors(C,R.c),L=d.length();if(L<1e-4)return false;d.multiplyScalar(1/L);p.copy(R.c).addScaledVector(d,rockR(R,d));incRockNormal(R,p,n);
     return true;}
@@ -275,10 +315,6 @@ const _f1=new THREE.Vector3(),_f2=new THREE.Vector3(),_f3=new THREE.Vector3(),_f
 const _fN=new THREE.Vector3(),_fq1=new THREE.Quaternion(),_fq2=new THREE.Quaternion(),_fq3=new THREE.Quaternion(),_fq4=new THREE.Quaternion();
 function boneRotWorld(bone,q){const pw=bone.parent.getWorldQuaternion(_fq1),w=bone.getWorldQuaternion(_fq2);w.premultiply(q);bone.quaternion.copy(pw.invert().multiply(w));bone.updateMatrixWorld(true);}
 function boneSetWorld(bone,qw){const pw=bone.parent.getWorldQuaternion(_fq1);bone.quaternion.copy(pw.invert().multiply(qw));bone.updateMatrixWorld(true);}
-// v69: lowest toe tip over the rock under it (perpendicular distance, a bit less than along the radius)
-function incToeClear(e,L){const R=e.rk.R;let m=9;
-  for(const b of L.toes){const w=b.getWorldPosition(_f1),d=_f8.subVectors(w,R.c),l=d.length();if(l<1e-4)continue;d.multiplyScalar(1/l);const r=rockR(R,d);incRockNormal(R,_f2.copy(R.c).addScaledVector(d,r),_f4);m=Math.min(m,(l-r)*Math.max(0.3,d.dot(_f4)));}
-  return m;}
 // one leg re-solved so the ankle sits dS above/below the flat floor of the clip, and the foot lies on nS
 function incLegSolve(e,L,dS,nS){
   const A=L.a.getWorldPosition(_f1),Bk=L.b.getWorldPosition(_f2),C=L.c.getWorldPosition(_f3);
@@ -296,19 +332,42 @@ function incLegSolve(e,L,dS,nS){
   // the foot follows the slope under it
   const qt=_fq4.setFromUnitVectors(e.n,nS);
   boneSetWorld(L.c,_fq2.copy(qt).multiply(fw0));}
-function incFeet(e){
-  if(!e.legs)e.legs=['L','R'].map(s=>({a:incBone(e.B,'thigh.'+s),b:incBone(e.B,'shin.'+s),c:incBone(e.B,'foot.'+s),qa:new THREE.Quaternion(),qb:new THREE.Quaternion(),qc:new THREE.Quaternion(),s:false,
-    toes:Object.keys(e.B.bones).filter(k=>new RegExp('^toe\\d_03'+s+'$').test(k)).map(k=>e.B.bones[k])})).filter(l=>l.a&&l.b&&l.c);
+// v71: the tips that touch the stone: the last bone of every toe (3 or 4 per foot; the hind one sits under the ankle)
+function incTips(B,s){const o=[];for(let k=1;k<=4;k++){const b=B.bones['toe'+k+'_03'+s]||B.bones['toe'+k+'_02'+s];if(b)o.push(b);}return o;}
+const _k1=new THREE.Vector3(),_k2=new THREE.Vector3(),_k3=new THREE.Vector3(),_k4=new THREE.Vector3(),INC_TOE_LIFT=0.01,INC_GN_DAMP=0.65;
+// v71: a rock is lumpy, so the foot is measured and re-solved (up to 6 damped passes from the foot of the last frame). The toe tips make a plane: how high it hangs over the stone, compared with the clip's
+// own toe heights over a flat floor, lowers or lifts the ankle, and the slopes of that plane tilt the sole (nS), so every toe rests on the stone and none digs in.
+function incToesDown(e,L,dS,nS,dt){const R=e.rk.R,nT=L.ct.length,cl=THREE.MathUtils.clamp;if(nT<2)return;
+  let bw=1e9,bd=dS;const bn=(L.bn||(L.bn=new THREE.Vector3())).copy(nS);
+  for(let it=0;it<6;it++){
+    const u=_k1.copy(e.face).addScaledVector(nS,-e.face.dot(nS)),v=_k2,ank=L.c.getWorldPosition(_k3);if(u.lengthSq()<1e-4)return;u.normalize();v.crossVectors(nS,u);
+    // a toe j is d_j over where it should be; lowering the ankle by s and tilting the sole by tu (toward u) and tv (toward v) about the ankle moves it by -(s + tu*a_j + tv*b_j), a/b = its offset from the ankle along u/v
+    let n12=0,n13=0,n22=0,n23=0,n33=0,r1=0,r2=0,r3=0,worst=0;
+    for(let j=0;j<nT;j++){const w=L.ct[j].getWorldPosition(_k4),dj=incClear(R,w)-L.ty[j]-INC_TOE_LIFT;w.sub(ank);const a=w.dot(u),b=w.dot(v);
+      n12+=a;n13+=b;n22+=a*a;n23+=a*b;n33+=b*b;r1+=dj;r2+=a*dj;r3+=b*dj;worst=Math.max(worst,Math.abs(dj));}
+    if(worst<bw){bw=worst;bd=dS;bn.copy(nS);}
+    if(worst<0.012||it===5||!incSolve3(nT,n12,n13,n22+0.01,n23,n33+0.01,r1,r2,r3))break;
+    dS=cl(dS-INC_GN_DAMP*cl(_sM[0],-0.5,0.5),-0.45,0.35); // (damped: the full step overshoots on a lumpy stone and the passes swing between two poses)
+    nS.addScaledVector(u,INC_GN_DAMP*cl(_sM[1],-0.45,0.45)).addScaledVector(v,INC_GN_DAMP*cl(_sM[2],-0.45,0.45)).normalize();
+    const cn=nS.dot(e.n);if(cn<0.77){const t=_k4.copy(nS).addScaledVector(e.n,-cn);if(t.lengthSq()>1e-6)nS.copy(e.n).multiplyScalar(0.77).addScaledVector(t.normalize(),0.638);} // the sole never leans more than ~40 degrees off the body
+    L.a.quaternion.copy(L.qa);L.b.quaternion.copy(L.qb);L.c.quaternion.copy(L.qc);L.a.updateMatrixWorld(true);incLegSolve(e,L,dS,nS);}
+  // the best pass, but not in one jump: on a lumpy stone the best pose can change a lot between two frames, so the foot slides to it (~0.07 s) instead of snapping
+  let ws=L.ws&&L.ws.k===e.rk?L.ws:null;
+  if(ws){const a=1-Math.exp(-(dt||0.016)/0.07);bd=ws.d+(bd-ws.d)*a;bn.lerpVectors(ws.n,bn,a).normalize();}else ws=L.ws={k:e.rk,d:0,n:new THREE.Vector3()};
+  if(bd!==dS||bn.dot(nS)<0.99999){L.a.quaternion.copy(L.qa);L.b.quaternion.copy(L.qb);L.c.quaternion.copy(L.qc);L.a.updateMatrixWorld(true);incLegSolve(e,L,bd,bn);} // the last pass was not the one to show: back to it
+  ws.d=bd;ws.n.copy(bn);}
+function incFeet(e){const dt=e.dt; // (the frame time of updateInc)
+  if(!e.legs)e.legs=['L','R'].map(s=>{const ct=incTips(e.B,s);return {a:incBone(e.B,'thigh.'+s),b:incBone(e.B,'shin.'+s),c:incBone(e.B,'foot.'+s),qa:new THREE.Quaternion(),qb:new THREE.Quaternion(),qc:new THREE.Quaternion(),s:false,
+    ct,ty:ct.map(b=>{const g=e.fg.find(q=>q.n===b.name);return g?g.y:0.1;})};}).filter(l=>l.a&&l.b&&l.c);
   for(const L of e.legs){L.qa.copy(L.a.quaternion);L.qb.copy(L.b.quaternion);L.qc.copy(L.c.quaternion);L.s=true;
     const C=L.c.getWorldPosition(_f3);
     if(!incSurf(e,C,_f5,_f6))continue;const nS=_fN.copy(_f6); // v69: the hull, or the rock it stands on
     // v69 (Santi): a rock is lumpy, its slope changes within a stride: the sole lies along the chord to the surface under the toes (mean of both normals)
     if(e.rk){_f4.copy(C).addScaledVector(e.face,0.65);if(incSurf(e,_f4,_f7,_f8))nS.add(_f8).normalize();}
-    const dS=THREE.MathUtils.clamp(_f4.subVectors(_f5,e.pos).dot(e.n),-0.9,0.6); // where the real hull is, vs the flat floor of the clip
+    let dS=THREE.MathUtils.clamp(_f4.subVectors(_f5,e.pos).dot(e.n),-0.9,0.6); // where the real hull is, vs the flat floor of the clip
+    if(e.rk&&L.ws&&L.ws.k===e.rk){dS=L.ws.d;nS.copy(L.ws.n);} // v71: on a rock, carry on from the foot of the last frame (no snapping from one fit to another while it turns)
     incLegSolve(e,L,dS,nS);
-    // v69: on a rock the lowest toe is measured and the ankle moved so it hangs ~10 cm over the stone, as on the hull (one more pass from the clip pose)
-    if(e.rk&&L.toes.length){const sh=THREE.MathUtils.clamp(incToeClear(e,L)-0.1,-0.4,0.5);
-      if(Math.abs(sh)>0.05){L.a.quaternion.copy(L.qa);L.b.quaternion.copy(L.qb);L.c.quaternion.copy(L.qc);L.a.updateMatrixWorld(true);incLegSolve(e,L,THREE.MathUtils.clamp(dS-sh,-1.2,0.6),nS);}}}}
+    if(e.rk)incToesDown(e,L,dS,nS,dt);}}
 function incSpheres(e){if(!e.hs.length){e.hs=[{p:new THREE.Vector3(),r:0.11*INC_SC,part:'head'},{p:new THREE.Vector3(),r:0.09*INC_SC,part:'core'}];
     for(let i=0;i<e.bBody.length;i++)if(e.bBody[i])e.hs.push({p:new THREE.Vector3(),r:e.rBody[i]*INC_SC,part:'body',b:e.bBody[i]});}
   e.bHead.getWorldPosition(e.hs[0].p);incCore(e,e.hs[1].p);for(let i=2;i<e.hs.length;i++)e.hs[i].b.getWorldPosition(e.hs[i].p);}
@@ -338,7 +397,7 @@ function killInc(e,crit){incBeamSnd(false);const air=incAir(e);e.st='dead';e.t=0
   const c=incCenter(e,new THREE.Vector3());floatText(c.clone(),(crit?'CRÍTICO +':'+')+ptsVal(800),'crit');
   if(!(AC&&playS('roar',0.9,0.6)))sfx('kill',e.pos);shake(0.5);hitStop=0.08;crossKill();for(let i=0;i<3;i++)burst(c,0xff7a30,20);spawnDrop(c.clone().addScaledVector(e.n,1.2),pickPU());}
 function incRemove(e){burst(incCenter(e,_j1),0xff3020,40);burst(incCenter(e,_j1),0xff9a40,30);deathFlash(e.pos);sfx('kill',e.pos);scene.remove(e.B.g);e.st='gone';INCS.splice(INCS.indexOf(e),1);}
-function updateInc(e,dt,t){const B=e.B;e.t+=dt;e.clk+=dt;if(e.rk)incRockStick(e);for(const k in e.cds)e.cds[k]-=dt;e.flash=Math.max(0,e.flash-dt*5);
+function updateInc(e,dt,t){const B=e.B;e.t+=dt;e.clk+=dt;e.dt=dt;if(e.rk)incRockStick(e,dt);for(const k in e.cds)e.cds[k]-=dt;e.flash=Math.max(0,e.flash-dt*5);
   const live=state==='play'&&!CINE.on;const toP=new THREE.Vector3().subVectors(P.pos,e.pos),dist=toP.length();let glow=1.4;
   switch(e.st){
     case 'fall':if(!(CINE.on&&CINE.boss===e&&CINE.t<0.35))incFall(e,dt);glow=1.2;break;

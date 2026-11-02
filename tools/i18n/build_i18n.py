@@ -177,7 +177,22 @@ EN.update({'PROTEGE LA NAVE. SALVA LOS TRICOMAS.':'PROTECT THE SHIP. SAVE THE TR
  'Mantén y desliza':'Hold and slide','para apuntar.':'to aim.',
  'A tope → afloja → a tope':'Full → ease off → full','Mismo lado · menos de 0,3 s':'Same side · under 0.3 s'})
 EN.update({'Mantén':'Hold'})
-# (DISPARAR, IMPULSO, JUGAR and CARGANDO already exist above)
+# ---- v75: add to home screen (phones): the PANTALLA COMPLETA buttons and Santi's guide (index.html #instOv, src/game/35-instalar.js) ----
+EN.update({'PANTALLA COMPLETA':'FULL SCREEN','JUEGA A PANTALLA COMPLETA':'PLAY FULL SCREEN','Cerrar':'Close','ENTENDIDO':'GOT IT',
+ 'Añade HEADS a tu pantalla de inicio: se abre sin barras, como una app.':'Add HEADS to your Home Screen: it opens without bars, like an app.',
+ 'Instala HEADS en tu móvil: se abre a pantalla completa y en horizontal, como una app.':'Install HEADS on your phone: it opens full screen and in landscape, like an app.',
+ '1 · COMPARTIR':'1 · SHARE','2 · AÑADIR':'2 · ADD','3 · JUGAR':'3 · PLAY','1 · MENÚ':'1 · MENU','2 · INSTALAR':'2 · INSTALL',
+ 'Copiar':'Copy','Añadir a pantalla de inicio':'Add to Home Screen','Añadir a favoritos':'Add to Favorites',
+ 'Nueva pestaña':'New tab','Instalar aplicación':'Install app','Compartir…':'Share…',
+ 'La app guarda sus datos aparte de Safari: la primera vez te pedirá el idioma.':'The app keeps its data apart from Safari: the first time it will ask for your language.',
+ 'Esta guía solo sale si tu navegador no deja instalar directamente desde el botón.':"This guide only shows if your browser can't install straight from the button."})
+# sentences with coloured words (<b class="k"> gold, <b class="c"> cyan): translated whole, exactly as they are written in index.html
+H.update({
+ 'Toca <b class="k">Compartir</b> en Safari. En iOS 26, primero toca <b class="c">···</b>':'Tap <b class="k">Share</b> in Safari. On iOS 26, tap <b class="c">···</b> first',
+ 'Baja en la lista y elige <b class="k">«Añadir a pantalla de inicio»</b>.':'Scroll down and choose <b class="k">“Add to Home Screen”</b>.',
+ 'Abre HEADS desde su icono: se juega a <b class="c">pantalla completa</b>.':'Open HEADS from its icon: it plays <b class="c">full screen</b>.',
+ 'Toca el menú <b class="k">⋮</b> del navegador, arriba a la derecha.':"Tap the browser's <b class=\"k\">⋮</b> menu, top right.",
+ 'Elige <b class="k">«Instalar aplicación»</b> o «Añadir a pantalla de inicio».':'Choose <b class="k">“Install app”</b> or “Add to Home screen”.'})
 # ---- v62: phone HUD (Santi's design, src/hud/hud.js) ----
 EN.update({'ENEMIGO':'ENEMY','ENEMIGOS':'ENEMIES','s · RESPIRO':'s · BREATHER','s · CALMA':'s · CALM'})
 # ---- v63: phones, shorter messages (no Shift on a phone) ----

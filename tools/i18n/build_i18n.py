@@ -204,6 +204,8 @@ EN.update({'IMPULSO':'BOOST','CLIC DERECHO':'RIGHT CLICK','VE A DEJAR LOS TRICOM
 # sanity: every tutorial line must exist verbatim in the game code
 for k in H:
     if k not in b: print('TUT NOT FOUND:',k[:60])
+# ---- v76: the first-egg cinematic (title in #eggT, index.html) ----
+EN.update({'¡LAS ARAÑAS ESTÁN PONIENDO HUEVOS!':'THE SPIDERS ARE LAYING EGGS!','Destrúyelos antes de que eclosionen':'Destroy them before they hatch'})
 MENU_EN={'mov':'MOVEMENT','ver':'VERTICAL','rat':'MOUSE','acc':'ACTIONS','uti':'UTILITIES','prop':'THRUSTERS',
   'up':'UP','down':'DOWN','lc':['*LEFT','*CLICK','SHOOT'],'rc':['*RIGHT','*CLICK','VACUUM','TRICHOMES','(OR E)'],'aim':'LOOK AND AIM',
   'weld':['*WELD','*THE HULL','(HOLD)'],'rel':['*RELOAD','THE PISTOL'],'dash':['BOOST','TO DODGE'],

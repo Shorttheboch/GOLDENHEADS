@@ -35,6 +35,8 @@ qaHud();
 function tick(){const _qa0=performance.now();
   if((TC.paused||MTUT.on)&&state==='play'){clock.getDelta();tcOrientTick();if(MTUT.on)mtutFrame();if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);return;} // touch pause · v66 phone tutorial
   const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;let dt=rdt;if(hitStop>0){hitStop-=rdt;dt=rdt*0.12;} // tiny freeze on kills
+  // v76: while the first egg is shown (CINE.mode 'egg') the world stands still: dt is ~0 for everything; fdt (real time) only drives the sparks, the camera shake and the egg itself
+  const eggC=CINE.on&&CINE.mode==='egg',fdt=eggC?rdt:dt;if(eggC)dt=1e-4;
   FLOW.dz=(state==='play'||state==='menu')?CFG.worldV*dt:0;
   for(const [o,sp] of ROTORS)o.rotation.z+=sp*dt;
   for(const s of shards){s.rotation.x+=s.userData.spin.x*dt;s.rotation.y+=s.userData.spin.y*dt;}
@@ -80,7 +82,7 @@ function tick(){const _qa0=performance.now();
     const want=pivot.clone().addScaledVector(fc,-((isTouch?2.55:3.3)-0.5*w)); // v56: closer on phones so the astronaut reads bigger
     // v72: camPos is the smoothed wish; the camera itself comes in along the arm when the ship or a rock is in the way (camArm, 05-rocks.js)
     camPos.lerp(want,1-Math.exp(-12*dt));camera.position.copy(camArm(CAM.head.copy(P.pos).addScaledVector(UP,0.5-0.2*w),pivot,camPos,dt));camera.lookAt(pivot.clone().addScaledVector(fc,20*(1-w)+0.01));
-    if(CINE.on){if(CINE.mode==='boss')bossCam(dt);else{CINE.nPos.copy(camera.position);CINE.nLook.copy(pivot).addScaledVector(fc,20);cineCam(dt);}}
+    if(CINE.on){if(CINE.mode==='boss')bossCam(dt);else{CINE.nPos.copy(camera.position);CINE.nLook.copy(pivot).addScaledVector(fc,20);if(CINE.mode==='egg')eggCam(rdt);else cineCam(dt);}}
     // lens feel: a short zoom kick on the dash, and a slow, tiny hand-held drift
     fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=CINE.on&&CINE.fov?CINE.fov:62+fovK; /* v67: a cinematic can set its own lens */if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
     if(!window.__camOv){camera.rotateX(Math.sin(t*0.83)*0.0015+Math.sin(t*2.1)*0.0005);camera.rotateY(Math.sin(t*0.61+1.3)*0.0017+Math.sin(t*1.7)*0.0005);}
@@ -209,7 +211,7 @@ function tick(){const _qa0=performance.now();
     if(state==='play'&&!inBreak&&cloudPlan>=0){const W0=waveDef(wave);if((W0.n-toSpawn)/Math.max(1,W0.n)>=cloudPlan){cloudPlan=-1;spawnCloud();}}
     WB.rt=(WB.rt||0)+dt;
     if(state==='play'&&!inBreak&&eggPlan.length){const W0=waveDef(wave),fr=(W0.n-toSpawn)/Math.max(1,W0.n);if((fr>=eggPlan[0]||WB.rt>25+eggPlan[0]*20)&&tryLayEgg())eggPlan.shift();}
-    updateEggs(dt,t);
+    updateEggs(dt,t,fdt);
     markLast();
     if(state==='play'){
       playT+=dt;
@@ -291,7 +293,7 @@ function tick(){const _qa0=performance.now();
             el.firstChild.style.transform=`rotate(${Math.atan2(x,y)*180/Math.PI}deg)`;el.lastChild.textContent=Z.name;}}
         el.hidden=!show;}
     }
-    updateFX(dt);updateFallFX(dt);updateDrops(dt,t);updateZaps(dt);updatePU(dt);updateAcid(dt);updateBoss();updateBurn(dt);
+    updateFX(dt,fdt);updateFallFX(dt);updateDrops(dt,t);updateZaps(dt);updatePU(dt);updateAcid(dt);updateBoss();updateBurn(dt);
     // HUD
     {const el=$('cargoBar'),k=Math.max(0,cargo/CFG.cargo);el.querySelector('i').style.width=Math.min(100,k*100)+'%';$('cargoPct').textContent=Math.round(k*100)+'%';
      if(CB_.last===undefined)CB_.last=cargo;if(cargo<CB_.last)CB_.leakT=1.2;else if(cargo>CB_.last)CB_.gainT=0.8;CB_.last=cargo;CB_.leakT-=dt;CB_.gainT-=dt;
@@ -315,7 +317,7 @@ function tick(){const _qa0=performance.now();
   camFill.target.position.copy(P.pos);camFill.position.copy(camera.position).addScaledVector(UP,2.5);
   updateMusic();
   // camera shake on top of the follow camera (re-copied from camPos every frame, so it never accumulates)
-  if(shakeAmp>0.002){camera.position.x+=(Math.random()-0.5)*shakeAmp;camera.position.y+=(Math.random()-0.5)*shakeAmp;camera.position.z+=(Math.random()-0.5)*shakeAmp;shakeAmp*=Math.exp(-dt*10);}
+  if(shakeAmp>0.002){camera.position.x+=(Math.random()-0.5)*shakeAmp;camera.position.y+=(Math.random()-0.5)*shakeAmp;camera.position.z+=(Math.random()-0.5)*shakeAmp;shakeAmp*=Math.exp(-fdt*10);}
   tcFrame(dt);mhudFrame();mtutTick();pckFrame(dt);qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
 camera.position.set(14,4,16);camera.lookAt(0,0,0);
 requestAnimationFrame(tick);

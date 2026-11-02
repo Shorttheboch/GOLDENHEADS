@@ -75,6 +75,11 @@
   "file": "game"
  },
  {
+  "a": "window.__heads={pickPU,INCS,spawnInc,",
+  "b": "window.__heads={destroyEgg,hatchEgg,eggBehind,get EGGC(){return EGGC},pickPU,INCS,spawnInc,",
+  "file": "game"
+ },
+ {
   "a": "window.LANG_READY=new Promise(",
   "b": "window.__lang=window.__lang||'es';window.LANG_READY=new Promise(",
   "file": "i18n"

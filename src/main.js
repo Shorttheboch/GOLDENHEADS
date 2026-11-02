@@ -7,6 +7,7 @@ import './styles/04-language.css';
 import './styles/05-hud-movil.css';
 import './styles/06-hud-pc.css';
 import './styles/07-tutorial-movil.css';
+import './styles/08-instalar.css'; // v75: add to home screen (phones)
 // v62: phone HUD (Santi's design) and its font, bundled so it works without internet
 import '@fontsource/saira-condensed/latin-600.css';
 import '@fontsource/saira-condensed/latin-700.css';

@@ -1,0 +1,113 @@
+/* v75: "PANTALLA COMPLETA" = add the game to the home screen (phones only). Santi's approved boards (844 x 390 CSS px, phone landscape).
+   Markup: index.html (#instMenu and #instPause = the [data-inst] buttons, #instOv = the guide). Logic: src/game/35-instalar.js.
+   The guide is drawn on a stage of the board's size that scales uniformly and sits centred, the way the phone menu does (#mmStage in 00-base.css):
+   container-type:size + --u = 1/844 of the stage's width, and every px of the board is calc(N*var(--u)). Hooks the script relies on: [data-inst] · #instOv[hidden] ·
+   #instOv[data-os="ios"|"other"] (one set of subtitle / cards / note per platform) · .instX .instGo (close) · img[data-k] (art set when the guide is first opened) · [data-rich] (sentences with coloured words, translated whole).
+   Nothing here shows on PC: the buttons stay [hidden] there and the guide never opens. */
+
+/* ---- start menu button (option A): top left, same height / style as the ES·EN boxes at the top right ---- */
+.instBtn[hidden],#instPause[hidden]{display:none!important}
+#instMenu{position:absolute;left:calc(clamp(12px,2.13vw,30px) + env(safe-area-inset-left,0px));top:clamp(12px,2vh,24px);z-index:3;box-sizing:border-box;height:27px;margin:0;padding:0 11px 0 9px;
+  display:flex;align-items:center;gap:7px;border:1.5px solid #e8b13a;border-radius:2px;background:rgba(4,5,10,.85);box-shadow:0 0 8px rgba(255,190,60,.25);cursor:pointer;
+  font-family:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;font-weight:800;font-size:12px;line-height:1;letter-spacing:.1em;color:#ffd36a;white-space:nowrap;
+  opacity:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#instMenu::before{content:'';position:absolute;left:-8px;right:-8px;top:50%;height:max(100%,44px);transform:translateY(-50%)} /* transparent touch area: at least 44 px tall, the look does not change */
+#instMenu svg{width:15px;height:15px;flex:none;fill:none;stroke:#ffc83c;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#instMenu:active{background:rgba(232,177,58,.22)}
+#menu.mgo #instMenu{animation:instIn .28s 2.5s ease-out both} /* comes in with the ES / EN boxes (which fade in 2.5 s after the intro starts) */
+@keyframes instIn{from{opacity:0;translate:0 4px}to{opacity:1;translate:0 0}}
+@media (prefers-reduced-motion:reduce){#menu.mgo #instMenu{animation-duration:.01s;animation-delay:0s}}
+
+/* ---- pause menu: the same button style as MÚSICA / VOCES. MÚSICA and VOCES share a row when it shows, so the box keeps its height (it has to fit a 375 px tall phone) ---- */
+#tPauseM .tpBox:has(#instPause:not([hidden])){display:grid;grid-template-columns:1fr 1fr}
+#tPauseM .tpBox:has(#instPause:not([hidden]))>*{grid-column:1/-1}
+#tPauseM .tpBox:has(#instPause:not([hidden]))>[data-a=mus],#tPauseM .tpBox:has(#instPause:not([hidden]))>[data-a=vo]{grid-column:auto}
+
+/* ---- the guide ---- */
+.inst{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.82);font-family:'TitilliumH','Titillium Web',system-ui,sans-serif;color:#f4f4f4;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){ /* over the real menu / pause screen, blurred and dark; without backdrop-filter the solid .82 above stays */
+  .inst{background:none;-webkit-backdrop-filter:blur(6px) brightness(.26) saturate(.8);backdrop-filter:blur(6px) brightness(.26) saturate(.8)}}
+.inst::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(34,70,150,.28) 0%,rgba(0,0,0,.55) 75%)}
+.inst[hidden]{display:none!important}
+.inst[data-os="ios"] [data-os="other"],.inst[data-os="other"] [data-os="ios"]{display:none}
+.instStage{position:absolute;left:calc(50% + (env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px))/2);top:50%;width:min(calc(100vw - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)),calc(100vh * 844 / 390));
+  aspect-ratio:844/390;transform:translate(-50%,-50%);container-type:size;--u:calc(100cqw / 844)}
+@supports (height:100dvh){.instStage{width:min(calc(100vw - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)),calc(100dvh * 844 / 390))}}
+.instStage img{display:block;user-select:none;-webkit-user-drag:none}
+.instStage svg{display:block}
+.instSvg{flex:none;width:calc(var(--w)*var(--u));height:calc(var(--h)*var(--u));fill:none;stroke-linecap:round;stroke-linejoin:round}
+.instSvg .f{fill:currentColor;stroke:none}
+.gtx{background:linear-gradient(180deg,#ffe58c 0%,#ffc83c 50%,#ee9f14 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* close (X), top right */
+.instX{position:absolute;z-index:3;top:calc(12*var(--u));right:calc(14*var(--u));box-sizing:border-box;width:calc(38*var(--u));height:calc(38*var(--u));padding:0;margin:0;border-radius:50%;border:calc(2*var(--u)) solid #e8b13a;background:rgba(0,0,0,.65);
+  box-shadow:0 0 calc(10*var(--u)) rgba(255,190,60,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation}
+.instX::before{content:'';position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)} /* at least 44 x 44 to touch */
+.instX svg{stroke:#ffc83c;stroke-width:2.4}
+.instX:active{background:rgba(232,177,58,.3)}
+.instLogo{position:absolute;left:calc(389*var(--u));top:calc(4*var(--u));width:calc(66*var(--u));height:calc(45*var(--u));object-fit:contain;filter:drop-shadow(0 calc(2*var(--u)) calc(6*var(--u)) rgba(0,0,0,.8))}
+
+/* title and subtitle */
+.instHead{position:absolute;left:0;top:calc(50*var(--u));width:100%;text-align:center}
+.instT{display:inline-block;margin:0;font-family:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;font-weight:800;font-size:calc(25*var(--u));letter-spacing:.02em;line-height:1;filter:drop-shadow(0 calc(2*var(--u)) calc(2*var(--u)) rgba(0,0,0,.85))}
+.instSub{margin:calc(6*var(--u)) 0 0;font-size:calc(13.5*var(--u));font-weight:600;line-height:1.2}
+
+/* the three cards */
+.instCards{position:absolute;left:calc(54*var(--u));top:calc(104*var(--u));display:flex;gap:calc(14*var(--u))}
+.instCard{box-sizing:border-box;width:calc(236*var(--u));height:calc(164*var(--u));padding:calc(2*var(--u));border-radius:calc(12*var(--u));background:linear-gradient(160deg,#fff1b0 0%,#e9b53c 22%,#8a5a12 50%,#f5cf62 78%,#a8701a 100%);
+  box-shadow:0 0 calc(14*var(--u)) rgba(255,190,60,.22),0 calc(6*var(--u)) calc(16*var(--u)) rgba(0,0,0,.6)}
+.instCardIn{width:100%;height:100%;border-radius:calc(10*var(--u));background:#050608;display:flex;flex-direction:column;align-items:center}
+.instPill{box-sizing:border-box;margin-top:calc(7*var(--u));width:calc(206*var(--u));height:calc(28*var(--u));padding:0 calc(9*var(--u));display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(180deg,#16407f 0%,#0a1d45 55%,#06122e 100%);
+  clip-path:polygon(calc(12*var(--u)) 0,calc(100% - 12*var(--u)) 0,100% 50%,calc(100% - 12*var(--u)) 100%,calc(12*var(--u)) 100%,0 50%);
+  box-shadow:inset 0 0 0 calc(1*var(--u)) #4cc9ff,inset 0 0 calc(9*var(--u)) rgba(80,200,255,.55)}
+.instPill svg{stroke:#5fd8ff;stroke-width:2.2}
+.instPill span{font-family:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;font-weight:800;font-size:calc(15.5*var(--u));letter-spacing:.01em;white-space:nowrap}
+.instViz{box-sizing:border-box;margin-top:calc(6*var(--u));width:calc(216*var(--u));height:calc(70*var(--u));border-radius:calc(6*var(--u));border:calc(1*var(--u)) solid rgba(76,201,255,.22);
+  background:radial-gradient(ellipse at 50% 60%,rgba(30,120,210,.35) 0%,rgba(5,10,25,.95) 72%);display:flex;align-items:center;justify-content:center}
+.instViz.row{gap:calc(12*var(--u))}
+.instViz.col{flex-direction:column;gap:calc(4*var(--u))}
+.instCap{margin:calc(7*var(--u)) calc(10*var(--u)) 0;font-size:calc(12.5*var(--u));font-weight:600;line-height:1.25;text-align:center}
+.instCap .k{color:#ffc83c}.instCap .c{color:#8fe3ff}
+.instVc{display:flex;flex-direction:column;align-items:center;gap:calc(3*var(--u))}
+.instTag{font-size:calc(9.5*var(--u));font-weight:700}
+.instTag.c{letter-spacing:.08em;color:#8fe3ff}
+.instTag.g{letter-spacing:.06em;color:#ffe9a6}
+.instViz .nx{stroke:#ffc83c;stroke-width:2.4}
+.instViz .glow4{stroke:#5fd8ff;stroke-width:2;filter:drop-shadow(0 0 calc(4*var(--u)) rgba(95,216,255,.9))}.instViz .glow4 .f{fill:#5fd8ff}
+.instViz .glow6{stroke:#5fd8ff;stroke-width:2.6;filter:drop-shadow(0 0 calc(6*var(--u)) rgba(95,216,255,.95))}
+.instViz .glow5{stroke:#5fd8ff;stroke-width:2.2;filter:drop-shadow(0 0 calc(5*var(--u)) rgba(95,216,255,.9))}
+.instRow{box-sizing:border-box;width:calc(176*var(--u));height:calc(15*var(--u));padding:0 calc(8*var(--u));border-radius:calc(4*var(--u));background:rgba(95,216,255,.07);display:flex;align-items:center;justify-content:space-between;
+  font-size:calc(9.5*var(--u));font-weight:600;color:rgba(200,235,255,.45);white-space:nowrap}
+.instRow .rw{stroke:currentColor;stroke-width:1.1}
+.instRow.hot{width:calc(190*var(--u));height:calc(22*var(--u));padding:0 calc(9*var(--u));border-radius:calc(5*var(--u));border:calc(1.5*var(--u)) solid #ffc83c;background:linear-gradient(180deg,rgba(255,200,60,.2),rgba(255,160,20,.08));
+  box-shadow:0 0 calc(10*var(--u)) rgba(255,190,60,.55);font-size:calc(11.5*var(--u));font-weight:700;color:#ffe9a6}
+.instRow .hotic{stroke:#ffc83c;stroke-width:1.5}
+.instCards[data-os="ios"] .instRow .hotic{stroke-width:1.6}
+.instCards[data-os="other"] .instRow.hot{justify-content:flex-start;gap:calc(8*var(--u))}
+.instTile{box-sizing:border-box;width:calc(46*var(--u));height:calc(46*var(--u));border-radius:calc(11*var(--u));border:calc(1*var(--u)) solid rgba(255,200,60,.7);background:radial-gradient(circle at 50% 45%,#2a1a06 0%,#050505 70%);
+  box-shadow:0 0 calc(12*var(--u)) rgba(255,190,60,.55);display:flex;align-items:center;justify-content:center}
+.instTile.rd{border-radius:50%}
+.instTile img{width:calc(40*var(--u));height:calc(27*var(--u));object-fit:contain}
+.instTile.rd img{width:calc(38*var(--u));height:calc(26*var(--u))}
+.instVc:has(.instTile){gap:calc(2*var(--u))}
+/* Android card 1: the address bar with the browser's ⋮ */
+.instUrl{box-sizing:border-box;width:calc(176*var(--u));height:calc(30*var(--u));padding:0 calc(6*var(--u)) 0 calc(12*var(--u));border-radius:calc(15*var(--u));border:calc(1.5*var(--u)) solid rgba(95,216,255,.55);
+  display:flex;align-items:center;justify-content:space-between;filter:drop-shadow(0 0 calc(4*var(--u)) rgba(95,216,255,.6))}
+.instUrl span{font-size:calc(10.5*var(--u));font-weight:600;color:rgba(200,235,255,.55);white-space:nowrap}
+.instDots circle{fill:currentColor;stroke:none}
+.instDots{box-sizing:content-box;width:calc(24*var(--u));height:calc(24*var(--u));border-radius:50%;border:calc(1.5*var(--u)) solid #ffc83c;box-shadow:0 0 calc(9*var(--u)) rgba(255,190,60,.8);display:flex;align-items:center;justify-content:center;color:#ffc83c}
+
+/* the note strip under the cards */
+.instInfo{position:absolute;left:calc(112*var(--u));top:calc(276*var(--u));box-sizing:border-box;width:calc(620*var(--u));height:calc(24*var(--u));display:flex;align-items:center;justify-content:center;gap:calc(8*var(--u));
+  background:rgba(8,11,20,.95);clip-path:polygon(calc(14*var(--u)) 0,calc(100% - 14*var(--u)) 0,100% 50%,calc(100% - 14*var(--u)) 100%,calc(14*var(--u)) 100%,0 50%);
+  box-shadow:inset 0 calc(1*var(--u)) 0 rgba(232,177,58,.7),inset 0 calc(-1*var(--u)) 0 rgba(232,177,58,.7)}
+.instInfo svg{stroke:#5fd8ff;stroke-width:1.5;color:#5fd8ff}
+.instInfo span{font-size:calc(12*var(--u));font-weight:600;color:#e6e6e6;white-space:nowrap}
+
+/* ENTENDIDO: centred on the gold face of the button art (it sits a little above the image centre, hence the padding) */
+.instGo{position:absolute;left:calc(324*var(--u));top:calc(308*var(--u));box-sizing:border-box;width:calc(196*var(--u));height:calc(69*var(--u));margin:0;border:0;padding:0 0 calc(8*var(--u)) calc(2*var(--u));background:transparent;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation}
+.instGo img{position:absolute;left:0;top:0;width:100%;height:100%}
+.instGo span{position:relative;font-family:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;font-weight:900;font-size:calc(22*var(--u));letter-spacing:.04em;color:#2b1500;text-shadow:0 calc(1*var(--u)) 0 rgba(255,240,190,.55);line-height:1}
+.instGo:active img{filter:brightness(1.18)}

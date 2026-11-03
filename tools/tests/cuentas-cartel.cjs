@@ -1,4 +1,4 @@
-// The end plate with the Season 1 ranking (v82): one centred column, ONE framed panel whose two slides (the run's stats, the ranking) swap sideways.
+// The end plate with the Season 1 ranking (v82): one centred column, a panel with two framed slides (the run's stats, the ranking) that swap as whole frames.
 // Run on dist-test:
 //   npm run build:test && PORT=8798 tools/run-test.sh dist-test tools/tests/cuentas-cartel.cjs
 //   HEADS_ONLY=pc | phone | timing | nag   only that part · HEADS_SHOTS=all   screenshots of every state at every size (default: the main ones)
@@ -6,16 +6,20 @@
 // 1) layout, every size (PC 960x540, 1280x720, 1366x768, 1600x900, 1920x1080, 2560x1440 · phones 844x390, 667x375, 932x430), ES and EN,
 //    a heavy game (ten stat lines), board states empty0 (score 0: «¡Sé el primero!», no button) · empty (TÚ #1) · short (TÚ #3) · full (TÚ #5) ·
 //    low (not in the top 5) · down (/api/scores 503: v44, no tabs, no chevrons):
-//    both slides: the plate on screen and centred, the frame exactly the same on both slides (nothing jumps), nothing of the slide cut by the frame,
+//    both slides (each in its own frame): the plate on screen and centred, the ranking frame exactly where and as big as the stats frame (nothing
+//    jumps), nothing cut by its frame,
 //    tabs and chevrons answering where they are drawn, REINTENTAR clear; the ranking slide: five lines (waiting / first / ghost as the state says),
 //    every text inside, GUARDAR MI PUNTUACIÓN and VER RANKING COMPLETO answering; phones: list letters >= 8 px, the button >= 30 px tall;
 //    ←/→ (PC) or a swipe (phone) go back and forth; VER RANKING COMPLETO opens the full list (and SEGUIR closes it)
 // 2) the swap by itself: not before the stats table is in + 5 s, the gold line under RANKING filling meanwhile, then the ranking; the mouse over the
-//    panel (PC) or a finger on it (phone) holds it; a manual swap cancels it for the plate; nothing at all without the ranking
+//    panel (PC) or a finger on it (phone) holds it; a manual swap cancels it for the plate; nothing at all without the ranking.
+//    The swap itself: frame times during four swaps against the plate standing still; caught half way (animations paused): the stats frame on its
+//    way out left, the ranking frame coming in, both half seen, the sideways SVG blur on PC / a light CSS blur on touch, the tabs and chevrons where
+//    they were; at the end nothing left (no blur, no transform); reduced motion: a plain crossfade
 // 3) the reminder «¿GUARDAMOS TU PUNTUACIÓN?» (guests): REINTENTAR / Enter / R before the ranking was seen, with a run that makes the top 50 → shown,
 //    with the score and «Entrarías en el puesto #N», REINTENTAR has the focus, Enter retries; only once a session; not after the ranking was seen;
 //    not when the run would not make the top 50 and is no record; a new device record alone is enough («¡Es tu nuevo récord!»); Esc and Space retry
-// Screenshots: tools/tests/out/cartel_<w>x<h>_<lang>_<state>_<stats|ranking>.png, cartel_full_*, cartel_timing_*, cartel_nag_*
+// Screenshots: tools/tests/out/cartel_<w>x<h>_<lang>_<state>_<stats|ranking>.png, cartel_full_*, cartel_timing_*, cartel_swap_1920x1080_es (half way), cartel_nag_*
 const {chromium}=require('playwright');
 const crypto=require('crypto');
 const {BASE,ARGS,shot}=require('./lib.cjs');
@@ -62,11 +66,12 @@ const layout=(p,which)=>p.evaluate(which=>{const g=id=>document.getElementById(i
   const W=innerWidth,H=innerHeight,inside=r=>r.l>=-1&&r.t>=-1&&r.r<=W+1&&r.b<=H+1;
   const rng=el=>{const q=document.createRange();q.selectNodeContents(el);return R(q);};
   const hit=el=>{if(!el||el.hidden||!el.getClientRects().length)return false;const q=el.getBoundingClientRect(),x=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);return !!x&&(x===el||el.contains(x));};
-  const box=g('endBox'),tabsOn=!g('endTabs').hidden,pan=R(g('endPanel')),tr=R(g('endTrack')),ag=R(g('again')),scale=(()=>{const m=/scale\(([\d.]+)\)/.exec(box.style.transform||'');return m?+m[1]:1;})();
-  const cur=which===1?g('rankBox'):g('endSlide0');
+  const box=g('endBox'),tabsOn=!g('endTabs').hidden,pan=R(g('endPanel')),ag=R(g('again')),scale=(()=>{const m=/scale\(([\d.]+)\)/.exec(box.style.transform||'');return m?+m[1]:1;})();
+  const cur=which===1?g('rankBox'):g('endSlide0'),fr=R(cur),cs=getComputedStyle(cur),pd=k=>parseFloat(cs['padding'+k])*scale*.5; // the frame (the slide) and the inside of it
+  const tr={l:fr.l+pd('Left'),r:fr.r-pd('Right'),t:fr.t+pd('Top'),b:fr.b-pd('Bottom')};
   const parts=which===1?[g('rankH'),...g('rankMsg').querySelectorAll('span'),...g('rankList').children,g('rankAll'),g('saveBtn'),g('acctBar')]:[...g('endStats').children];
   const vis=parts.filter(e=>e&&!e.hidden&&e.getClientRects().length);
-  const out={W,H,scale,tabsOn,box:R(box),pan,inside:inside(R(box))&&inside(ag)&&inside(pan),centre:Math.abs((R(box).l+R(box).r)/2-W/2),
+  const out={W,H,scale,tabsOn,box:R(box),pan,fr,inside:inside(R(box))&&inside(ag)&&inside(pan),centre:Math.abs((R(box).l+R(box).r)/2-W/2),
     clipped:vis.filter(e=>{const r=R(e);return r.l<tr.l-1||r.r>tr.r+1||r.t<tr.t-1||r.b>tr.b+1;}).map(e=>e.id||e.tagName+':'+e.textContent.slice(0,16)),
     textOut:vis.filter(e=>{const r=rng(e),pr=R(e.closest('li')||e);return r.r>Math.max(pr.r,tr.r)+1||r.l<Math.min(pr.l,tr.l)-1;}).map(e=>e.id||e.textContent.slice(0,16)),
     againOver:over(ag,pan)||over(ag,R(g('record'))),againHit:hit(g('again')),panelOverRecord:over(pan,R(g('record'))),tabsOverRound:tabsOn&&over(R(g('endTabs')),R(g('endRound'))),
@@ -113,7 +118,7 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
       await swapTo(p,1,phone,st==='full'?'click':phone?'swipe':'key');
       ok(await slide(p)===1,T+' → the ranking ('+(st==='full'?'chevron':phone?'swipe':'→')+')');
       const L=await layout(p,1);
-      ok(Math.abs(L.pan.h-A.pan.h)<0.6&&Math.abs(L.pan.t-A.pan.t)<0.6&&Math.abs(L.box.h-A.box.h)<0.6,T+' the frame does not move or change size',{a:A.pan,b:L.pan});
+      ok(['l','t','w','h'].every(k=>Math.abs(L.fr[k]-A.fr[k])<0.6&&Math.abs(L.pan[k]-A.pan[k])<0.6)&&Math.abs(L.box.h-A.box.h)<0.6,T+' the ranking frame has exactly the place and size of the stats frame (nothing else moves)',{a:A.fr,b:L.fr});
       ok(!L.clipped.length&&!L.textOut.length&&!L.scoreCut&&L.curVis&&L.other,T+' ranking: everything inside the frame, nothing cut',{c:L.clipped,t:L.textOut});
       ok(L.chev[0]&&!L.chev[1]&&L.chevIn,T+' the ‹ chevron to go back to the stats',L.chev);
       ok(L.rows===5,T+' five lines',L.names);
@@ -171,6 +176,32 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
     if(phone)await p.tap('#endTab1');else await p.click('#endTab1');await p.waitForTimeout(500);
     if(phone)await p.tap('#endTab0');else await p.click('#endTab0');
     await at(tIn+8000);ok(await slide(p)===0&&await p.evaluate(()=>document.querySelector('#endTab1 .prog').hidden),tag+': after a manual swap (tabs) it stays where the player left it');
+    // the swap itself: frame times while the frames fly (four swaps) against the plate standing still; caught half way (screenshot on PC 1920)
+    t0=await finish(p,4321);await at(tIn+300);
+    const ft=await p.evaluate(async()=>{const tm=async(ms,act)=>{const d=[];let last=0,run=true;const f=t=>{if(last)d.push(t-last);last=t;if(run)requestAnimationFrame(f);};requestAnimationFrame(f);
+        if(act)for(const k of [1,0,1,0]){document.getElementById(k?'endTab1':'endTab0').click();await new Promise(r=>setTimeout(r,ms/4));}else await new Promise(r=>setTimeout(r,ms));
+        run=false;d.sort((a,b)=>a-b);return {n:d.length,avg:+(d.reduce((a,b)=>a+b,0)/d.length).toFixed(1),p95:+d[Math.floor(d.length*.95)].toFixed(1),max:+d[d.length-1].toFixed(1)};};
+      return {still:await tm(2400,false),swap:await tm(2400,true)};});
+    ok(ft.swap.p95<=Math.max(40,ft.still.p95*1.6),`${tag}: frame times, standing still avg ${ft.still.avg} / 95% ${ft.still.p95} ms; during four swaps avg ${ft.swap.avg} / 95% ${ft.swap.p95} / worst ${ft.swap.max} ms`,ft);
+    await p.waitForTimeout(700);
+    const prevAt=async()=>p.evaluate(()=>{const r=document.getElementById('endPrev').getBoundingClientRect(),t=document.getElementById('endTabs').getBoundingClientRect();return [r.left,r.top,t.left,t.top].map(v=>Math.round(v*10)/10).join();});
+    if(phone)await p.tap('#endTab1');else await p.click('#endTab1');await p.waitForTimeout(160);await p.evaluate(()=>document.getAnimations().forEach(a=>a.pause()));
+    const M=await p.evaluate(()=>{const a=document.getElementById('endSlide0'),b=document.getElementById('rankBox'),ga=getComputedStyle(a),gb=getComputedStyle(b),pn=document.getElementById('endPanel').getBoundingClientRect();
+      return {fa:a.style.filter,fb:b.style.filter,ca:ga.filter,cb:gb.filter,oa:+ga.opacity,ob:+gb.opacity,va:ga.visibility,vb:gb.visibility,ta:ga.transform,
+        left:a.getBoundingClientRect().left<pn.left-2,right:b.getBoundingClientRect().left>pn.left+2,sa:document.querySelector('#endBlurA feGaussianBlur').getAttribute('stdDeviation'),sb:document.querySelector('#endBlurB feGaussianBlur').getAttribute('stdDeviation')};});
+    const mid=await prevAt();
+    ok(M.va==='visible'&&M.vb==='visible'&&M.oa>0.02&&M.oa<0.98&&M.ob>0.02&&M.ob<0.98&&M.left&&M.right,tag+': half way: the stats frame on its way out to the left, the ranking frame coming in from the right, both half seen',M);
+    if(phone)ok(!M.fa&&/blur\(/.test(M.ca)&&/blur\(/.test(M.cb),tag+': touch: a light CSS blur on both frames (no SVG filter)',M);
+    else ok(M.fa==='url("#endBlurA")'&&M.fb==='url("#endBlurB")'&&/^[1-9][\d.]* 0$/.test(M.sa)&&/^[\d.]+ 0$/.test(M.sb)&&+M.sa.split(' ')[0]>2,tag+': PC: the sideways-only blur (SVG, stdDeviation "N 0") on both frames, growing on the one leaving ('+M.sa+')',M);
+    if(w===1920)await p.screenshot({path:shot(`cartel_swap_${w}x${h}_${lang}.png`),timeout:240000});
+    await p.evaluate(()=>document.getAnimations().forEach(a=>a.play()));await p.waitForTimeout(800);
+    const E=await p.evaluate(()=>{const a=document.getElementById('endSlide0'),b=document.getElementById('rankBox');return {a:a.className,va:getComputedStyle(a).visibility,ob:+getComputedStyle(b).opacity,fa:a.style.filter,fb:b.style.filter,cb:getComputedStyle(b).filter,tb:getComputedStyle(b).transform,anims:a.getAnimations().length+b.getAnimations().length};});
+    ok(await slide(p)===1&&/off/.test(E.a)&&E.va==='hidden'&&E.ob===1&&!E.fa&&!E.fb&&E.cb==='none'&&E.tb==='none'&&!E.anims,tag+': then the ranking frame sharp and in place, the stats frame put away, no blur or animation left',E);
+    ok(mid===await prevAt(),tag+': the tabs and the ‹ chevron did not travel with the frames');
+    if(w===960){await p.emulateMedia({reducedMotion:'reduce'});await p.click('#endTab0');await p.waitForTimeout(120);await p.evaluate(()=>document.getAnimations().forEach(a=>a.pause()));
+      const RM=await p.evaluate(()=>{const a=getComputedStyle(document.getElementById('endSlide0')),b=getComputedStyle(document.getElementById('rankBox'));return {ta:a.transform,tb:b.transform,fa:a.filter,fb:b.filter,oa:+a.opacity,ob:+b.opacity};});
+      ok(RM.ta==='none'&&RM.tb==='none'&&RM.fa==='none'&&RM.fb==='none'&&RM.oa>0.02&&RM.oa<0.98&&RM.ob>0.02&&RM.ob<0.98,tag+': reduced motion: a plain crossfade (no travel, no blur)',RM);
+      await p.evaluate(()=>document.getAnimations().forEach(a=>a.play()));await p.waitForTimeout(500);await p.emulateMedia({reducedMotion:null});}
     // no ranking: nothing moves
     S.down=true;t0=await finish(p,4321,true);await at(tIn+7000);
     ok(await p.evaluate(()=>document.getElementById('endTabs').hidden&&document.getElementById('rankBox').hidden&&document.getElementById('endTab0').getAttribute('aria-selected')==='true'),tag+': ranking down: no swap at all');

@@ -1,7 +1,7 @@
 // ---- online ranking, Season 1 (v82: Google accounts; server netlify/functions/ranking.mts -> Supabase, supabase/v82-cuentas.sql) ----
 // Every run gets a signed token from the server (rankStart in reset). At game over (rankShow, from endGame) the run is kept in RANK.pending and,
-// while the ranking is on, the end plate's framed panel gets a second slide: the Season 1 ranking (#rankBox), next to the run's stats.
-// The two swap sideways inside the frame (ENDV below): tabs «TU PARTIDA · RANKING», gold chevrons ‹ ›, ←/→ on PC, a swipe on touch, and by itself
+// while the ranking is on, the end plate's panel gets a second framed slide: the Season 1 ranking (#rankBox), after the run's stats.
+// The whole frames swap sideways with a blur (ENDV, endSwap below): tabs «TU PARTIDA · RANKING», gold chevrons ‹ ›, ←/→ on PC, a swipe on touch, and by itself
 // 5 s after the stats table has come in (a gold line under RANKING fills; hovering or touching the stats pauses it; any manual swap cancels it).
 // 40-cuentas.js fills the ranking slide (accEnd):
 //   signed in  -> the run is saved at once under the player's nickname: ¡NUEVO RÉCORD! or the season best, the place, the top 5 with my line,
@@ -41,13 +41,40 @@ const ENDV={on:false,i:0,auto:false,left:0,t0:0,raf:0,startT:0,hover:false,touch
 const END_WAIT=5000; // the stats stay this long once their table has come in (2 s was too short to read them all)
 function endTabs(on){ENDV.on=on;ENDV.seen=false;$('endBox').classList.toggle('rk',on);$('endTabs').hidden=!on;$('rankBox').hidden=!on;endStop();endSlide(0,'now');}
 // show slide i: 'auto' (the countdown), 'manual' (tabs, chevrons, keys, swipe: the countdown is off for this plate) or 'now' (no animation)
-function endSlide(i,how){if(!ENDV.on)i=0;ENDV.i=i;if(i===1)ENDV.seen=true;if(how==='manual'||i===1)endStop();
-  const tr=$('endTrack'),a=$('endSlide0'),b=$('rankBox');tr.classList.toggle('now',how==='now');
-  for(const [el,on,off] of [[a,i===0,'off-l'],[b,i===1,'off-r']]){el.classList.remove('gone');el.classList.toggle(off,!on);el.inert=!on;el.setAttribute('aria-hidden',String(!on));}
-  clearTimeout(ENDV.goneT);ENDV.goneT=setTimeout(()=>{(i===1?a:b).classList.add('gone');},how==='now'?0:500); // the slide that left: no focus, no clicks
+function endSlide(i,how){if(!ENDV.on)i=0;const prev=ENDV.i;ENDV.i=i;if(i===1)ENDV.seen=true;if(how==='manual'||i===1)endStop();
+  const a=$('endSlide0'),b=$('rankBox'),to=i===1?b:a,from=i===1?a:b;endSwapStop();
+  for(const [el,on] of [[a,i===0],[b,i===1]]){el.inert=!on;el.setAttribute('aria-hidden',String(!on));} // the slide that is not shown: no focus, no clicks
   $('endTab0').setAttribute('aria-selected',String(i===0));$('endTab1').setAttribute('aria-selected',String(i===1));
   $('endPrev').hidden=!ENDV.on||i===0;$('endNext').hidden=!ENDV.on||i===1;
-  if(how==='now')requestAnimationFrame(()=>tr.classList.remove('now'));}
+  to.classList.remove('off');
+  if(how==='now'||prev===i||!ENDV.on||$('end').hidden||typeof to.animate!=='function'){from.classList.add('off');return;}
+  endSwap(from,to,i===1?1:-1);}
+// the swap (~0.5 s): the whole frame that leaves slides out (to the left going to the ranking, s=1; mirrored back) with a sideways blur that grows
+// while it fades; the other one comes in from the other side 0.11 s later, from blurred and transparent to sharp, and settles with a small overshoot.
+// The blur: on PC an SVG filter (#endBlurA/#endBlurB in index.html) blurs only sideways, its stdDeviation "N 0" set frame by frame from the
+// animations' clocks; on touch a light CSS blur that the compositor animates (an SVG filter is drawn again every frame); reduced motion: a crossfade.
+const ENDX={a:null,b:null,raf:0};
+function endSwapStop(){cancelAnimationFrame(ENDX.raf);ENDX.raf=0;for(const k of ['a','b']){if(ENDX[k])ENDX[k].cancel();ENDX[k]=null;}
+  for(const el of [$('endSlide0'),$('rankBox')])el.style.filter='';}
+function endSwap(from,to,s){from.classList.remove('off'); // seen while it leaves
+  const done=()=>{endSwapStop();from.classList.add('off');};
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches){ENDX.a=from.animate([{opacity:1},{opacity:0}],{duration:260,easing:'ease-out',fill:'forwards'});
+    ENDX.b=to.animate([{opacity:0},{opacity:1}],{duration:300,easing:'ease-out',fill:'both'});ENDX.b.onfinish=done;return;}
+  const OUT=300,IN=390,DL=110,svg=!isTouch,B=svg?Math.max(6,from.offsetWidth*.03):Math.max(2,from.offsetWidth*.008);
+  const fo=svg?[{},{}]:[{filter:'blur(0px)'},{filter:`blur(${B.toFixed(1)}px)`}];
+  ENDX.a=from.animate([{transform:'none',opacity:1,...fo[0]},{transform:`translateX(${-42*s}%) scaleX(1.08)`,opacity:0,...fo[1]}],
+    {duration:OUT,easing:'cubic-bezier(.45,0,.8,.45)',fill:'forwards'});
+  ENDX.b=to.animate([{offset:0,transform:`translateX(${40*s}%) scaleX(1.08)`,opacity:0,...(svg?{}:{filter:`blur(${B.toFixed(1)}px)`}),easing:'cubic-bezier(.16,.62,.34,1)'},
+    {offset:.45,opacity:1},...(svg?[]:[{offset:.6,filter:'blur(0px)'}]),
+    {offset:.72,transform:`translateX(${-1.8*s}%) scaleX(.995)`,easing:'ease-in-out'},{offset:.87,transform:`translateX(${.6*s}%) scaleX(1)`,easing:'ease-in-out'},
+    {offset:1,transform:'none',opacity:1,...(svg?{}:{filter:'none'})}],{duration:IN,delay:DL,fill:'both'});
+  ENDX.b.onfinish=done;
+  if(!svg)return;
+  const fa=$('endBlurA').firstElementChild,fb=$('endBlurB').firstElementChild,set=(f,v)=>f.setAttribute('stdDeviation',v.toFixed(2)+' 0');
+  set(fa,0);set(fb,B);from.style.filter='url(#endBlurA)';to.style.filter='url(#endBlurB)';
+  const tick=()=>{if(!ENDX.b)return;const ta=Math.min(1,(ENDX.a.currentTime||0)/OUT),tb=Math.max(0,Math.min(1,((ENDX.b.currentTime||0)-DL)/(IN*.6)));
+    set(fa,B*Math.pow(ta,1.2));set(fb,B*(1-tb*tb*(3-2*tb)));ENDX.raf=requestAnimationFrame(tick);};
+  ENDX.raf=requestAnimationFrame(tick);}
 // the countdown: it starts when the stats table has come in (the rows of 01-end-plate.css: 1.45 s + 55 ms a row + 0.35 s), runs END_WAIT,
 // pauses while the mouse is over the panel or a finger on it (and 2 s after), stops for good after any manual swap
 function endAuto(){endStop();if(!ENDV.on)return;const n=$('endStats').children.length/2,reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;

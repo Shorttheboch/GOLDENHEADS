@@ -157,6 +157,8 @@
   </div>
 </div>
 <div class="screen" id="end" hidden>
+  <!-- v82: the sideways blur of the frames when the panel swaps (PC; 26-ranking.js sets stdDeviation "N 0" frame by frame) -->
+  <svg class="endFx" width="0" height="0" aria-hidden="true" focusable="false"><filter id="endBlurA" x="-30%" y="-12%" width="160%" height="124%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="0 0"/></filter><filter id="endBlurB" x="-30%" y="-12%" width="160%" height="124%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="0 0"/></filter></svg>
   <div id="endBox"><!-- v44 one centred column. v82: while the ranking is on (#endBox.rk) the framed panel holds two slides, the run's stats and the Season 1
        ranking, that swap sideways inside the frame (26-ranking.js ENDV): tabs above it, gold chevrons on its edges, ←/→ and a swipe; the swap comes by itself
        5 s after the stats have come in (a gold line under RANKING fills meanwhile) -->
@@ -170,7 +172,7 @@
         <button type="button" class="chev l" id="endPrev" aria-label="Ver tu partida" hidden><svg viewBox="0 0 20 32" aria-hidden="true"><path d="M14 4 4 16l10 12"/></svg></button>
         <div id="endTrack">
           <div class="slide" id="endSlide0" role="tabpanel"><div id="endStats"></div></div>
-          <div class="slide off-r" id="rankBox" role="tabpanel" hidden><!-- v82: Season 1 top 5 (26-ranking.js) and the Google account (40-cuentas.js, look: src/styles/11-cuentas.css) -->
+          <div class="slide off" id="rankBox" role="tabpanel" hidden><!-- v82: Season 1 top 5 (26-ranking.js) and the Google account (40-cuentas.js, look: src/styles/11-cuentas.css) -->
             <div id="rankH"><span>RANKING DE CAPITANES</span><span class="rkS">TEMPORADA 1</span></div>
             <div id="rankMsg" aria-live="polite"></div><ol id="rankList" data-noi18n></ol>
             <button id="rankAll" type="button">VER RANKING COMPLETO</button>

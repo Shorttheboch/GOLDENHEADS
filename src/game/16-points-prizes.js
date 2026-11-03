@@ -150,7 +150,7 @@ function launchLeap(s){const W=waveDef(wave);
   const lead=s.hopTo?s.hopTo.clone():P.pos.clone().addScaledVector(P.vel,0.35).add(new THREE.Vector3().randomDirection().multiplyScalar(0.4));
   if(isJumpS(s)){jumpFrom(s,_jw1,_jw2);if(!leapClear(_jw1,lead,s.mesh.scale.x)){s.state='crawl';s.t=0;s.cd=0.3;s.aggro=Math.max(s.aggro||0,2);return;} // v83: you went behind the ship while it crouched: no jump
     s.state='leap';s.vel.subVectors(lead,_jw1).normalize().multiplyScalar(CFG.leapSpeed*(0.85+W.spd*0.15));s.t=0;s.leapMax=_jw1.distanceTo(P.pos)/s.vel.length()+1.5;
-    s.pos.copy(_jw1);s.jumpN=_jw2.clone();s.mesh.position.copy(s.pos);sfx('leap',s.pos);return;} // v83: it takes off from the height it walks at, belly to the hull (jumpOrient)
+    s.pos.copy(_jw1);s.jumpN=_jw2.clone();s.jumpW=0;s.mesh.position.copy(s.pos);sfx('leap',s.pos);return;} // v83: it takes off from the height it walks at, belly to the hull (jumpOrient)
   s.state='leap';s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed*(0.85+W.spd*0.15));s.t=0;s.leapMax=s.pos.distanceTo(P.pos)/s.vel.length()+1.5;
   const n0=new THREE.Vector3();hullPoint(s.z,s.th,V3,n0);if(isCrabS(s)){s.leapN=n0.clone();s.pos.addScaledVector(n0,s.mesh.userData.rig.spd.rootOff*s.mesh.scale.x);}else s.pos.addScaledVector(n0,0.5);sfx('leap',s.pos);
   const u=s.mesh.userData;if(!u.rig){u.body.position.y=0;u.body.rotation.x=0;u.mEye.color.setHex(u.S.eye);}}

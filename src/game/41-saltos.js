@@ -21,7 +21,9 @@ const JUMP_FIX={on:1,
   mar:0.05,    // m que los puntos del cuerpo dejan con el casco real
   los:0.3,     // m (·escala) que la recta del salto deja con el casco a partir de 1.5 m del despegue (antes, solo no tocarlo)
   land:0.6,    // s de salto en los que tocar el casco no lo hace aterrizar (resbala): como antes
-  reel:2.2};   // m (·escala): a esa distancia del anclaje la seda empieza a girar el vientre hacia el casco
+  reel:2.2,    // m (·escala): a esa distancia del anclaje la seda empieza a girar el vientre hacia el casco
+  wh:0.3,wp:0.5};// la agachada antes del salto (animSpider): fracción que conserva de lo que baja el cuerpo (-0.13) y del cabeceo (-0.4, cola abajo). Entera, el abdomen
+               // quedaba 13 cm·escala por debajo de los pies (medido con la malla con piel); así queda 7.6 cm por encima. Ojos, colmillos, patas delanteras y chirrido, igual
 const isJumpS=s=>JUMP_FIX.on&&!isCrabS(s);
 // ---- 1. la normal de verdad: la elipse x=a(z)cosθ, y=c(z)+b(z)sinθ tiene normal (b cosθ, a sinθ, -(a sinθ (c'+b' sinθ) + a' b cos²θ)) (pendientes a', b', c' sobre ±0.5 m)
 function spUp(z,th,out){const e=0.5,A0=hullAB(z-e),A1=hullAB(z+e),A=hullAB(z),da=(A1[0]-A0[0])/(2*e),db=(A1[1]-A0[1])/(2*e),dc=(A1[2]-A0[2])/(2*e),co=Math.cos(th),si=Math.sin(th);
@@ -48,20 +50,36 @@ function jumpFrom(s,out,n){hullPoint(s.z,s.th,out);spUp(s.z,s.th,n);return out.a
 // arriba = el mundo), según se aleja del casco (rise) y como mucho en blend s; una mezcla de cuaterniones, sin saltos en ningún extremo
 const _sjq1=new THREE.Quaternion(),_sjq2=new THREE.Quaternion(),_jf=new THREE.Vector3(),_ju=new THREE.Vector3();
 function jumpOrient(s){if(s.state!=='leap'||!s.jumpN)return false;const sc=s.mesh.scale.x;
-  const h=jumpSurf(s.pos,_jsq,_jsn),w=Math.min(1,Math.max(s.t/JUMP_FIX.blend,(h-0.28*sc)/(JUMP_FIX.rise*sc)));if(w>=1){s.jumpN=null;return false;}
+  const h=jumpSurf(s.pos,_jsq,_jsn),w=Math.min(1,Math.max(s.t/JUMP_FIX.blend,(h-0.28*sc)/(JUMP_FIX.rise*sc)));if(w>=1){s.jumpN=null;s.jumpW=1;return false;}
   const f=_jf.copy(s.vel).normalize();f.addScaledVector(s.jumpN,-f.dot(s.jumpN));if(f.lengthSq()<0.01)f.copy(s.face||_jf.set(0,0,1)).addScaledVector(s.jumpN,-_jf.dot(s.jumpN));
   orient(s.mesh,f.normalize(),s.jumpN);_sjq1.copy(s.mesh.quaternion);
   orient(s.mesh,_ju.copy(s.vel).normalize(),UP);_sjq2.copy(s.mesh.quaternion);
-  const k=w*w*(3-2*w);s.mesh.quaternion.copy(_sjq1).slerp(_sjq2,k);return true;}
-// ---- 4. puntos del cuerpo (en el espacio del grupo, a escala 1; el modelo va -rootOff abajo): colmillos, cabeza, tórax por debajo y a los lados, abdomen (punta,
-// panza, lados, arriba). Con un poco de holgura por el muelle del abdomen y el cabeceo del vuelo.
+  const k=w*w*(3-2*w);s.jumpW=k;s.mesh.quaternion.copy(_sjq1).slerp(_sjq2,k);return true;}
+// ---- 4. puntos del cuerpo: unos 30 vértices de la malla (muestreo del más lejano: 8 del tórax, 18 del abdomen, 2 por colmillo) atados a su hueso, como los de la
+// Escupidora (crabProbes): siguen la pose de verdad (el abdomen que cuelga en el salto, el cabeceo, el muelle). Se calculan una vez por araña (R.jp).
+function jumpProbes(R){const sms=[];R.inner.traverse(o=>{if(o.isSkinnedMesh)sms.push(o);});
+  const K={body:8,abdomen:18,fang_L:2,fang_R:2},cand={body:[],abdomen:[],fang_L:[],fang_R:[]},v=new THREE.Vector3();
+  for(const sm of sms){const pos=sm.geometry.attributes.position,si=sm.geometry.attributes.skinIndex,sw=sm.geometry.attributes.skinWeight,bones=sm.skeleton.bones;
+    for(let i=0;i<pos.count;i+=3){let bi=-1,bw=0;for(let k=0;k<4;k++){const w=sw.getComponent(i,k);if(w>bw){bw=w;bi=si.getComponent(i,k);}}
+      if(bw<0.9)continue;const nm=bones[bi].name;if(!cand[nm])continue;v.fromBufferAttribute(pos,i).applyMatrix4(sm.bindMatrix);cand[nm].push({sm,i,bi,x:v.x,y:v.y,z:v.z});}}
+  const pts=[];
+  for(const nm in cand){const c=cand[nm];if(!c.length)continue;let cx=0,cy=0,cz=0;for(const q of c){cx+=q.x;cy+=q.y;cz+=q.z;}cx/=c.length;cy/=c.length;cz/=c.length;
+    const dmin=new Float32Array(c.length).fill(1e9),pick=[];let far=0,fd=-1;
+    for(let j=0;j<c.length;j++){const d=(c[j].x-cx)**2+(c[j].y-cy)**2+(c[j].z-cz)**2;if(d>fd){fd=d;far=j;}}
+    for(let n=0;n<K[nm]&&n<c.length;n++){pick.push(far);const a=c[far];let nf=0,nd=-1;
+      for(let j=0;j<c.length;j++){const d=(c[j].x-a.x)**2+(c[j].y-a.y)**2+(c[j].z-a.z)**2;if(d<dmin[j])dmin[j]=d;if(dmin[j]>nd){nd=dmin[j];nf=j;}}far=nf;}
+    for(const j of pick){const q=c[j],sm=q.sm,m=new THREE.Matrix4().multiplyMatrices(sm.skeleton.boneInverses[q.bi],sm.bindMatrix);
+      pts.push({b:sm.skeleton.bones[q.bi],l:new THREE.Vector3().fromBufferAttribute(sm.geometry.attributes.position,q.i).applyMatrix4(m)});}}
+  return pts;}
+// sin rig (modelo antiguo de respaldo): puntos fijos en el espacio del grupo, a escala 1 (colmillos, cabeza, tórax, abdomen)
 const JUMP_PTS=[[0,0.02,0.47],[0,-0.13,0.3],[0,-0.14,0.05],[0.24,-0.06,0.12],[-0.24,-0.06,0.12],[0,-0.05,-1.27],[0,-0.27,-0.7],[0.5,0.02,-0.66],[-0.5,0.02,-0.66],[0,0.56,-0.66],[0,0.3,-1.1],[0,-0.2,-1.05]].map(a=>new THREE.Vector3(...a));
 const _jpw=new THREE.Vector3(),_jpn=new THREE.Vector3(),_jpq=new THREE.Vector3(),_sjN=new THREE.Vector3(),_sjL=new THREE.Vector3();
 // cuánto hay que sacar a la araña (a lo largo de la normal del casco bajo su centro) para que ningún punto quede dentro del casco (con mar); 0 si nada entra.
 // Góndolas y pilones (cápsulas) y alas (vóxeles) van aparte: lo que haga falta para sacar los puntos de ellas se suma en _sjX (un desplazamiento, no a lo largo de N)
 const _sjX=new THREE.Vector3(),_sjc=new THREE.Vector3(),_sjd=new THREE.Vector3();
-function jumpNeed(s,N){const g=s.mesh,sc=g.scale.x;let e=0;_sjX.set(0,0,0);let ex=0,ey=0,ez=0;
-  for(const P of JUMP_PTS){_jpw.copy(P).multiplyScalar(sc).applyQuaternion(g.quaternion).add(g.position);
+function jumpNeed(s,N){const g=s.mesh,sc=g.scale.x,R=g.userData.rig;let e=0;_sjX.set(0,0,0);let ex=0,ey=0,ez=0;
+  const pts=R?(R.jp||(R.jp=jumpProbes(R))):JUMP_PTS;if(R)g.updateMatrixWorld(true); // the bones keep last frame's pose, the group is where it is now
+  for(const P of pts){if(R)_jpw.copy(P.l).applyMatrix4(P.b.matrixWorld);else _jpw.copy(P).multiplyScalar(sc).applyQuaternion(g.quaternion).add(g.position);
     if(Math.abs(_jpw.z)<HZ1+0.05){const d=jumpSurf(_jpw,_jpq,_jpn);if(d<JUMP_FIX.mar){const t=(JUMP_FIX.mar-d)/Math.max(0.35,_jpn.dot(N));if(t>e)e=t;}}
     for(const E of ENGINES){_sjc.subVectors(E.b,E.a);const u=THREE.MathUtils.clamp(_sjd.subVectors(_jpw,E.a).dot(_sjc)/_sjc.lengthSq(),0,1);_sjc.multiplyScalar(u).add(E.a);
       _sjd.subVectors(_jpw,_sjc);const L=_sjd.length(),need=E.r+JUMP_FIX.mar-L;if(need>0&&L>1e-4){_sjd.multiplyScalar(need/L);ex=Math.abs(_sjd.x)>Math.abs(ex)?_sjd.x:ex;ey=Math.abs(_sjd.y)>Math.abs(ey)?_sjd.y:ey;ez=Math.abs(_sjd.z)>Math.abs(ez)?_sjd.z:ez;}}

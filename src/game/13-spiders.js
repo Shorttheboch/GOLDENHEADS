@@ -264,7 +264,9 @@ function animSpider(s,dt,t){
   else if(s.state==='drift'){tP+=Math.sin(t*9+ph)*0.35;tR+=Math.cos(t*7+ph)*0.4;}
   else if(s.state==='fall'){tH+=0.05;}
   else if(air){tP+=0.12+Math.sin(t*6+ph)*0.08;}
-  if(R.crab&&s.state==='windup'){tP+=0.4*k*(1-CRAB_FIX.wp);tH+=0.13*k*(1-CRAB_FIX.wh);} // v78: el cangrejo no clava la cabeza en el casco al agacharse (el resto de arañas conserva -0.4 y -0.13)
+  if(R.crab&&s.state==='windup'){tP+=0.4*k*(1-CRAB_FIX.wp);tH+=0.13*k*(1-CRAB_FIX.wh);}
+  else if(s.state==='windup'&&isJumpS(s)&&!(s.idleT>0)){tP+=0.4*k*(1-JUMP_FIX.wp);tH+=0.13*k*(1-JUMP_FIX.wh);} // v83: the other spiders keep part of the crouch (41-saltos.js)
+  if(s.state==='leap'&&s.jumpN&&isJumpS(s))tP+=0.25*(1-(s.jumpW||0)); // v83: no tail-down droop while it still lies belly to the hull at take-off // v78: el cangrejo no clava la cabeza en el casco al agacharse (el resto de arañas conserva -0.4 y -0.13)
   if(R.crab&&s.state==='eat'){tP-=0.34*(1-CRAB_FIX.ep);tH+=0.11*(1-CRAB_FIX.eh);} // v78: ni el abdomen al comer (+0.34 y -0.11 en el resto)
   if(s.idleT>0&&s.state==='windup'){const q=Math.min(1,k*1.5);tH=0.1*q+0.012*Math.sin(t*11);tP=-0.17*q+0.04*Math.sin(t*2.6);tR=0.07*Math.sin(t*1.7)*q;tY=0.2*Math.sin(t*1.25)*q;tF=-0.04*q;}
   const lam=s.state==='windup'||s.state==='leap'?18:9,bd=R.bd;
@@ -277,7 +279,7 @@ function animSpider(s,dt,t){
   const A=R.ab;let gp=-0.03+0.05*Math.sin(R.walk*2)*mv,gy=0.08*Math.sin(R.walk)*mv-R.yaw*0.12,breath=0.022*Math.sin(t*2.3+ph);
   if(s.state==='eat'){gp=0.1+0.05*Math.sin(t*8.5+ph);breath=0.04*Math.sin(t*5+ph);}
   else if(s.state==='windup'){gp=0.38*k+Math.sin(t*47)*0.03*k;}
-  else if(s.state==='leap'){gp=-0.18;}
+  else if(s.state==='leap'){gp=s.jumpN&&isJumpS(s)?-0.18*(s.jumpW||0):-0.18;} // v83: (same, the abdomen)
   else if(s.state==='drift'){gp=Math.sin(t*11+ph)*0.3;gy+=Math.cos(t*9+ph)*0.3;}
   if(s.idleT>0){gp=0.3+Math.sin(t*3.1)*0.1;gy=Math.sin(t*5.2)*0.42;breath=0.05*Math.sin(t*4.4);}
   const ka=70,ca=5;

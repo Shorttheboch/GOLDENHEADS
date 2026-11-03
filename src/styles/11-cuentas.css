@@ -59,7 +59,9 @@ body.touch #acctBar button::after,body.touch #acctBar a::after{content:'';positi
 @media (max-height:520px) and (min-aspect-ratio:17/10){
   #endBox:has(>#rankBox:not([hidden])){display:grid;grid-template-columns:calc(var(--u)*120) auto;column-gap:calc(var(--u)*4);justify-items:center;align-items:start;width:auto}
   #endBox:has(>#rankBox:not([hidden]))>*{grid-column:1}
-  #endBox>#rankBox:not([hidden]){--u:calc(min(1vh,.5625vw)*1.28);grid-column:2;grid-row:1 / span 8;align-self:center;width:calc(var(--u)*58);margin-top:0;padding-bottom:0}
+  #endBox>#rankBox:not([hidden]){--u:calc(min(1vh,.5625vw)*1.28);grid-column:2;grid-row:1 / span 8;align-self:center;width:calc(var(--u)*58);margin-top:0;
+    padding:calc(var(--u)*1.6) calc(var(--u)*1.4);box-sizing:content-box;  /* a soft dark glass behind it: it sits over the 3D scene, away from the plate's own shade */
+    background:radial-gradient(ellipse 75% 70% at 50% 50%,rgba(4,3,10,.62),rgba(4,3,10,.42) 70%,rgba(4,3,10,0));border-radius:calc(var(--u)*2)}
 }
 
 /* ---------- the account screens (#acct), over the menu or the end plate ---------- */
@@ -119,8 +121,8 @@ body.touch #acctBar button::after,body.touch #acctBar a::after{content:'';positi
 #acGo span{position:relative;z-index:1;font-size:19px;font-weight:800;letter-spacing:.14em;margin-right:-.14em;line-height:1;text-shadow:0 1px 0 rgba(255,240,190,.55);white-space:nowrap}
 #acGo:hover::before,#acGo:focus-visible::before{filter:brightness(1.13) drop-shadow(0 0 14px rgba(255,200,80,.7));transform:scale(1.025)}
 #acGo:active::before{transform:scale(.985);filter:brightness(.95)}
-#acGo.red::before{filter:hue-rotate(-38deg) saturate(1.6) brightness(.92)}
-#acGo.red:hover::before,#acGo.red:focus-visible::before{filter:hue-rotate(-38deg) saturate(1.6) brightness(1.05) drop-shadow(0 0 14px rgba(255,80,50,.75));transform:scale(1.025)}
+#acGo.red::before{filter:hue-rotate(-46deg) saturate(1.9) brightness(.88)}
+#acGo.red:hover::before,#acGo.red:focus-visible::before{filter:hue-rotate(-46deg) saturate(1.9) brightness(1.02) drop-shadow(0 0 14px rgba(255,70,40,.75));transform:scale(1.025)}
 #acGo.red span{color:#2b0603;text-shadow:0 1px 0 rgba(255,210,190,.5)}
 #acNo{height:44px;min-width:150px;padding:0 20px;border:1px solid rgba(232,182,74,.55);border-radius:0;background:rgba(10,8,4,.7);color:#e9d9a8;cursor:pointer;
   font:800 14px/1 var(--ef);letter-spacing:.18em;touch-action:manipulation}

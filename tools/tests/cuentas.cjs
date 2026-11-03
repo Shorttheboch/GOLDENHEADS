@@ -86,7 +86,8 @@ async function open(b,S,{phone,w,h,lang='es',fake=true,init}={}){
   p.on('crash',()=>{console.log('PAGE CRASHED');process.exit(3);});
   await p.goto(BASE+'/test.html');return p;}
 const ready=p=>p.waitForFunction(()=>!document.getElementById('play').disabled,null,{timeout:300000});
-async function play(p,phone){await ready(p);await p.evaluate(ph=>{document.getElementById(ph?'mmGo':'play').click();},phone);
+async function play(p,phone){await ready(p);if(phone)await p.waitForFunction(()=>!document.getElementById('mmGo').disabled,null,{timeout:30000}); // (the phone plate follows JUGAR every 200 ms)
+  await p.evaluate(ph=>{document.getElementById(ph?'mmGo':'play').click();},phone);
   await p.waitForFunction(()=>window.__T&&__T.state==='play',null,{timeout:120000});await p.evaluate(()=>{window.__noSpawn=1;});}
 // end a game with a score; waits for the run token first (the end plate needs it to offer saving)
 async function finish(p,S,score=4321,secs=640){for(let i=0;i<100&&!count(S,'/api/run');i++)await p.waitForTimeout(50);

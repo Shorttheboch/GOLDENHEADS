@@ -35,16 +35,18 @@ const LATE={s:{gun2:0,crab:0,egg:0,bip:0}};window.__late=LATE;
 const lateOk=k=>LATE.s[k]!==0;
 // ---- eggs (Santi's EGG_v1): laid on the hull from the round after the first spitter; they throb faster and faster, then burst into a brood ----
 const EGGS=[],EGG_S=0.8;let eggPlan=[];
-function layEgg(z,th,RK,rd){const n=new THREE.Vector3();let p;if(RK){n.copy(rd);p=RK.c.clone().addScaledVector(rd,rockR(RK,rd));}else{[z,th]=freeSpot(z,th,1);p=hullPoint(z,th,new THREE.Vector3(),n);}
+function layEgg(z,th,RK,rd,sp){const n=new THREE.Vector3();let p;if(RK){n.copy(rd);p=RK.c.clone().addScaledVector(rd,rockR(RK,rd));}else{[z,th]=freeSpot(z,th,1);p=hullPoint(z,th,new THREE.Vector3(),n);}
   let m;if(EGG_GLB){m=EGG_GLB.scene.clone(true);m.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.castShadow=true;}});}
   else m=new THREE.Mesh(new THREE.SphereGeometry(0.4,20,16).scale(1,1.25,1).translate(0,0.5,0),new THREE.MeshStandardMaterial({color:0x4a0808,emissive:0xff3010,emissiveIntensity:0.3,roughness:0.25}));
   const g=new THREE.Group();g.add(m);g.position.copy(p);g.quaternion.setFromUnitVectors(UP,n);g.scale.setScalar(0.01);scene.add(g);
   const mats=[];m.traverse(o=>{if(o.isMesh)mats.push(o.material);});
-  const e={g,mats,z,th,RK,rd:rd&&rd.clone(),n:n.clone(),pos:p.clone().addScaledVector(n,0.45*EGG_S),t:0,hatch:7.5,hp:8+Math.floor(wave/2),ph:0,flash:0};EGGS.push(e);
-  burst(p,0x8a0a0a,16);sfx('nest',p);floatText(e.pos.clone().addScaledVector(n,0.9),'¡HUEVO!','loss');
-  if(!stats.eggs)showMsg('¡UN HUEVO!','Destrúyelo antes de que eclosione',2.6);say('egg',3,{cd:40});stats.eggs++;return e;}
-function updateEggs(dt,t){for(let i=EGGS.length-1;i>=0;i--){const e=EGGS[i];if(state==='play'&&!CINE.on)e.t+=dt;const k=Math.min(1,e.t/e.hatch),grow=Math.min(1,e.t/0.6);
-    e.ph+=dt*(1.1+k*k*4.5);const bt=Math.pow(Math.max(0,Math.sin(e.ph*Math.PI*2)),8); // heartbeat, faster as it nears hatching
+  const e={g,mats,z,th,RK,rd:rd&&rd.clone(),n:n.clone(),pos:p.clone().addScaledVector(n,0.45*EGG_S),t:0,gt:0,hatch:7.5,hp:8+Math.floor(wave/2),ph:0,flash:0};EGGS.push(e);
+  // v76: the first egg of this device is shown in a short cinematic (36-huevo.js: the title replaces the message and the floating text); the egg keeps growing (gt) while the game stands still (t)
+  const cine=eggCineStart(e,sp);
+  burst(p,0x8a0a0a,16);sfx('nest',p);if(!cine)floatText(e.pos.clone().addScaledVector(n,0.9),'¡HUEVO!','loss');
+  if(!stats.eggs&&!cine)showMsg('¡UN HUEVO!','Destrúyelo antes de que eclosione',2.6);say('egg',3,{cd:40});stats.eggs++;return e;}
+function updateEggs(dt,t,cdt=dt){for(let i=EGGS.length-1;i>=0;i--){const e=EGGS[i];if(state==='play'&&!CINE.on)e.t+=dt;e.gt+=cdt;const k=Math.min(1,e.t/e.hatch),grow=Math.min(1,e.gt/0.6); // v76: cdt = real time (the egg grows and throbs during its cinematic, e.t = the hatch timer stays frozen)
+    e.ph+=cdt*(1.1+k*k*4.5);const bt=Math.pow(Math.max(0,Math.sin(e.ph*Math.PI*2)),8); // heartbeat, faster as it nears hatching
     const s=EGG_S*grow*(1+0.05*bt*(1+k))*(1+(k>0.85?0.02*Math.sin(t*45):0));e.g.scale.set(s*(1-0.025*bt),s*(1+0.06*bt*(1+k)),s*(1-0.025*bt));
     e.flash=Math.max(0,e.flash-dt*6);for(const m of e.mats)if(m.emissive)m.emissiveIntensity=0.5+k*1.4+bt*(1+3*k)+e.flash*4;
     if(bt>0.9&&!e.beat){e.beat=1;sfx('thump',e.pos);}else if(bt<0.3)e.beat=0;
@@ -60,10 +62,19 @@ function hatchEgg(e,i){EGGS.splice(i,1);scene.remove(e.g);
 function destroyEgg(e){EGGS.splice(EGGS.indexOf(e),1);scene.remove(e.g);for(let k=0;k<3;k++)burst(e.pos,k?0x6a0606:0xffb040,18);sfx('splat',e.pos);sfx('kill',e.pos);
   addPts(150);floatText(e.pos.clone().addScaledVector(e.n,0.9),'HUEVO DESTRUIDO +'+ptsVal(150),'pts');stats.eggsKilled++;}
 // a crawling spider away from you lays the egg
+// v76: just behind its abdomen (it used to appear right under the spider, hidden by its legs); back = how far behind the root, in metres at scale 1
+const _egF=new THREE.Vector3(),_egQ=new THREE.Vector3(),_egN=new THREE.Vector3(),_egH=new THREE.Vector3();
+function eggBehind(s,n){_egF.set(0,0,1).applyQuaternion(s.mesh.quaternion);_egF.addScaledVector(n,-_egF.dot(n));
+  if(_egF.lengthSq()<1e-4)return null;_egF.normalize();return _egQ.copy(s.pos).addScaledVector(_egF,-1.45*s.mesh.scale.x);}
 function tryLayEgg(){if(!lateOk('egg'))return false; // v74: the egg model may still be downloading: try again next frame
-  const r=spiders.filter(s=>s.state==='rock'&&s.kind!=='brood'&&s.pos.distanceTo(P.pos)>6);if(r.length&&Math.random()<0.6){const s=r[Math.floor(Math.random()*r.length)];layEgg(0,0,s.rock,s.rd);s.cd=Math.max(s.cd,1.5);return true;}
+  if(CINE.on&&(CINE.mode==='egg'||eggCineWanted()))return false; // v76: not during the egg cinematic; the first egg of the device waits for another cinematic to end (it gets its own)
+  const r=spiders.filter(s=>s.state==='rock'&&s.kind!=='brood'&&s.pos.distanceTo(P.pos)>6);if(r.length&&Math.random()<0.6){const s=r[Math.floor(Math.random()*r.length)];
+    let rd2=s.rd;const q=eggBehind(s,s.rd);if(q){const d=_egN.subVectors(q,s.rock.c);if(d.lengthSq()>1e-6)rd2=d.normalize().clone();}
+    layEgg(0,0,s.rock,rd2,s);s.cd=Math.max(s.cd,1.5);return true;}
   const c=spiders.filter(s=>(s.state==='crawl'||s.state==='eat')&&s.kind!=='brood'&&s.kind!=='spitter'&&s.pos.distanceTo(P.pos)>7&&s.pos.distanceTo(HATCH)>4);
-  if(!c.length)return false;const s=c[Math.floor(Math.random()*c.length)];layEgg(s.z,s.th);s.cd=Math.max(s.cd,1.5);return true;}
+  if(!c.length)return false;const s=c[Math.floor(Math.random()*c.length)];
+  let z=s.z,th=s.th;{hullPoint(s.z,s.th,_egH,_egN);const q=eggBehind(s,_egN);if(q){const hp=hullParam(q);z=hp.z;th=hp.th;}}
+  layEgg(z,th,null,null,s);s.cd=Math.max(s.cd,1.5);return true;}
 const SPD={tips:{R1:[0.4868,0.0351,0.9445],L1:[-0.4868,0.0351,0.9445],R2:[0.9357,0.0221,0.6481],L2:[-0.9357,0.0221,0.6481],
   R3:[1.2288,0.0053,0.1757],L3:[-1.2288,0.0053,0.1757],R4:[1.1152,0,-0.6115],L4:[-1.1152,0,-0.6115]},
   abdTail:[0,0.47,-1.15],sack:[0.0293,0.8082,-0.6566],head:[0.013,0.415,0.32],rootOff:0.28};

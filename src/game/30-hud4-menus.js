@@ -50,16 +50,17 @@ function h4apply(el,s,ar,base,gap){el.style.left=s.px.toFixed(1)+'px';el.style.t
   el._s=s;el._ar=ar;el._ab=base;el._ag=gap;
   if(s.off&&ar)h4arrow(el,s.ang);}
 // ---- v71: one declutter pass, once a frame, after every marker is where it points (rescue, hold, breach): none may sit on another one.
-// Priority (keeps its place): hold, then breach (nearest first), then rescue (biggest count first). A marker that overlaps one already placed
+// Priority (keeps its place): hold, then egg (v76: the one about to hatch first), then breach (nearest first), then rescue (biggest count first). A marker that overlaps one already placed
 // slides along the screen edge it is stuck to (left/right edge: up or down, top/bottom edge: left or right; a corner may use both) to the nearest free
 // spot inside the frame h4proj clamps to; on screen it moves up or down instead. Rescue markers that find no room hide (their count is on the top
-// panel); hold and breach markers never hide. PC: also clear of the key hints and the tank. Phone: clear of the two corners tcAvoid() protects.
+// panel); hold, egg and breach markers never hide. PC: also clear of the key hints and the tank. Phone: clear of the two corners tcAvoid() protects.
 // To keep it calm: a moved marker stays on its side and in its place while that still works, goes back only with room to spare, and glides to its spot.
 const DC={PAD:8,EXTRA:8,EASE:16};
 function h4declutter(dt){
   if(state!=='play'||CINE.on)return;
   const W=innerWidth,H=innerHeight,bod=$('hBod'),L=[];
   if(!bod.hidden&&bod._s){bod._k=0;L.push(bod);}
+  for(const m of HUD4.eg)if(!m.hidden&&m._s){m._k=0.5;L.push(m);} // v76: egg markers (already in hatching order), after the hold and before the breaches
   for(const m of TC.mk)if(!m.hidden&&m._s){m._k=1;L.push(m);} // already nearest first
   const rs=HUD4.pool.filter(m=>!m.hidden&&m._s).sort((a,b)=>b._n-a._n);for(const m of rs){m._k=2;L.push(m);}
   for(const m of HUD4.pool)if(m.hidden&&m._dc)m._dc.hide=0; // (not in use this frame: forget that it was hidden for lack of room)
@@ -92,7 +93,7 @@ function h4declutter(dt){
       // the lines it may slide along, each with the centre's allowed range (the clamp frame at an edge, the screen otherwise) and a small cost
       const ax=[];
       if(s.off){if(s.ex)ax.push(['y',(1-H4F.mt)/2*H,(1-H4F.mb)/2*H,0]);if(s.ey)ax.push(['x',(1-H4F.mx)/2*W,(1+H4F.mx)/2*W,0]);
-        // hold and breach markers (they never hide) may also step inwards when the edge is crowded (a second row), at a cost
+        // hold, egg and breach markers (they never hide) may also step inwards when the edge is crowded (a second row), at a cost
         if(el._k<2&&s.ex&&!s.ey)ax.push(['x',s.ex<0?f.cx:(1-H4F.mx)/2*W,s.ex<0?(1+H4F.mx)/2*W:f.cx,60]);
         if(el._k<2&&s.ey&&!s.ex)ax.push(['y',s.ey<0?(1-H4F.mt)/2*H:f.cy,s.ey<0?f.cy:(1-H4F.mb)/2*H,60]);}
       if(!ax.length){ax.push(['y',8-f.t,H-8-f.b,0]);ax.push(['x',8-f.l,W-8-f.r,40]);}
@@ -166,4 +167,5 @@ function updateHud4(dt,t){
   for(;i<HUD4.pool.length;i++)HUD4.pool[i].hidden=true;
   const bod=$('hBod'),atH=P.pos.distanceTo(HATCH)<CFG.depositR,showB=!CINE.on&&P.carry>0&&!atH&&!ZONES[2].nest;bod.hidden=!showB;
   if(showB){h4apply(bod,h4proj(HATCH),bod.children[0],0,28);bod.classList.toggle('call',full);}
+  h4eggs(dt); // v76 (36-huevo.js)
   if(ml>=1.3)tutorialEvent('mult');}

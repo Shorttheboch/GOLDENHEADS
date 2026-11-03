@@ -16,7 +16,7 @@ const sparks=[];
 const sparkGeo=new THREE.TetrahedronGeometry(0.08,0);
 function burst(p,color,n){const mat=new THREE.MeshBasicMaterial({color});for(let i=0;i<n;i++){const m=new THREE.Mesh(sparkGeo,mat);m.position.copy(p);scene.add(m);
   sparks.push({m,vel:new THREE.Vector3().randomDirection().multiplyScalar(2+Math.random()*6),life:0.6+Math.random()*0.5});}}
-function updateFX(dt){
+function updateFX(dt,fdt=dt){ // v76: fdt = real time for sparks and gibs while the world is frozen (the egg cinematic)
   for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.life-=dt;const step=b.vel.clone().multiplyScalar(dt);
     let hit=null,crit=false,bt=2;const p0=b.m.position,sl=step.lengthSq();
     for(const s of spiders){
@@ -39,11 +39,11 @@ function updateFX(dt){
     else if(b.life>0&&pushOutOfShip(V1.copy(p0),0,null)){burst(p0,0xffd080,4);b.life=0;}
     else if(b.life>0){const rt=rockRay(V1.copy(p0).sub(step),step);if(rt>=0){p0.copy(V1).addScaledVector(step,rt);burst(p0,0x8a7a6a,6);sfx('hit',p0);b.life=0;}}
     if(b.life<=0){scene.remove(b.m);bullets.splice(i,1);}}
-  for(let i=sparks.length-1;i>=0;i--){const s=sparks[i];s.life-=dt;s.m.position.addScaledVector(s.vel,dt);s.m.rotation.x+=dt*8;s.m.scale.setScalar(Math.max(0.01,s.life));
+  for(let i=sparks.length-1;i>=0;i--){const s=sparks[i];s.life-=fdt;s.m.position.addScaledVector(s.vel,fdt);s.m.rotation.x+=fdt*8;s.m.scale.setScalar(Math.max(0.01,s.life));
     if(s.life<=0){scene.remove(s.m);sparks.splice(i,1);}}
-  for(let i=gibs.length-1;i>=0;i--){const g=gibs[i];g.life-=dt;
+  for(let i=gibs.length-1;i>=0;i--){const g=gibs[i];g.life-=fdt;
     if(g.ring){g.m.scale.setScalar(0.4+(0.28-g.life)*12);g.m.material.opacity=Math.max(0,g.life/0.28);}
-    else{g.m.position.addScaledVector(g.vel,dt);g.vel.multiplyScalar(Math.exp(-1.2*dt));g.m.rotation.x+=g.spin.x*dt;g.m.rotation.y+=g.spin.y*dt;g.m.rotation.z+=g.spin.z*dt;
+    else{g.m.position.addScaledVector(g.vel,fdt);g.vel.multiplyScalar(Math.exp(-1.2*fdt));g.m.rotation.x+=g.spin.x*fdt;g.m.rotation.y+=g.spin.y*fdt;g.m.rotation.z+=g.spin.z*fdt;
       if(g.life<0.35)g.m.scale.setScalar(g.s0*Math.max(0.01,g.life/0.35));}
     if(g.life<=0){scene.remove(g.m);if(g.ring)g.m.material.dispose();gibs.splice(i,1);}}}
 

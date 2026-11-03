@@ -8,6 +8,7 @@ import './styles/05-hud-movil.css';
 import './styles/06-hud-pc.css';
 import './styles/07-tutorial-movil.css';
 import './styles/08-instalar.css'; // v75: add to home screen (phones)
+import './styles/09-huevo.css'; // v76: first-egg cinematic title and egg markers
 // v62: phone HUD (Santi's design) and its font, bundled so it works without internet
 import '@fontsource/saira-condensed/latin-600.css';
 import '@fontsource/saira-condensed/latin-700.css';

@@ -1,14 +1,15 @@
 -- HEADS Rescate Dorado · anonymous play metrics (v81)
--- Run it by hand in Supabase > SQL editor. It is idempotent: running it again changes nothing (or updates the stats function).
+-- Run it by hand in Supabase > SQL editor. It is idempotent: running it again changes nothing (it only replaces the stats function).
 --
 -- Who writes and reads: only the Netlify function netlify/functions/metrics.mts, with the secret key (SUPABASE_SECRET_KEY = sb_secret_...,
--- Postgres role service_role). The game never talks to Supabase.
+-- Postgres role service_role). The game and the /admin page never talk to Supabase.
 -- The project has "automatically expose new tables" OFF and automatic RLS ON, so everything is explicit here:
---   * RLS on the table, with NO policies (nobody gets rows through the API keys of the browser: anon / authenticated)
+--   * RLS on the table, with NO policies (nobody gets rows through the browser keys: anon / authenticated)
 --   * anon and authenticated get nothing at all
 --   * service_role gets exactly what the function needs: INSERT on public.events and EXECUTE on public.metrics_stats()
 --     (metrics_stats runs as its owner, SECURITY DEFINER, so service_role needs no SELECT: the function only ever returns totals)
 -- No IP is ever stored. player_id is a random id the game keeps only when the player said yes to the question on the start menu.
+-- v82 (Google accounts) will add public.players and public.runs next to this table; events.player_id can then point at a player. Not created here.
 
 create table if not exists public.events (
   id          bigint generated always as identity primary key,
@@ -56,6 +57,7 @@ end $$;
 --   p_platform 'all' | 'pc' | 'touch'
 -- Test events (test = true) are left out of every number; only test_games counts them.
 -- A "game" is one (session_id, game) pair: its end event, or, if the page went away before the end, its last quit event.
+-- Numbers inside data are read only when they really are JSON numbers (a bad row can never break the page).
 -- ---------------------------------------------------------------------------------------------------------------------
 create or replace function public.metrics_stats(p_range text default '7d', p_platform text default 'all')
 returns jsonb
@@ -86,6 +88,16 @@ games as (
   where kind in ('end', 'quit') and game is not null and round is not null
   order by session_id, game, (kind = 'end') desc, created_at desc
 ),
+num as (   -- the numbers of each game that the page needs, only when they are real numbers
+  select g.*,
+         case when jsonb_typeof(data -> 'fps')  = 'number' then (data ->> 'fps')::numeric end  as fps,
+         case when jsonb_typeof(data -> 'qMax') = 'number' then (data ->> 'qMax')::int end     as qmax
+  from games g
+),
+vnum as (
+  select v.*, case when jsonb_typeof(data -> 'load') = 'number' then (data ->> 'load')::numeric end as load
+  from visits v
+),
 pids as (select distinct player_id from ok where player_id is not null),
 back as (   -- players (with consent) seen on two or more different days, counting their whole history
   select e.player_id
@@ -104,19 +116,29 @@ funnel as (
   group by r
 ),
 round_times as (   -- seconds spent in each finished round (the last, unfinished one of every game is left out)
-  select (g.data ->> 'r0')::int + t.ord - 1 as r, t.v::numeric as s
+  select t.ord::int as r, t.v::numeric as s
   from games g,
        jsonb_array_elements_text(case when jsonb_typeof(g.data -> 'rt') = 'array' then g.data -> 'rt' else '[]'::jsonb end) with ordinality as t(v, ord)
-  where t.ord < jsonb_array_length(g.data -> 'rt')
+  where t.ord < jsonb_array_length(case when jsonb_typeof(g.data -> 'rt') = 'array' then g.data -> 'rt' else '[]'::jsonb end)
+    and t.v ~ '^[0-9]{1,6}$'
 ),
 errs as (
-  select data ->> 'msg' as msg, data ->> 'at' as at, os, browser, coalesce((data ->> 'n')::int, 1) as n, session_id, created_at
+  select data ->> 'msg' as msg, data ->> 'at' as at, os, browser,
+         case when jsonb_typeof(data -> 'n') = 'number' then (data ->> 'n')::int else 1 end as n, session_id, created_at
   from ok where kind = 'error' and data ? 'msg'
 ),
 err_top as (
   select msg, sum(n) as n, count(distinct session_id) as sessions, max(created_at) as last,
          (array_agg(at order by created_at desc))[1] as at
   from errs group by msg order by sum(n) desc limit 30
+),
+days as (   -- visits and games per day in Spain (the last 60 days of the range at most)
+  select d, count(*) filter (where kind = 'visit') as visits, count(*) filter (where kind = 'g') as games
+  from (select (created_at at time zone 'Europe/Madrid')::date as d, kind from visits
+        union all
+        select (min(created_at) at time zone 'Europe/Madrid')::date, 'g' from ok
+        where kind in ('end', 'quit') and game is not null group by session_id, game) x
+  group by d order by d desc limit 60
 )
 select jsonb_build_object(
   'summary', jsonb_build_object(
@@ -129,14 +151,15 @@ select jsonb_build_object(
     'games_touch',   (select count(*) from games where platform = 'touch'),
     'secs_total',    (select coalesce(sum(secs), 0) from games),
     'secs_avg',      (select round(avg(secs)) from games),
-    'left_no_play',  (select count(*) from visits v
-                      where coalesce((v.data ->> 'go')::boolean, false) = false
-                        and not exists (select 1 from games g where g.session_id = v.session_id)),
+    'left_no_play',  (select count(*) from visits v      -- the visit never led to a game (whatever the visit itself said)
+                      where not exists (select 1 from public.events g
+                                        where g.session_id = v.session_id and g.kind in ('end', 'quit'))),
     'consent_yes',   (select count(*) from visits where data ->> 'consent' = 'yes'),
     'consent_no',    (select count(*) from visits where data ->> 'consent' = 'no'),
     'consent_unset', (select count(*) from visits where data ->> 'consent' = 'unset'),
     'test_games',    (select count(distinct (session_id, game)) from ev where test and kind in ('end', 'quit'))
   ),
+  'daily', (select coalesce(jsonb_agg(jsonb_build_object('day', d, 'visits', visits, 'games', games) order by d), '[]'::jsonb) from days),
   'funnel', (select coalesce(jsonb_agg(jsonb_build_object('round', r, 'all', n_all, 'pc', n_pc, 'touch', n_touch) order by r), '[]'::jsonb) from funnel),
   'last_round', jsonb_build_object(
     'all',   (select mode() within group (order by round) from games),
@@ -153,36 +176,37 @@ select jsonb_build_object(
                           count(*) filter (where kind = 'quit')                    as quit
                    from games group by round) c),
   'countries', (select coalesce(jsonb_agg(jsonb_build_object('code', code, 'n', n) order by n desc, code), '[]'::jsonb)
-                from (select coalesce(country, '??') as code, count(distinct session_id) as n from ok group by 1 order by 2 desc limit 25) x),
+                from (select coalesce(country, '??') as code, count(distinct session_id) as n from ok group by 1 order by 2 desc, 1 limit 25) x),
   'cities', (select coalesce(jsonb_agg(jsonb_build_object('city', city, 'region', region, 'code', code, 'n', n) order by n desc, city), '[]'::jsonb)
              from (select city, max(region) as region, coalesce(country, '??') as code, count(distinct session_id) as n
-                   from ok where city is not null group by city, country order by 4 desc limit 25) x),
+                   from ok where city is not null group by city, country order by 4 desc, 1 limit 25) x),
   'platforms', (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select coalesce(platform, '?') as k, count(distinct session_id) as n from ok group by 1) x),
   'os',        (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select coalesce(os, '?') as k, count(distinct session_id) as n from ok group by 1) x),
   'browsers',  (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select coalesce(browser, '?') as k, count(distinct session_id) as n from ok group by 1) x),
   'screens',   (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select coalesce(data ->> 'scr', '?') as k, count(*) as n from visits group by 1) x),
   'langs',     (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select coalesce(lang, '?') as k, count(*) as n from visits group by 1) x),
   'installed', jsonb_build_object(
-    'yes',     (select count(*) from visits where (data ->> 'inst')::boolean),
-    'of',      (select count(*) from visits where data ? 'inst'),
-    'touch_yes', (select count(*) from visits where platform = 'touch' and (data ->> 'inst')::boolean),
+    'yes',       (select count(*) from visits where data -> 'inst' = 'true'::jsonb),
+    'of',        (select count(*) from visits where data ? 'inst'),
+    'touch_yes', (select count(*) from visits where platform = 'touch' and data -> 'inst' = 'true'::jsonb),
     'touch_of',  (select count(*) from visits where platform = 'touch' and data ? 'inst')
   ),
-  'quality', (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select data ->> 'qMax' as k, count(*) as n from games where data ? 'qMax' group by 1) x),
+  'quality', (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select qmax::text as k, count(*) as n from num where qmax is not null group by 1) x),
   'fps', jsonb_build_object(
-    'pc',    (select round(percentile_cont(0.5) within group (order by (data ->> 'fps')::numeric)) from games where platform = 'pc' and data ? 'fps'),
-    'touch', (select round(percentile_cont(0.5) within group (order by (data ->> 'fps')::numeric)) from games where platform = 'touch' and data ? 'fps'),
-    'n',     (select count(*) from games where data ? 'fps')
+    'pc',    (select round(percentile_cont(0.5) within group (order by fps)) from num where platform = 'pc' and fps is not null),
+    'touch', (select round(percentile_cont(0.5) within group (order by fps)) from num where platform = 'touch' and fps is not null),
+    'n',     (select count(*) from num where fps is not null)
   ),
   'load', jsonb_build_object(
-    'pc_p50',    (select round(percentile_cont(0.5) within group (order by (data ->> 'load')::numeric)) from visits where platform = 'pc' and data ? 'load'),
-    'pc_p90',    (select round(percentile_cont(0.9) within group (order by (data ->> 'load')::numeric)) from visits where platform = 'pc' and data ? 'load'),
-    'touch_p50', (select round(percentile_cont(0.5) within group (order by (data ->> 'load')::numeric)) from visits where platform = 'touch' and data ? 'load'),
-    'touch_p90', (select round(percentile_cont(0.9) within group (order by (data ->> 'load')::numeric)) from visits where platform = 'touch' and data ? 'load'),
-    'not_ready', (select count(*) from visits where data ->> 'ready' = 'false')
+    'pc_p50',    (select round(percentile_cont(0.5) within group (order by load)) from vnum where platform = 'pc' and load is not null),
+    'pc_p90',    (select round(percentile_cont(0.9) within group (order by load)) from vnum where platform = 'pc' and load is not null),
+    'touch_p50', (select round(percentile_cont(0.5) within group (order by load)) from vnum where platform = 'touch' and load is not null),
+    'touch_p90', (select round(percentile_cont(0.9) within group (order by load)) from vnum where platform = 'touch' and load is not null),
+    'not_ready', (select count(*) from visits where data -> 'ready' = 'false'::jsonb)
   ),
   'film', (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select data ->> 'film' as k, count(*) as n from visits where data ? 'film' group by 1) x),
-  'film_skip_secs', (select round(percentile_cont(0.5) within group (order by (data ->> 'filmS')::numeric)) from visits where data ->> 'film' = 'skipped' and data ? 'filmS'),
+  'film_skip_secs', (select round(percentile_cont(0.5) within group (order by (data ->> 'filmS')::numeric)) from visits
+                     where data ->> 'film' = 'skipped' and jsonb_typeof(data -> 'filmS') = 'number'),
   'tutorial', (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select data ->> 'tut' as k, count(*) as n from games where kind = 'end' and data ? 'tut' group by 1) x),
   'tutorial_step', (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select data ->> 'tutStep' as k, count(*) as n from games where data ->> 'tut' = 'skip' and data ? 'tutStep' group by 1) x),
   'errors', (select coalesce(jsonb_agg(jsonb_build_object(
@@ -198,3 +222,6 @@ $$;
 
 revoke all on function public.metrics_stats(text, text) from public, anon, authenticated;
 grant execute on function public.metrics_stats(text, text) to service_role;
+
+-- the Data API (PostgREST) picks up the new function at once
+notify pgrst, 'reload schema';

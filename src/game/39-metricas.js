@@ -51,7 +51,7 @@ function mtVisit(){if(MT.visit)return null;MT.visit=true;
   else if(MT.go&&!$('opening').hidden)Object.assign(e,{film:'left',filmS:Math.round($('opVid').currentTime||0)}); // the page goes away during the film
   return e;}
 // ---- one game: reset() (24-game-state.js) -> mtStart, startWave -> mtRound, the phone tutorial -> mtTut, the quality loop -> mtFps, endGame -> mtEnd ----
-function mtStart(){if(!MT.on)return;MT.g++;MT.quitK='';
+function mtStart(){if(!MT.on)return;MT.g++;MT.quitK='';MT.go=true; // (a game starting = JUGAR was pressed: 27-opening.js may start it inside the same click, before the listener above runs)
   MT.gm={rt:[],w:-1,wt:0,tut0:!isTouch||MTUT.done,tut:null,tutStep:0,qMax:QA.lvl,fps:[]};
   if(!MT.visit){MT.film=mtFilm();mtSend([mtVisit()]);}}
 function mtRound(){const G=MT.gm;if(!G)return;if(G.w>=0&&G.rt.length<60)G.rt.push(Math.max(0,Math.round(playT-G.wt)));G.w=wave;G.wt=playT;} // seconds of each round (its breather included)

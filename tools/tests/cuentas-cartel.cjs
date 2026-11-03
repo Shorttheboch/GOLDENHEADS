@@ -76,7 +76,7 @@ const layout=(p,which)=>p.evaluate(which=>{const g=id=>document.getElementById(i
     clipped:vis.filter(e=>{const r=R(e);return r.l<tr.l-1||r.r>tr.r+1||r.t<tr.t-1||r.b>tr.b+1;}).map(e=>e.id||e.tagName+':'+e.textContent.slice(0,16)),
     textOut:vis.filter(e=>{const r=rng(e),pr=R(e.closest('li')||e);return r.r>Math.max(pr.r,tr.r)+1||r.l<Math.min(pr.l,tr.l)-1;}).map(e=>e.id||e.textContent.slice(0,16)),
     againOver:over(ag,pan)||over(ag,R(g('record'))),againHit:hit(g('again')),panelOverRecord:over(pan,R(g('record'))),tabsOverRound:tabsOn&&over(R(g('endTabs')),R(g('endRound'))),
-    chevIn:[g('endPrev'),g('endNext')].filter(e=>!e.hidden).every(e=>inside(R(e))&&hit(e)),chev:[!g('endPrev').hidden,!g('endNext').hidden],
+    chevIn:[g('endPrev'),g('endNext')].filter(e=>!e.hidden).every(e=>inside(R(e))&&hit(e)&&+getComputedStyle(e).opacity>0.9),chev:[!g('endPrev').hidden,!g('endNext').hidden],
     tabsHit:tabsOn?[hit(g('endTab0')),hit(g('endTab1'))]:null,curVis:getComputedStyle(cur).visibility==='visible'&&!cur.inert,
     other:(which===1?g('endSlide0'):g('rankBox')).inert};
   if(which!==1)return Object.assign(out,{statFont:parseFloat(getComputedStyle(g('endStats')).fontSize)*scale});
@@ -121,7 +121,7 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
       const L=await layout(p,1);
       ok(['l','t','w','h'].every(k=>Math.abs(L.fr[k]-A.fr[k])<0.6&&Math.abs(L.pan[k]-A.pan[k])<0.6)&&Math.abs(L.box.h-A.box.h)<0.6,T+' the ranking frame has exactly the place and size of the stats frame (nothing else moves)',{a:A.fr,b:L.fr});
       ok(!L.clipped.length&&!L.textOut.length&&!L.scoreCut&&L.curVis&&L.other,T+' ranking: everything inside the frame, nothing cut',{c:L.clipped,t:L.textOut});
-      ok(L.chev[0]&&!L.chev[1]&&L.chevIn,T+' the ‹ chevron to go back to the stats',L.chev);
+      ok(L.chev[0]&&!L.chev[1]&&L.chevIn,T+' the ‹ chevron to go back to the stats, seen and answering',L.chev);
       ok(L.rows===5,T+' five lines',L.names);
       const FIRST=lang==='es'?'¡Sé el primero!':'Be the first!',YOU=lang==='es'?'TÚ':'YOU';
       ok(JSON.stringify(L.h)===JSON.stringify(lang==='es'?['RANKING DE CAPITANES','TEMPORADA 1']:['CAPTAINS LEADERBOARD','SEASON 1']),T+' title and season',L.h);

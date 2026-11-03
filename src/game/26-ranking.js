@@ -45,7 +45,7 @@ function endSlide(i,how){if(!ENDV.on)i=0;const prev=ENDV.i;ENDV.i=i;if(i===1)END
   const a=$('endSlide0'),b=$('rankBox'),to=i===1?b:a,from=i===1?a:b;endSwapStop();
   for(const [el,on] of [[a,i===0],[b,i===1]]){el.inert=!on;el.setAttribute('aria-hidden',String(!on));} // the slide that is not shown: no focus, no clicks
   $('endTab0').setAttribute('aria-selected',String(i===0));$('endTab1').setAttribute('aria-selected',String(i===1));
-  $('endPrev').hidden=!ENDV.on||i===0;$('endNext').hidden=!ENDV.on||i===1;
+  $('endPrev').hidden=!ENDV.on||i===0;$('endNext').hidden=!ENDV.on||i===1;$('endPanel').classList.toggle('live',how!=='now');
   to.classList.remove('off');
   if(how==='now'||prev===i||!ENDV.on||$('end').hidden||typeof to.animate!=='function'){from.classList.add('off');return;}
   endSwap(from,to,i===1?1:-1);}

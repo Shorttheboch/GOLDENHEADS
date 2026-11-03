@@ -49,6 +49,7 @@ body.touch #endTabs button::before{content:'';position:absolute;left:-6px;right:
 .chev:active{transform:scale(.95)}
 body.touch .chev::before{content:'';position:absolute;inset:-10px -12px}
 #end.go .chev{animation:eFadeIn .3s 1.6s both}
+#end.go #endPanel.live .chev{animation:eFadeIn .2s ease-out both} /* after a swap the other chevron comes at once (not after the plate's entrance delay) */
 /* the ranking slide: everything inside the frame */
 #rankBox{position:relative;box-sizing:border-box;min-width:0;font:600 calc(var(--u)*1.85)/1.15 var(--ef);color:#efe6d2;text-align:center;display:flex;flex-direction:column;justify-content:center}
 #rankH{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:0 .55em;font:800 calc(var(--u)*1.75)/1.1 var(--ef);letter-spacing:.2em;white-space:nowrap}

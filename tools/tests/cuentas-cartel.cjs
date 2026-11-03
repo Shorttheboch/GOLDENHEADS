@@ -110,9 +110,10 @@ const layout=p=>p.evaluate(()=>{const g=id=>document.getElementById(id),R=e=>{co
       // the full list from the panel
       if(st==='full'){await p.click('#rankAll');await p.waitForFunction(()=>{const a=document.getElementById('acct');return !a.hidden&&a.dataset.s==='board';},null,{timeout:20000});await p.waitForTimeout(600);
         const F=await p.evaluate(()=>{const L=document.getElementById('acList'),b=document.getElementById('acBox').getBoundingClientRect(),r=L.getBoundingClientRect(),go=document.getElementById('acGo').getBoundingClientRect();
-          return {rows:L.querySelectorAll('li:not(.gap)').length,big:L.classList.contains('big'),inside:b.top>=-1&&b.bottom<=innerHeight+1&&b.left>=-1&&b.right<=innerWidth+1,list:[r.width,r.height].map(Math.round),
+          const last=L.querySelector('li:last-child').getBoundingClientRect();
+          return {rows:L.querySelectorAll('li:not(.gap)').length,big:L.classList.contains('big'),allSeen:last.bottom<=r.bottom+1,inside:b.top>=-1&&b.bottom<=innerHeight+1&&b.left>=-1&&b.right<=innerWidth+1,list:[r.width,r.height].map(Math.round),
             go:go.bottom<=innerHeight+1&&go.height>0,l1:document.getElementById('acL1').textContent,t:document.getElementById('acT').getAttribute('aria-label')};});
-        ok(F.big&&F.rows===6&&F.inside&&F.go&&F.t===(lang==='es'?'RANKING DE CAPITANES':'CAPTAINS LEADERBOARD')&&/6/.test(F.l1),T+' VER RANKING COMPLETO: the framed list (6 captains), on screen, SEGUIR reachable',F);
+        ok(F.big&&F.rows===6&&F.allSeen&&F.inside&&F.go&&F.t===(lang==='es'?'RANKING DE CAPITANES':'CAPTAINS LEADERBOARD')&&/6/.test(F.l1),T+' VER RANKING COMPLETO: the framed list (6 captains), on screen, SEGUIR reachable',F);
         if(ALL||MAIN.has(w+'x'+h)||lang==='es')await p.screenshot({path:shot(`cartel_full_${w}x${h}_${lang}.png`),timeout:240000});
         await p.click('#acGo');await p.waitForTimeout(300);ok(await p.evaluate(()=>document.getElementById('acct').hidden&&!document.getElementById('end').hidden),T+' SEGUIR: back to the end plate');}
     }

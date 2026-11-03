@@ -306,7 +306,7 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
 
   // ================= 4b) a big board: top 50, then a gap and my line pinned at the end =================
   console.log('4b) a big board (64 captains): saved at #65 -> top 50, a gap, my line last and in view; saved at #30 -> my line in the middle');
-  S=server();S.seed=Array.from({length:64},(_,i)=>['CAPI'+(i+1),90000-i*1000,10+i%8]);p=await open(b,S,{});
+  S=server();S.seed=Array.from({length:64},(_,i)=>['CAPI'+(i+1),90000-i*1000,10+i%8]);p=await open(b,S,{w:1920,h:1080});
   await play(p,false);await finish(p,S,1500,400);await rankBox(p);await p.waitForFunction(()=>!document.getElementById('saveBtn').hidden,null,{timeout:20000});
   P=await plate(p);ok(P.rows===5&&!P.ghost&&P.msg[0]==='Guarda tu puntuación con tu apodo de capitán','1.500 does not enter the top 5: five captains, no «TÚ» line',P);
   await clickSave(p,false);await waitScr(p,'nick');await nickTry(p,'ULTIMO');

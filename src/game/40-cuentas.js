@@ -139,7 +139,7 @@ function accScrollMe(){const L=$('acList'),me=L.querySelector('li.me');if(!me)re
 function accFit(){const t=$('acT'),l=t.firstElementChild,b=$('acBox');if(!l||b.offsetParent===null)return;t.style.fontSize='';
   const z=Math.max(1,Math.min(2,Math.min(innerWidth/960,innerHeight/540)*0.75));b.style.zoom=z>1.02?z.toFixed(3):'';
   const L=$('acList');if(L.classList.contains('big')){const st=L.scrollTop;L.style.maxHeight='none';const free=innerHeight-24-b.getBoundingClientRect().height,lh=L.getBoundingClientRect().height,row=L.firstElementChild?L.firstElementChild.getBoundingClientRect().height:20;
-    const want=Math.max(row*3.2,Math.min(lh,lh+free));L.style.maxHeight=(want/(z>1.02?z:1)).toFixed(0)+'px';
+    if(free<0)L.style.maxHeight=(Math.max(row*3.2,lh+free)/(z>1.02?z:1)).toFixed(0)+'px'; // only when it does not all fit (the box may still be coming in, slightly scaled)
     if(L.querySelector('li.me'))accScrollMe();else L.scrollTop=st;} // (refitting the height must not lose the place in the list)
   const cs=getComputedStyle(b),max=b.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-8,w=l.offsetWidth*1.16; // (layout width x the scaleX of .ln: no animation in it)
   if(w>max)t.style.fontSize=(parseFloat(getComputedStyle(t).fontSize)*max/w).toFixed(1)+'px';}

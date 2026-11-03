@@ -143,5 +143,10 @@
   "a": "function rondaStart(){const W0=RONDA.n-1;",
   "b": "window.__ronda={get n(){return RONDA.n},get spitN(){return spitN},get incN(){return incN},get spitFirstW(){return spitFirstW},get rankOn(){return RANK.on},get eggPlan(){return eggPlan.length},get opSeen(){return opSeen}};function rondaStart(){const W0=RONDA.n-1;",
   "file": "game"
+ },
+ {
+  "a": "const RANK={on:",
+  "b": "const RANK={on:window.__rankOn===1||",
+  "file": "game"
  }
 ]

@@ -206,6 +206,40 @@ P.append([r'^Plasma (\d+) s · atraviesa arañas$','Plasma $1 s · pierces spide
 # ---- v81: the anonymous-stats question on the start menu (index.html #mtAsk, src/game/39-metricas.js) ----
 EN.update({'¿Nos ayudas con estadísticas anónimas?':'Will you help us with anonymous stats?',
  'Para mejorar el juego: rondas, dispositivo y país. Sin nombre ni cuenta.':'To improve the game: rounds, device and country. No name, no account.','SÍ':'YES'})
+# ---- v82: Google accounts and the Season 1 ranking (index.html #rankBox / #acct, src/game/26-ranking.js, src/game/40-cuentas.js) ----
+EN.update({'RANKING DE CAPITANES · TEMPORADA 1':'CAPTAINS LEADERBOARD · SEASON 1','GUARDAR MI PUNTUACIÓN':'SAVE MY SCORE','con Google':'with Google',
+ 'CAPITÁN':'CAPTAIN','Salir':'Sign out','Borrar mi cuenta':'Delete my account','Privacidad':'Privacy','Apodo':'Nickname',
+ 'De 3 a 12 letras o números (también . _ -). Sin espacios.':'3 to 12 letters or digits (also . _ -). No spaces.',
+ 'Guardando tu partida…':'Saving your run…','Partida guardada · en revisión':'Run saved · under review',
+ 'Elige tu apodo para guardar la partida':'Choose your nickname to save this run','Esta cuenta está fuera del ranking.':'This account is off the leaderboard.',
+ 'Esta partida ya estaba guardada.':'This run was already saved.','La partida ha caducado.':'This run has expired.',
+ 'El servidor no ha aceptado esta partida.':'The server did not accept this run.','No se pudo guardar ahora.':'Could not save it right now.',
+ 'Guarda tu puntuación con tu apodo de capitán':'Save your score under your captain nickname','Aún no hay nadie en el ranking: ¡sé el primero!':'Nobody on the leaderboard yet: be the first!',
+ 'ABRIENDO GOOGLE…':'OPENING GOOGLE…','Google no está disponible ahora mismo. Inténtalo más tarde.':'Google is not available right now. Try again later.',
+ 'Sesión cerrada.':'Signed out.','Cuenta borrada.':'Account deleted.',
+ 'CONECTANDO…':'CONNECTING…','Volviendo de Google…':'Coming back from Google…','GUARDANDO…':'SAVING…','Guardando tu partida en el ranking…':'Saving your run to the leaderboard…',
+ 'ELIGE TU APODO':'CHOOSE YOUR NICKNAME','Así te verán en el ranking de capitanes. Es único y no se puede cambiar después.':"This is how you'll show on the captains leaderboard. It's unique and can't be changed later.",
+ 'GUARDAR':'SAVE','AHORA NO':'NOT NOW','SEGUIR':'CONTINUE','¡PUNTUACIÓN GUARDADA!':'SCORE SAVED!',
+ 'PARTIDA EN REVISIÓN':'RUN UNDER REVIEW','La hemos guardado, pero saldrá en el ranking cuando la revisemos.':"It's saved, and it will show on the leaderboard once we've reviewed it.",
+ 'YA ESTABA GUARDADA':'ALREADY SAVED','Esta partida ya está en el ranking.':'This run is already on the leaderboard.',
+ 'LA PARTIDA HA CADUCADO':'THIS RUN HAS EXPIRED','Han pasado más de 4 horas. Juega otra: ahora se guardará sola.':'More than 4 hours have passed. Play another one: now it will save itself.',
+ 'NO SE PUDO GUARDAR':'COULD NOT SAVE','SESIÓN INICIADA':'SIGNED IN','Desde ahora tus partidas se guardan solas al terminar.':'From now on your runs save themselves when they end.',
+ 'NO SE HA INICIADO SESIÓN':'NOT SIGNED IN','Google no ha confirmado el acceso. Tu partida sigue guardada en este dispositivo unas horas.':"Google didn't confirm the sign-in. Your run stays on this device for a few hours.",
+ 'Google no ha confirmado el acceso.':"Google didn't confirm the sign-in.",'PROBAR OTRA VEZ':'TRY AGAIN',
+ 'RANKING NO DISPONIBLE':'LEADERBOARD UNAVAILABLE','No podemos conectar con el ranking ahora mismo. Inténtalo más tarde.':"We can't reach the leaderboard right now. Try again later.",'CERRAR':'CLOSE',
+ 'SIN CONEXIÓN':'NO CONNECTION','No se pudo hablar con el ranking. Comprueba la conexión.':"Couldn't reach the leaderboard. Check your connection.",
+ 'CUENTA FUERA DEL RANKING':'ACCOUNT OFF THE LEADERBOARD','Esta cuenta no puede guardar partidas. Si crees que es un error, escribe a headsrescueadmin@gmail.com.':"This account can't save runs. If you think it's a mistake, write to headsrescueadmin@gmail.com.",
+ '¿BORRAR TU CUENTA?':'DELETE YOUR ACCOUNT?','Se borrarán tu apodo, todas tus partidas del ranking y tu acceso con Google. No se puede deshacer.':"Your nickname, all your leaderboard runs and your Google sign-in will be deleted. This can't be undone.",
+ 'BORRAR':'DELETE','CANCELAR':'CANCEL','CUENTA BORRADA':'ACCOUNT DELETED','Hemos borrado tu apodo, tus partidas y tu acceso con Google.':'We deleted your nickname, your runs and your Google sign-in.',
+ 'Hemos borrado tu apodo y tus partidas. Para borrar también el acceso con Google, escribe a headsrescueadmin@gmail.com.':'We deleted your nickname and your runs. To delete the Google sign-in too, write to headsrescueadmin@gmail.com.',
+ 'Usa de 3 a 12 letras o números (también . _ -), sin espacios.':'Use 3 to 12 letters or digits (also . _ -), no spaces.','Necesita al menos 3 letras o números.':'It needs at least 3 letters or digits.',
+ 'Ese apodo ya es de otro capitán. Prueba otro.':'That nickname belongs to another captain. Try another one.','Ese apodo no está permitido.':"That nickname isn't allowed.",
+ 'Ese apodo está reservado.':'That nickname is reserved.','Demasiados intentos. Espera unos minutos.':'Too many tries. Wait a few minutes.',
+ 'No se pudo guardar el apodo. Inténtalo otra vez.':"Couldn't save the nickname. Try again.",'No se pudo borrar ahora. Inténtalo otra vez.':"Couldn't delete it right now. Try again.",
+ 'Tu sesión ha caducado: vuelve a entrar con Google para borrar la cuenta, o escríbenos a headsrescueadmin@gmail.com.':'Your session has expired: sign in with Google again to delete the account, or write to headsrescueadmin@gmail.com.'})
+P.extend([[r'^Tu mejor de la temporada: ([\d.,]+) · ronda (\d+)$','Your season best: $1 · round $2'],[r'^Puesto #(\d+) de ([\d.,]+) capitanes$','Rank #$1 of $2 captains']])
+H.update({'Al guardar aceptas la <a data-priv="priv" href="privacidad/" target="_blank" rel="noopener">privacidad</a> y las <a data-priv="normas" href="privacidad/#normas" target="_blank" rel="noopener">normas del ranking</a>.':
+  'By saving you accept the <a data-priv="priv" href="privacy/" target="_blank" rel="noopener">privacy policy</a> and the <a data-priv="normas" href="privacy/#rules" target="_blank" rel="noopener">leaderboard rules</a>.'})
 # sanity: every tutorial line must exist verbatim in the game code
 for k in H:
     if k not in b: print('TUT NOT FOUND:',k[:60])

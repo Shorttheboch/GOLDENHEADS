@@ -96,7 +96,7 @@
 <div class="screen" id="menu"><div id="langTog" data-noi18n><button type="button" data-l="es">ES</button><button type="button" data-l="en">EN</button></div>
   <button type="button" class="instBtn" id="instMenu" data-inst hidden><svg class="instSvg" style="--w:15;--h:15" viewBox="0 0 15 15" aria-hidden="true"><path d="M1.5 5 V1.5 H5 M10 1.5 H13.5 V5 M1.5 10 V13.5 H5 M10 13.5 H13.5 V10"/></svg><span>PANTALLA COMPLETA</span></button>
   <aside id="mtAsk" hidden aria-labelledby="mtAskQ"><!-- v81: the anonymous-stats question (logic: src/game/39-metricas.js, look: src/styles/10-metricas.css). PC: top left · phone: top strip between the logo and ES/EN -->
-    <div class="mtAskT"><p id="mtAskQ">¿Nos ayudas con estadísticas anónimas?</p><p class="mtAskS">Para mejorar el juego: rondas, dispositivo y país. Sin nombre ni cuenta.</p></div>
+    <div class="mtAskT"><p id="mtAskQ">¿Nos ayudas con estadísticas anónimas?</p><p class="mtAskS">Para mejorar el juego: rondas, dispositivo y país. Sin nombre ni cuenta.</p><a class="mtAskP" data-priv="priv" href="privacidad/" target="_blank" rel="noopener">Privacidad</a></div>
     <div class="mtAskB"><button type="button" class="y" data-a="yes">SÍ</button><button type="button" data-a="no">NO</button></div></aside>
   <div id="menuBg" hidden></div><div id="mFlash"></div><div id="mRing"></div><div id="menuArt">
     <div class="mL" id="mDropC"><div class="mL" id="mDrop"><div class="mL" id="mMidW"><img id="mMid" alt=""><i class="mkf" style="left:16.124%;top:46.226%;--k:0"></i><i class="mkf" style="left:10.242%;top:51.548%;--k:1"></i><i class="mkf" style="left:16.255%;top:51.548%;--k:2"></i><i class="mkf" style="left:22.033%;top:51.548%;--k:3"></i><div class="mT"><div class="mp" data-k="prop" style="left:16.176%;top:60.581%"></div><div class="md" data-k="up" style="left:38.314%;top:49.484%"></div><div class="md" data-k="down" style="left:38.524%;top:60.581%"></div><div class="md t" data-k="lc" style="left:52.547%;top:45.226%"></div><div class="md t" data-k="rc" style="left:66.492%;top:45.161%"></div><div class="md" data-k="aim" style="left:59.401%;top:60.581%"></div><div class="md" data-k="weld" style="left:77.442%;top:49.290%"></div><div class="md" data-k="rel" style="left:87.447%;top:48.484%"></div><div class="md" data-k="dash" style="left:82.852%;top:60.613%"></div><div class="md l" data-k="view" style="left:17.279%;top:70.742%"></div><div class="md" data-k="start" style="left:40.284%;top:74.581%"></div><div class="md" data-k="mv" style="left:63.051%;top:74.581%"></div><div class="md" data-k="esc" style="left:82.405%;top:74.581%"></div><div class="mkey" data-k="space" style="left:38.314%;top:44.710%"></div><div class="mkey" data-k="enter" style="left:40.284%;top:69.452%"></div><div class="mh dec" data-k="uti" style="left:16.597%;top:64.774%"></div></div></div>
@@ -164,10 +164,28 @@
     <div id="endRound"></div>
     <div id="endPanel"><div id="endStats"></div></div>
     <div id="record"></div>
-    <div id="rankBox" hidden><div id="rankH">RANKING DE CAPITANES</div>
-      <form id="rankForm" autocomplete="off"><input id="rankName" maxlength="12" placeholder="TU NOMBRE" spellcheck="false" autocapitalize="characters" enterkeyhint="send" aria-label="Nombre para el ranking"><button id="rankSend" type="submit">GUARDAR</button></form>
-      <div id="rankMsg"></div><ol id="rankList"></ol></div>
+    <div id="rankBox" hidden><!-- v82: Season 1 board (26-ranking.js) and the Google account (40-cuentas.js, look: src/styles/11-cuentas.css) -->
+      <div id="rankH">RANKING DE CAPITANES · TEMPORADA 1</div>
+      <div id="rankMsg" aria-live="polite"></div><ol id="rankList" data-noi18n></ol>
+      <button id="saveBtn" type="button" hidden><i class="sbL"></i><span class="sbT"><b>GUARDAR MI PUNTUACIÓN</b><small>con Google</small></span><i class="sbL r"></i></button>
+      <div id="acctBar" hidden><span class="abMe" hidden><span class="abCap">CAPITÁN</span> <b id="acctNick" data-noi18n></b></span><button type="button" id="acctOut" hidden>Salir</button><button type="button" id="acctDel" hidden>Borrar mi cuenta</button><a id="acctPriv" data-priv="priv" href="privacidad/" target="_blank" rel="noopener">Privacidad</a></div></div>
     <button id="again" type="button"><b>REINTENTAR</b><small>ENTER</small></button>
+  </div>
+</div>
+
+<div id="acct" hidden role="dialog" aria-modal="true" aria-labelledby="acT"><!-- v82: Google account screens over the menu or the end plate (logic: src/game/40-cuentas.js, look: src/styles/11-cuentas.css):
+     back from Google, nickname, run saved, delete account... Texts are set by the code (Spanish source, English in tools/i18n/build_i18n.py). -->
+  <div id="acBox">
+    <div id="acT"></div>
+    <p id="acS"></p>
+    <form id="acNick" hidden autocomplete="off" novalidate>
+      <div class="acRow"><span class="acCap">CAPITÁN</span><input id="acIn" maxlength="12" spellcheck="false" autocapitalize="characters" autocomplete="off" autocorrect="off" enterkeyhint="done" aria-label="Apodo" aria-describedby="acHint acErr"></div>
+      <p id="acHint">De 3 a 12 letras o números (también . _ -). Sin espacios.</p>
+      <p id="acErr" role="alert"></p>
+      <p class="acRules" data-rich>Al guardar aceptas la <a data-priv="priv" href="privacidad/" target="_blank" rel="noopener">privacidad</a> y las <a data-priv="normas" href="privacidad/#normas" target="_blank" rel="noopener">normas del ranking</a>.</p>
+    </form>
+    <div id="acRes" hidden><p id="acL1"></p><p id="acL2"></p><ol class="rkList" id="acList" data-noi18n></ol></div>
+    <div id="acBtns"><button type="button" id="acGo"><span></span></button><button type="button" id="acNo"></button></div>
   </div>
 </div>
 

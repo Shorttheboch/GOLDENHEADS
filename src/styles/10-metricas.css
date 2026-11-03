@@ -41,3 +41,7 @@ body.touch .mtAskB button::before{content:'';position:absolute;left:-3px;right:-
 @container (max-width:240px){body.touch #mtAskQ{font-size:11px}}
 @container (max-width:185px){body.touch .mtAskB{flex-direction:column;gap:4px}body.touch .mtAskB button{height:22px}body.touch .mtAskB button::before{height:100%}}
 @container (min-width:360px){body.touch .mtAskS{display:block;font-size:10.5px}}
+/* v82: a small link to the privacy page under the text (PC) / the question (phone) */
+.mtAskP{display:inline-block;margin-top:4px;font:600 10.5px/1.1 'TitilliumH','Titillium Web',system-ui,sans-serif;letter-spacing:.04em;color:#d9b45a;text-decoration:underline;text-decoration-color:rgba(232,182,74,.45);text-underline-offset:.18em}
+.mtAskP:hover,.mtAskP:focus-visible{color:#ffe08a;outline:none}
+body.touch .mtAskP{margin-top:2px;font-size:9.5px}

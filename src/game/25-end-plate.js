@@ -45,6 +45,6 @@ function endGame(win,reason){if(state!=='play')return;state='dead';xpEnd(true);X
   showEndPlate({title:reason==='ship'?'NAVE PERDIDA':reason==='cargo'?'CARGA PERDIDA':'TRAJE ROTO',
     sub:reason==='ship'?'LAS ARAÑAS DEVORARON EL CASCO':reason==='cargo'?'LOS TRICOMAS SE PERDIERON EN EL VACÍO':'SEÑAL VITAL PERDIDA',
     total,round:wave+1,cargo:fmt(score),combat:fmt(pts),rows,recHTML,isNew});
-  rankShow(total,{kills:stats.kills,heads:stats.heads,acc,saved:Math.round(stats.saved),repairs});
+  rankShow(total,{kills:stats.kills,heads:stats.heads,acc,saved:Math.round(stats.saved),repairs,combat:Math.round(pts),cargo:Math.round(score),spit:stats.spitters,inc:stats.incs||0,eggs:stats.eggsKilled,xp:stats.xp}); // v82: online ranking (26-ranking.js, 40-cuentas.js)
   sfx('boom');musicEnd(2); // v73: the music fades out over ~2 s
   mtEnd(reason,acc);} // v81: anonymous metrics (39-metricas.js)

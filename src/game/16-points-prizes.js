@@ -142,11 +142,15 @@ function tryWindup(s,dist,W,dt,hunting){if(CINE.on)return;
   let leaping=0;for(const o of spiders)if(o.state==='leap'||o.state==='windup')leaping++;
   s.wait=(hunting&&dist>=W.range&&s.cd<=0&&dist<45)?(s.wait||0)+dt:0; // player hovering out of reach -> launch anyway after a moment
   s.hopTo=null;if(s.wait>1.2&&s.kind!=='spitter'){for(const R of ROCKS){if(R.fade<1||R.leaving)continue;const dp=R.c.distanceTo(P.pos),ds=R.c.distanceTo(s.pos);if(dp<16&&ds<26&&dp<dist-4){_rk.subVectors(s.pos,R.c).normalize();s.hopTo=R.c.clone().addScaledVector(_rk,rockR(R,_rk)*0.9);break;}}}
-  if(state==='play'&&s.cd<=0&&leaping<W.maxLeap&&((dist<lr&&Math.random()<s.aggr*dt*6)||s.wait>2+Math.random()*2)){s.wait=0;if(shipBetween(s.pos,P.pos)){s.aggro=Math.max(s.aggro||0,2);return;}
+  if(state==='play'&&s.cd<=0&&leaping<W.maxLeap&&((dist<lr&&Math.random()<s.aggr*dt*6)||s.wait>2+Math.random()*2)){s.wait=0;if(shipBetween(s.pos,P.pos)||isJumpS(s)&&!leapClear(jumpFrom(s,_jw1,_jw2),P.pos,s.mesh.scale.x)){s.aggro=Math.max(s.aggro||0,2);return;} // v83: and the straight jump against the real hull (41-saltos.js)
     // telegraph: crouch, eyes flare, chitter -> then leap
     s.state='windup';s.t=0;s.windT=Math.max(0.35,0.62-wave*0.03);sfx('chitter',s.pos);if(dist<30)tutorialEvent('windup');}}
+const _jw1=new THREE.Vector3(),_jw2=new THREE.Vector3();
 function launchLeap(s){const W=waveDef(wave);
   const lead=s.hopTo?s.hopTo.clone():P.pos.clone().addScaledVector(P.vel,0.35).add(new THREE.Vector3().randomDirection().multiplyScalar(0.4));
+  if(isJumpS(s)){jumpFrom(s,_jw1,_jw2);if(!leapClear(_jw1,lead,s.mesh.scale.x)){s.state='crawl';s.t=0;s.cd=0.3;s.aggro=Math.max(s.aggro||0,2);return;} // v83: you went behind the ship while it crouched: no jump
+    s.state='leap';s.vel.subVectors(lead,_jw1).normalize().multiplyScalar(CFG.leapSpeed*(0.85+W.spd*0.15));s.t=0;s.leapMax=_jw1.distanceTo(P.pos)/s.vel.length()+1.5;
+    s.pos.copy(_jw1);s.jumpN=_jw2.clone();s.mesh.position.copy(s.pos);sfx('leap',s.pos);return;} // v83: it takes off from the height it walks at, belly to the hull (jumpOrient)
   s.state='leap';s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed*(0.85+W.spd*0.15));s.t=0;s.leapMax=s.pos.distanceTo(P.pos)/s.vel.length()+1.5;
   const n0=new THREE.Vector3();hullPoint(s.z,s.th,V3,n0);if(isCrabS(s)){s.leapN=n0.clone();s.pos.addScaledVector(n0,s.mesh.userData.rig.spd.rootOff*s.mesh.scale.x);}else s.pos.addScaledVector(n0,0.5);sfx('leap',s.pos);
   const u=s.mesh.userData;if(!u.rig){u.body.position.y=0;u.body.rotation.x=0;u.mEye.color.setHex(u.S.eye);}}
@@ -199,7 +203,7 @@ function updateSpider(s,dt,t){
      else if(!hullBlocked(s.z,nt,pad))s.th=nt;
      else{const f=freeSpot(s.z,s.th,pad);s.z=f[0];s.th=f[1];}
      if(hullBlocked(nz,nt,pad)){s.slotTh=-s.slotTh;s.orbit=-s.orbit;}}
-    const n=new THREE.Vector3();const prev=s.pos.clone();hullPoint(s.z,s.th,s.pos,n);
+    const n=new THREE.Vector3();const prev=s.pos.clone();hullPoint(s.z,s.th,s.pos,n);if(isJumpS(s))spUp(s.z,s.th,n); // v83: up = the real normal (the nose and the tail slope)
     const mv=s.pos.clone().sub(prev);if(mv.lengthSq()>1e-8){mv.normalize();s.face=(s.face||mv.clone()).lerp(mv,Math.min(1,dt*8)).normalize();orient(s.mesh,s.face,n);}
     s.mesh.position.copy(s.pos).addScaledVector(n,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=mv.lengthSq()>0;
     // watchdog: a crawler that has not really moved for 5 s skitters a couple of metres along its path
@@ -210,7 +214,7 @@ function updateSpider(s,dt,t){
   }else if(s.state==='eat'){
     const W=waveDef(wave),pa=s.patch;
     if(!pa||pa.hp<=0||state!=='play'){s.state='crawl';s.patch=null;if(!U.rig){U.body.rotation.x=0;U.body.position.y=0;}}
-    else{const n=new THREE.Vector3();hullPoint(s.z,s.th,s.pos,n);
+    else{const n=new THREE.Vector3();hullPoint(s.z,s.th,s.pos,n);if(isJumpS(s))spUp(s.z,s.th,n);
       const fw=V2.subVectors(pa.pos,s.pos).addScaledVector(n,-V2.dot(n));if(fw.lengthSq()>0.01){fw.normalize();s.face=(s.face||fw.clone()).lerp(fw,Math.min(1,dt*6)).normalize();}
       if(s.face)orient(s.mesh,s.face,n);
       s.mesh.position.copy(s.pos).addScaledVector(n,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.22);
@@ -219,7 +223,7 @@ function updateSpider(s,dt,t){
       s.chewT-=dt;if(s.chewT<=0){s.chewT=0.22+Math.random()*0.2;burst(V3.copy(pa.pos).addScaledVector(n,0.25),0xffc050,2);sfx('chew',s.pos);}
       s.moving=false;if(s.kind==='spitter'){if(dist<22){s.state='crawl';s.patch=null;}else spitterAim(s,dist);}else tryWindup(s,dist,W,dt,huntMode(s,dist,W));}
   }else if(s.state==='windup'){
-    const n=new THREE.Vector3();hullPoint(s.z,s.th,V3,n);const fw=V2.copy(toP).addScaledVector(n,-toP.dot(n)).normalize();
+    const n=new THREE.Vector3();hullPoint(s.z,s.th,V3,n);if(isJumpS(s))spUp(s.z,s.th,n);const fw=V2.copy(toP).addScaledVector(n,-toP.dot(n)).normalize();
     if(fw.lengthSq()>0.5)orient(s.mesh,fw,n);
     const k=Math.min(1,s.t/s.windT);if(!U.rig){U.body.position.y=-0.13*k;U.body.rotation.x=-0.22*k+Math.sin(t*60)*0.03*k;U.mEye.color.setHex(U.S.eye).lerp(WHITE,k);}
     if(s.t>=s.windT){if(s.kind==='spitter'&&s.atk!=='pounce')spitAcid(s);else{launchLeap(s);if(s.kind==='spitter')s.cd=THREE.MathUtils.randFloat(2,3.2);}}
@@ -239,8 +243,10 @@ function updateSpider(s,dt,t){
     if(wingRay(s.pos,V2.copy(s.vel).multiplyScalar(dt))>=0){s.vel.multiplyScalar(-0.35);if(s.state==='leap'){s.state='drift';s.t=0;}}
     s.pos.addScaledVector(s.vel,dt);s.mesh.position.copy(s.pos);
     if(s.kind!=='spitter'){const RK=rockAt(s.pos,0.15*s.mesh.scale.x);if(RK){landOnRock(s,RK);return;}}else pushOutOfRocks(s.pos,0.6*s.mesh.scale.x,s.vel);
-    if(s.vel.lengthSq()>0.01&&!crabLeapOrient(s))orient(s.mesh,V2.copy(s.vel).normalize(),UP);
-    if(pushOutOfShip(s.pos,0.3,s.vel)&&!(s.state==='leap'&&s.t<0.6)){const hp=hullParam(s.pos);[s.z,s.th]=freeSpot(hp.z,hp.th,spPad(s));s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);}
+    if(s.vel.lengthSq()>0.01&&!crabLeapOrient(s)&&!jumpOrient(s))orient(s.mesh,V2.copy(s.vel).normalize(),UP);
+    const hitE=pushOutOfShip(s.pos,0.3,s.vel);
+    if(isJumpS(s)){s.mesh.position.copy(s.pos);if(!jumpCollide(s)&&hitE&&!(s.state==='leap'&&s.t<JUMP_FIX.land))jumpLand(s,s.pos);} // v83: never drawn inside; head, fangs and abdomen against the real hull (41-saltos.js)
+    else if(hitE&&!(s.state==='leap'&&s.t<0.6)){const hp=hullParam(s.pos);[s.z,s.th]=freeSpot(hp.z,hp.th,spPad(s));s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);}
   }else if(s.state==='perch'){ // walking out on a wing (opening scene); pounces at you once the game starts
     const q=s.perch,d=V2.set(q.dx,0,q.dz).normalize(),stp=0.75*dt;let nx=q.x+d.x*stp,nz=q.z+d.z*stp;
     if(wingTop(nx,nz)===null||wingTop(nx+d.x*0.3,nz+d.z*0.3)===null||Math.abs(nx)<4.4||Math.abs(nx)>7.3){q.dx=-q.dx;q.dz=-q.dz;nx=q.x;nz=q.z;} // v79: it also turns round 0.3 m before the end of the wing (the lip falls away at 20-40 deg there)
@@ -249,17 +255,17 @@ function updateSpider(s,dt,t){
     const pf=V2.set(q.dx,0,q.dz).normalize();pf.addScaledVector(nn,-pf.dot(nn)).normalize();orient(s.mesh,pf,nn);
     s.mesh.position.copy(s.pos).addScaledVector(nn,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=true;
     if(state==='play'&&!CINE.on){s.perchT-=dt;
-      if((s.perchT<=0||dist<9)&&!shipBetween(s.pos,P.pos)){const lead=P.pos.clone().addScaledVector(P.vel,0.35);
+      if((s.perchT<=0||dist<9)&&!shipBetween(s.pos,P.pos)&&(!isJumpS(s)||leapClear(s.pos,P.pos,s.mesh.scale.x))){const lead=P.pos.clone().addScaledVector(P.vel,0.35);
         s.state='leap';s.t=0;s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed);s.leapMax=dist/CFG.leapSpeed+1.5;sfx('chitter',s.pos);sfx('leap',s.pos);}
       else if(s.perchT<-6){s.state='return';s.t=0;}}
   }else if(s.state==='fall'){if(!(CINE.on&&CINE.mode==='boss'&&CINE.boss===s&&CINE.t<0.35))updateFall(s,dt);
   }else if(s.state==='return'){
     // no swimming in vacuum: shoot a silk line at the nearest walkable hull spot, then reel in along it (faster and faster)
     if(!s.silk){const hp=hullParam(s.pos);[hp.z,hp.th]=freeSpot(hp.z,hp.th,spPad(s));s.silk={a:hullPoint(hp.z,hp.th,new THREE.Vector3()),z:hp.z,th:hp.th,v:1.5,t:0};silkOn(s);sfx('silk',s.pos);}
-    const SK=s.silk;SK.t+=dt;const d=V3.subVectors(SK.a,s.pos);if(isCrabS(s))crabReelAim(s,SK,d);const L=d.length();
+    const SK=s.silk;SK.t+=dt;const d=V3.subVectors(SK.a,s.pos);if(isCrabS(s))crabReelAim(s,SK,d);else if(isJumpS(s))jumpReelAim(s,SK,d);const L=d.length();
     if(L<0.4){s.z=SK.z;s.th=SK.th;s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);s.slotTh+=THREE.MathUtils.randFloatSpread(1.5);s.silk=null;}
     else{if(SK.t>0.16)SK.v=Math.min(s.kind==='spitter'?14:19,SK.v+(s.kind==='spitter'?11:17)*dt);else SK.v*=Math.exp(-3*dt);
-      s.pos.addScaledVector(d.normalize(),Math.min(L,SK.v*dt));s.mesh.position.copy(s.pos);if(!crabReelOrient(s,SK,d,dt))orient(s.mesh,d,UP);
+      s.pos.addScaledVector(d.normalize(),Math.min(L,SK.v*dt));s.mesh.position.copy(s.pos);if(!crabReelOrient(s,SK,d,dt)&&!(isJumpS(s)&&jumpReelOrient(s,SK,d,L,dt)))orient(s.mesh,d,UP); // v83: belly to the hull as it arrives
       if(s.kind!=='spitter'&&!(s.t<0.5)){const RK=rockAt(s.pos,0.15*s.mesh.scale.x);if(RK){s.silk=null;landOnRock(s,RK);}}}
   }else if(s.state==='rock'){ // clinging to an asteroid: crawls round to the side facing you, crouches and pounces again
     const RK=s.rock,want=V2.subVectors(P.pos,RK.c).normalize(),prev=V3.copy(s.rd),ang=s.rd.angleTo(want);
@@ -269,7 +275,7 @@ function updateSpider(s,dt,t){
     s.face=(s.face||face.clone()).lerp(face,Math.min(1,dt*6)).normalize();orient(s.mesh,s.face,n);
     s.mesh.position.copy(s.pos).addScaledVector(n,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=ang>0.08;
     if(state==='play'&&!CINE.on){s.rockT+=dt;
-      if(s.cd<=0&&dist<34&&!shipBetween(s.pos,P.pos)){s.rw+=dt;if(s.rw>0.45){s.rw=0;const lead=P.pos.clone().addScaledVector(P.vel,0.3);
+      if(s.cd<=0&&dist<34&&!shipBetween(s.pos,P.pos)&&(!isJumpS(s)||leapClear(s.pos,P.pos,s.mesh.scale.x))){s.rw+=dt;if(s.rw>0.45){s.rw=0;const lead=P.pos.clone().addScaledVector(P.vel,0.3);
           s.state='leap';s.t=0;s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed*1.05);s.leapMax=dist/CFG.leapSpeed+1.5;s.pos.addScaledVector(n,0.5*s.mesh.scale.x);sfx('leap',s.pos);}}
       else if(s.rockT>9&&dist>30){s.state='return';s.t=0;s.pos.addScaledVector(n,0.8);}}}
   if(U.rig){animSpider(s,dt,t);

@@ -15,6 +15,7 @@
 // than LIM.worst anywhere, or a case flies through the hull (segment of the root path crossing the real triangles), or the page throws.
 // Run:  tools/run-test.sh dist-test tools/tests/saltos.cjs        (a few minutes; HEADS_ONLY=cases|dyn · HEADS_N=<spots step, default 1> · HEADS_SEC=<dyn seconds, 60>
 //       HEADS_SEED=<n> · HEADS_TAG=<file tag> · HEADS_BASE=1 (measure only, never fail: for the code before v83) · HEADS_SHOTS=1 (also 6 screenshots of nose pounces: saltos_*.png)
+//       HEADS_JF=0 (v83 build with its jump fix switched off, JUMP_FIX.on in 41-saltos.js: an A/B in the same build)
 // Output: tools/tests/out/saltos_<tag>.json (every case, the worst frames)
 const fs=require('fs'),path=require('path');
 const {chromium}=require('playwright');
@@ -140,6 +141,7 @@ function pageSJ(SEEDV){
   await p.evaluate('('+pageSJ.toString()+')('+SEED+')');
   console.log('prime',JSON.stringify(await p.evaluate(()=>CT.prime())));
   await p.evaluate(()=>__T.startWave(6));
+  if(process.env.HEADS_JF!==undefined){const on=+process.env.HEADS_JF;const ok2=await p.evaluate(on=>{if(!__heads.JUMP_FIX)return false;__heads.JUMP_FIX.on=on;return true;},on);console.log('JUMP_FIX.on =',on,ok2?'':'(no JUMP_FIX in this build)');}
   const res={cases:[],dyn:null},fails=[];const line=(...a)=>console.log(...a);
   const pc=(a,b)=>b?(100*a/b).toFixed(2):'0.00';
   // ---------------------------------------------------------------- cases

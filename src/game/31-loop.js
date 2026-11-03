@@ -23,7 +23,7 @@ function qaMed(a){a.sort((x,y)=>x-y);return a[a.length>>1];}
 function qaFrame(t0){const now=performance.now(),fd=now-QA.last,js=now-t0;QA.last=now;
   if(!QA.on||window.__manual||fd>3000||document.hidden||state!=='play'||CINE.on)return; // only real play time counts (a gap over 3 s = the page was suspended)
   QA.wT+=fd;QA.wF.push(fd);QA.wJ.push(js);if(QA.wT<1000)return;
-  const ft=qaMed(QA.wF),jt=qaMed(QA.wJ);QA.wT=0;QA.wF=[];QA.wJ=[];QA.fps=1000/ft;qaDecide(ft,jt);qaHud();}
+  const ft=qaMed(QA.wF),jt=qaMed(QA.wJ);QA.wT=0;QA.wF=[];QA.wJ=[];QA.fps=1000/ft;qaDecide(ft,jt);qaHud();mtFps();} // v81: mtFps = median fps and quality level for the metrics (39-metricas.js)
 // add ?fps to the address to see frame rate, level, rendered megapixels and GPU; ?q=0..5 fixes the level (no automatic changes)
 const QA_HUD=/[?&]fps\b/.test(location.search)?(()=>{const d=document.createElement('div');d.style.cssText='position:fixed;left:50%;bottom:4px;transform:translateX(-50%);z-index:60;font:600 12px/1.2 monospace;color:#ffd27a;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:4px;pointer-events:none;white-space:nowrap';document.body.appendChild(d);return d;})():null;
 function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.textContent=Math.round(QA.fps)+' fps · Q'+QA.lvl+' · '+(innerWidth*innerHeight*pr*pr/1e6).toFixed(1)+' MP · '+QA.gpu.replace(/^ANGLE \(/,'').replace(/^[^,(]*, /,'').replace(/ (Direct3D|vs_|OpenGL).*$/,'').slice(0,48);}

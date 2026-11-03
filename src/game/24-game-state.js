@@ -1,7 +1,7 @@
 /* ================= GAME STATE ================= */
 let state='menu',wave=0,toSpawn=0,spawnT=0,breakT=0,msgT=0,playT=0,inBreak=false,skipReq=false,dashReq=false;
 const CB_={last:undefined,leakT:0,gainT:0,warned:0};
-const stats={kills:0,shots:0,hits:0,heads:0,multi:0,saved:0,perfect:0,spitters:0,incs:0,eggs:0,eggsKilled:0};
+const stats={kills:0,shots:0,hits:0,heads:0,multi:0,saved:0,perfect:0,spitters:0,incs:0,eggs:0,eggsKilled:0,xp:0}; // xp: EXTRA POWER activations (v81 metrics)
 const MARK_TEX=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');
   const gr=g.createRadialGradient(32,30,2,32,30,30);gr.addColorStop(0,'rgba(255,90,60,0.9)');gr.addColorStop(1,'rgba(255,20,10,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);
   g.fillStyle='#ff3b2a';g.strokeStyle='#ffe2c0';g.lineWidth=3;g.beginPath();g.moveTo(32,54);g.lineTo(14,24);g.lineTo(50,24);g.closePath();g.fill();g.stroke();
@@ -89,7 +89,7 @@ function spawnCloud(){let best=null;for(let k=0;k<24;k++){const a=Math.random()*
     dAlive[i]=1;dCap[i]=0;dMag[i]=0;dAge[i]=-14;k++;}
   dGeo.attributes.position.needsUpdate=true;stats.clouds=(stats.clouds||0)+1;
   showMsg('¡NUBE DE TRICOMAS!','Recógela antes de que se pierda en el vacío',2.8);tutorialEvent('cloud');say('cloud',3);sfx('drop',best);return k;}
-function startWave(i){wave=i;const W=waveDef(i);WB.bossT=0;eggPlan=[];cloudPlan=-1;if(i>=2&&cargo<CFG.cargo*0.6){cloudPlan=0.2+Math.random()*0.3;cloudLastW=i;}if(spitFirstW>=0&&i>=spitFirstW+2&&!isIncRound(i)&&(i===(isIncRound(spitFirstW+2)?spitFirstW+3:spitFirstW+2)||(i-eggLastW>=2&&Math.random()<(i-eggLastW>=4?0.9:0.45)))){eggPlan.push(0.3+Math.random()*0.35);eggLastW=i;if(i>=spitFirstW+6&&Math.random()<0.3)eggPlan.push(0.65+Math.random()*0.25);}toSpawn=isIncRound(i)?Math.min(W.n,7):W.n;spawnT=i===0?4:0.5;inBreak=false;breakT=0;skipReq=false;planBursts(toSpawn);if(i===5&&spitN===0){WB.bossT=2.9;WB.spit=true;spawnT=5.5;}
+function startWave(i){wave=i;mtRound();const W=waveDef(i);WB.bossT=0;eggPlan=[];cloudPlan=-1;if(i>=2&&cargo<CFG.cargo*0.6){cloudPlan=0.2+Math.random()*0.3;cloudLastW=i;}if(spitFirstW>=0&&i>=spitFirstW+2&&!isIncRound(i)&&(i===(isIncRound(spitFirstW+2)?spitFirstW+3:spitFirstW+2)||(i-eggLastW>=2&&Math.random()<(i-eggLastW>=4?0.9:0.45)))){eggPlan.push(0.3+Math.random()*0.35);eggLastW=i;if(i>=spitFirstW+6&&Math.random()<0.3)eggPlan.push(0.65+Math.random()*0.25);}toSpawn=isIncRound(i)?Math.min(W.n,7):W.n;spawnT=i===0?4:0.5;inBreak=false;breakT=0;skipReq=false;planBursts(toSpawn);if(i===5&&spitN===0){WB.bossT=2.9;WB.spit=true;spawnT=5.5;}
   WB.incT=0;WB.rt=0;if(isIncRound(i)){WB.incT=3.2;WB.spit=true;spawnT=incN===0?7:2;}dropsRound=0;roundLost0=lostN;
   const sub=i===0?'':i===1?'Ahora vienen a comerse la nave':isIncRound(i)?'Algo enorme se acerca…':`${W.n} arañas`;
   if(i>0){showMsg('RONDA '+(i+1),sub,2.6);sfx('alert');}
@@ -105,4 +105,4 @@ function reset(){TC.ap=null;if(TC.paused)tcSetPause(false);setTimeout(tcOrient,0
   pts=0;PU.dbl=0;PU.over=0;PU.weld=0;PU.pack=0;bulletMat.color.setRGB(3,2.2,0.9);for(const d of [...DROPS])removeDrop(d);lastDrop=-99;CB.n=0;CB.hs=0;CB.heads=0;CB.t=-9;MAG.on=false;EXP.n=0;dMag.fill(0);
   for(const pa of PATCHES){pa.hp=CFG.patchHp;pa.prog=0;pa.leak=0;pa.noPerf=false;}TUT.q.length=0;for(const a of ACID){scene.remove(a.m);for(const q of a.drops)scene.remove(q.d);}ACID.length=0;P.burn=0;spitN=0;incN=0;WB.incT=0;for(const e of INCS)scene.remove(e.B.g);INCS.length=0;incBeamSnd(false);for(const p of MIST){p.life=0;p.s.visible=false;}for(const Z of ZONES){Z.nest=false;Z.alarmT=0;Z.eaters=0;}
   fxLayer.innerHTML='';document.body.classList.remove('ended');
-  resetDust();if(RONDA.n)rondaStart();else{startWave(0);introStart();}resumeTut();rankStart();} // v80: ?ronda=N starts at round N (38-ronda.js)
+  resetDust();mtStart();if(RONDA.n)rondaStart();else{startWave(0);introStart();}resumeTut();rankStart();} // v80: ?ronda=N starts at round N (38-ronda.js) · v81: mtStart/mtRound = metrics (39-metricas.js)

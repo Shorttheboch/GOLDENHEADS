@@ -136,7 +136,7 @@ function xpTitle(){const el=$('xpT');if(!el)return;
   el.classList.remove('go');void el.offsetWidth;el.classList.add('go');}
 function xpStart(){if(!XP.g2)return;
   if(XP.on){if(XP.pp>=0)return;XP.t=XP.dur;XP.streak=0;xpPips();XP.pulse=1.2;sfx('power');say('xp_on',3);return;} // already out: a second one only refills the 20 s
-  XP.on=true;XP.t=XP.dur;XP.streak=0;xpPips();XP.sw=0;
+  XP.on=true;XP.t=XP.dur;XP.streak=0;xpPips();XP.sw=0;stats.xp++; // (v81 metrics: EXTRA POWER activations, refills not counted)
   P.ammo=CFG.gunCap;P.gunLock=0;P.reloading=false;
   XP.pp=0;XP.ev=0;XP.hp0=P.hp;XP.pulse=0.6;
   const first=xpFirst();$('xpT')&&$('xpT').classList.remove('go');

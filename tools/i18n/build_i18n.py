@@ -203,6 +203,9 @@ EN.update({'Mátala antes de que destroce la nave':'Kill it before it wrecks the
 EN.update({'IMPULSO':'BOOST','CLIC DERECHO':'RIGHT CLICK','VE A DEJAR LOS TRICOMAS':'DROP OFF THE TRICHOMES','EN LA BODEGA':'IN THE HOLD'})
 # ---- v77: title of the first EXTRA POWER (EXTRA POWER stays as it is; the line under it carries the seconds of plasma) ----
 P.append([r'^Plasma (\d+) s · atraviesa arañas$','Plasma $1 s · pierces spiders'])
+# ---- v81: the anonymous-stats question on the start menu (index.html #mtAsk, src/game/39-metricas.js) ----
+EN.update({'¿Nos ayudas con estadísticas anónimas?':'Will you help us with anonymous stats?',
+ 'Para mejorar el juego: rondas, dispositivo y país. Sin nombre ni cuenta.':'To improve the game: rounds, device and country. No name, no account.','SÍ':'YES'})
 # sanity: every tutorial line must exist verbatim in the game code
 for k in H:
     if k not in b: print('TUT NOT FOUND:',k[:60])

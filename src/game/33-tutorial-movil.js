@@ -38,7 +38,7 @@ function mtutDom(){if(MTUT.L)return;
   document.body.append(D,L);MTUT.D=D;MTUT.L=L;
   // a tap anywhere = next screen (not in the first moments: the thumbs are still on the glass when it pauses) · SALTAR = end
   L.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!MTUT.on)return;
-    if(e.target.closest('.mtSkip')){mtutEnd();return;}
+    if(e.target.closest('.mtSkip')){MTUT.skip=MTUT.i+1;mtutEnd();return;} // (v81 metrics: the screen it was skipped at)
     if(performance.now()-MTUT.tap0>(MTUT.i<2?1000:450))mtutNext();});}
 // a floating-trichome marker on screen (the gold diamond with "N POR RESCATAR"), or null
 function mtutLoose(){for(const m of document.querySelectorAll('#h4m .mk:not([hidden])'))return m;return null;}
@@ -52,7 +52,7 @@ function mtutDrop(){for(const n of MTUT.up){n.classList.remove('mtut-up','mtut-p
   if(MTUT.bod){$('hBod').hidden=true;MTUT.bod=false;} // the hold marker shown for step 4 goes back to its own rule on the next frame
   if(MTUT.D){const D=MTUT.D;D.style.webkitMaskImage=D.style.maskImage='';}}
 function mtutStart(){if(MTUT.on||!isTouch||!MHUD.on)return;mtutOpen(MTUT_ORDER.slice());} // always the five (step 4 shows whatever is there)
-function mtutOpen(list){mtutDom();MTUT.list=list;MTUT.i=0;MTUT.on=true;tcReset();
+function mtutOpen(list){mtutDom();MTUT.list=list;MTUT.i=0;MTUT.on=true;MTUT.skip=0;tcReset();
   MTUT.D.hidden=MTUT.L.hidden=false;document.body.classList.add('mtut');MTUT.last=performance.now();mtutShow();}
 function mtutShow(){const k=MTUT.list[MTUT.i],S=MTUT_S[k],L=MTUT.L,D=MTUT.D,n=MTUT_ORDER.indexOf(k),W=innerWidth,H=innerHeight,q=s=>L.querySelector(s);
   mtutDrop();MTUT.k=k;MTUT.t0=MTUT.tap0=MTUT.last=performance.now();MTUT.title=mtTR(S.t);
@@ -97,6 +97,7 @@ function mtutShow(){const k=MTUT.list[MTUT.i],S=MTUT_S[k],L=MTUT.L,D=MTUT.D,n=MT
 function mtutNext(){if(++MTUT.i>=MTUT.list.length)mtutEnd();else mtutShow();}
 function mtutEnd(){if(!MTUT.on)return;mtutDrop();MTUT.on=false;MTUT.D.hidden=MTUT.L.hidden=true;document.body.classList.remove('mtut');
   MTUT.done=true;try{localStorage.setItem(MTUT_KEY,'1');}catch(_){}
+  mtTut(MTUT.skip); // v81: skipped or seen to the end, for the metrics (39-metricas.js)
   P.inv=Math.max(P.inv,1.2); // a moment of grace when the game starts again
   // the side tips that say the same no longer need to show
   TIP.done.shoot=TIP.done.suck=TIP.done.deliver=1;TUT.shown.eat=TUT.shown.leak=1;}

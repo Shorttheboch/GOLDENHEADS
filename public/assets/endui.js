@@ -4,5 +4,6 @@ const u=p=>new URL(p,document.baseURI).href;
 export default {
  "frame": u("assets/ui/endui/frame.webp"),
  "button": u("assets/ui/endui/button.webp"),
+ "buttonRed": u("assets/ui/endui/button-red.webp"),
  "font": u("assets/ui/endui/font.woff2")
 };

@@ -172,8 +172,9 @@ body.touch #acctBar button::after,body.touch #acctBar a::after{content:'';positi
 #acGo span{position:relative;z-index:1;font-size:19px;font-weight:800;letter-spacing:.14em;margin-right:-.14em;line-height:1;text-shadow:0 1px 0 rgba(255,240,190,.55);white-space:nowrap}
 #acGo:hover::before,#acGo:focus-visible::before{filter:brightness(1.13) drop-shadow(0 0 14px rgba(255,200,80,.7));transform:scale(1.025)}
 #acGo:active::before{transform:scale(.985);filter:brightness(.95)}
-#acGo.red::before{filter:hue-rotate(-46deg) saturate(1.9) brightness(.88)}
-#acGo.red:hover::before,#acGo.red:focus-visible::before{filter:hue-rotate(-46deg) saturate(1.9) brightness(1.02) drop-shadow(0 0 14px rgba(255,70,40,.75));transform:scale(1.025)}
+/* BORRAR: the same plate recoloured red, lights included (public/assets/ui/endui/button-red.webp, made by tools/ui/make_red_button.py) */
+#acGo.red::before{background-image:var(--end-btn-red,linear-gradient(180deg,#ff6a5a,#c4140c))}
+#acGo.red:hover::before,#acGo.red:focus-visible::before{filter:brightness(1.1) drop-shadow(0 0 14px rgba(255,50,40,.75));transform:scale(1.025)}
 #acGo.red span{color:#2b0603;text-shadow:0 1px 0 rgba(255,210,190,.5)}
 #acNo{height:44px;min-width:150px;padding:0 20px;border:1px solid rgba(232,182,74,.55);border-radius:0;background:rgba(10,8,4,.7);color:#e9d9a8;cursor:pointer;
   font:800 14px/1 var(--ef);letter-spacing:.18em;touch-action:manipulation}

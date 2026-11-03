@@ -9,7 +9,7 @@
 //   /api/scores   the board of season 1, real runs on the real site and test runs on previews, cached 20 s by Netlify's CDN; ?n= lines (1-50,
 //                 default 10); &me=1 with a Bearer token adds my own line (checked with Supabase Auth, never cached)
 //   sessions      no / bad Authorization -> 401, an account that is not Google -> 403, the player id always from Supabase Auth (never from the body)
-//   /api/nick     terms must be accepted, format (3-12, letters, digits, ÁÉÍÓÚÜÑÇ . _ -, at least 3 letters or digits), upper case, bad words
+//   /api/nick     terms must be accepted, format (3-12, letters, digits, ÁÉÍÓÚÜÑÇ ÀÈÒÏ . _ -, at least 3 letters or digits), upper case, bad words
 //                 (also with 0/1/3/4/5/7 for letters), reserved names, taken / exists from the database, preview flag, limit per IP
 //   /api/save     token signature, age (4 h), one use ('used' from the database), plausibility as before v82, flags (no clock, clock, fast, score)
 //                 that save the run as 'flagged', stats whitelisted, nickname missing / banned, previews saved as test
@@ -114,9 +114,10 @@ let IPN=0;const nip=()=>'198.51.100.'+(++IPN);
   ok(nr.fn==='rank_nick'&&nr.args.p_player===U2&&nr.args.p_nick==='NOVA'&&nr.args.p_terms_ver==='2026-11-v82'&&nr.args.p_preview===false,'rank_nick: the session\'s id (not the one in the body), upper case, terms version',nr);
   r=await nick('Sántí_7');ok(r.status===200&&L.rpcs.at(-1).args.p_nick==='SÁNTÍ_7','accents and _ kept as written, upper case: SÁNTÍ_7',L.rpcs.at(-1).args);
   r=await nick('peña.ç-ü');ok(r.status===200&&L.rpcs.at(-1).args.p_nick==='PEÑA.Ç-Ü','Ñ Ç Ü . - allowed',L.rpcs.at(-1).args);
-  for(const n of ['ab','abcdefghijklm','hola mundo','josé😀','<script>','a.b','..._','àlex','Ünï',' ','',null,12345678]){r=await nick(n);const e=(await J(r)||{}).error;ok(r.status===400&&e==='format','«'+n+'» -> format',{s:r.status,e});}
-  for(const n of ['puta','PUTO.X','mierda','Fuck_you','m1erda','p0lla','j0der','cabrón','maricón','NAZI88','hitler','gilipollas','B1TCH']){r=await nick(n);const e=(await J(r)||{}).error;ok(r.status===400&&e==='bad','«'+n+'» -> bad word',{s:r.status,e});}
-  for(const n of ['heads','Heads_Fan','admin1','SUPERADMIN','vega','Piloto','IRIS','nugget','capitán','h3ads','GoldenHeads']){r=await nick(n);const e=(await J(r)||{}).error;ok(r.status===400&&e==='reserved','«'+n+'» -> reserved',{s:r.status,e});}
+  for(const [n,want] of [['àlex','ÀLEX'],['Pèrez','PÈREZ'],['jòrdi','JÒRDI'],['raïm','RAÏM'],['Lluís.Ç','LLUÍS.Ç']]){r=await nick(n);ok(r.status===200&&L.rpcs.at(-1).args.p_nick===want,'v82b, Catalan: «'+n+'» -> '+want,L.rpcs.at(-1).args);}
+  for(const n of ['ab','abcdefghijklm','hola mundo','josé😀','<script>','a.b','..._','Ünî','Ãna','Ôscar',' ','',null,12345678]){r=await nick(n);const e=(await J(r)||{}).error;ok(r.status===400&&e==='format','«'+n+'» -> format',{s:r.status,e});}
+  for(const n of ['puta','PUTO.X','mierda','Fuck_you','m1erda','p0lla','j0der','cabrón','maricón','NAZI88','hitler','gilipollas','B1TCH','pòlla','mièrda','hïtler']){r=await nick(n);const e=(await J(r)||{}).error;ok(r.status===400&&e==='bad','«'+n+'» -> bad word',{s:r.status,e});}
+  for(const n of ['heads','Heads_Fan','admin1','SUPERADMIN','vega','Piloto','IRIS','nugget','capitán','h3ads','GoldenHeads','vègà','ïrïs','pilòto','àdmin']){r=await nick(n);const e=(await J(r)||{}).error;ok(r.status===400&&e==='reserved','«'+n+'» -> reserved',{s:r.status,e});}
   L.answers.rank_nick={error:'taken'};r=await nick('ORION');ok(r.status===409&&(await J(r)).error==='taken','taken in the database -> 409 taken',r.status);
   L.answers.rank_nick={error:'exists',nick:'NOVA'};r=await nick('OTRO');j=await J(r);ok(r.status===409&&j.error==='exists'&&j.nick==='NOVA','this account already has one -> 409 exists + its nickname (it cannot be changed)',j);
   L.answers.rank_nick=a=>({ok:true,nick:a.p_nick});

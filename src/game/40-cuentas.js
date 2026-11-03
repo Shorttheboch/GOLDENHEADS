@@ -189,7 +189,7 @@ function accDrop(){acLS(ACC_K.pend,null);accClose();}
 async function accRelogin(){accOpen('wait');acLS(ACC_K.go,String(Date.now()));try{sessionStorage.setItem('heads_lang_skip','1');}catch(_){}
   try{const a=await accLoad();await a.signIn(location.origin+location.pathname);}catch(_){acLS(ACC_K.go,null);accOpen('off');}}
 // ---- the nickname ----
-const AC_NICK=/^[A-Z0-9ÁÉÍÓÚÜÑÇ._-]{3,12}$/;
+const AC_NICK=/^[A-Z0-9ÁÉÍÓÚÜÑÇÀÈÒÏ._-]{3,12}$/; // the same letters as the server (ranking.mts checkNick) and the table (supabase/v82b-apodos.sql)
 const AC_ERR={format:'Usa de 3 a 12 letras o números (también . _ -), sin espacios.',short:'Necesita al menos 3 letras o números.',
   taken:'Ese apodo ya es de otro capitán. Prueba otro.',bad:'Ese apodo no está permitido.',reserved:'Ese apodo está reservado.',
   many:'Demasiados intentos. Espera unos minutos.',other:'No se pudo guardar el apodo. Inténtalo otra vez.'};

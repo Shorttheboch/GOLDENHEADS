@@ -6,6 +6,8 @@
 // Deploy Previews and branch deploys store their events as tests (test = true): they show only in the test count of /admin, never in the numbers.
 // Privacy: the IP is only used here, in memory, hashed with a random salt for the rate limit, and never stored. Country / region / city come from Netlify geo.
 // Every field is whitelisted and clamped; anything else is dropped. Paths are relative (/api/...): no domain anywhere.
+// v82b: events older than 2 years are deleted (public.metrics_prune(), supabase/v82b-apodos.sql), at most once a day per instance, when the admin
+// page asks for the stats. If that SQL has not been run yet, the stats still answer (the error is only logged).
 import { createClient } from "@supabase/supabase-js";
 import type { Config, Context } from "@netlify/functions";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
@@ -86,6 +88,7 @@ function db() {
 }
 
 const sha = (s: string) => createHash("sha256").update(s).digest();
+let PRUNED = 0; // when metrics_prune last ran in this instance
 const RANGES = ["today", "7d", "30d", "all"], PLATS = ["all", "pc", "touch"];
 
 export default async (req: Request, context: Context) => {
@@ -121,6 +124,11 @@ export default async (req: Request, context: Context) => {
       const range = oneOf(q.get("range"), RANGES) ?? "7d", platform = oneOf(q.get("platform"), PLATS) ?? "all";
       const sb = db();
       if (!sb) return json({ error: "métricas no configuradas" }, 503);
+      if (Date.now() - PRUNED > 86_400_000) { // the privacy page promises 2 years at most
+        PRUNED = Date.now();
+        try { const pr = await sb.rpc("metrics_prune", {}); if (pr.error) console.error("metrics prune", pr.error.message); else if (typeof pr.data === "number" && pr.data > 0) console.log("metrics prune: deleted", pr.data); }
+        catch (e) { console.error("metrics prune", e); }
+      }
       const { data, error } = await sb.rpc("metrics_stats", { p_range: range, p_platform: platform });
       if (error || !data || typeof data !== "object") { console.error("metrics stats", error?.message); return json({ error: "no se pudieron leer las métricas" }, 500); }
       return json({ range, platform, at: new Date().toISOString(), ...data });

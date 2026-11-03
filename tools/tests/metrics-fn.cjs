@@ -10,14 +10,17 @@
 //                 more than 12 events -> only 12, GET -> 405, rate limit per IP (31st request in a minute -> 429, another IP still fine),
 //                 no Supabase variables -> 503, a database error -> 500, events from a Deploy Preview stored as tests
 //   GET /api/admin/stats   no ADMIN_PASSWORD -> 503, missing or wrong x-admin-key -> 401, right one -> 200 with the totals of metrics_stats (range and
-//                 platform whitelisted), 8 wrong tries from one IP -> 429 for that IP only, no raw rows or ids in the answer
+//                 platform whitelisted), 8 wrong tries from one IP -> 429 for that IP only, no raw rows or ids in the answer;
+//                 v82b: metrics_prune (events older than 2 years) runs with the first admin request, then not again for a day, and its failure never
+//                 stops the stats
 const path=require('path'),fs=require('fs'),{pathToFileURL}=require('url'),{register}=require('module');
 let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefined&&!c?'  '+JSON.stringify(i).slice(0,600):''));if(!c)bad++;};
 const ROOT=path.join(__dirname,'../..'),FN=pathToFileURL(path.join(ROOT,'netlify/functions/metrics.mts')).href;
 const SAMPLE=JSON.parse(fs.readFileSync(path.join(__dirname,'metrics-stats-sample.json'),'utf8'));
 const MOCK=`export function createClient(url,key,opts){const L=globalThis.__sb;L.created.push({url,key,opts});return {
   from(t){return {insert(rows){L.inserts.push({t,rows});return Promise.resolve({error:L.fail?{message:'db down'}:null});}};},
-  rpc(fn,args){L.rpcs.push({fn,args});return Promise.resolve(L.fail?{data:null,error:{message:'db down'}}:{data:L.stats,error:null});}};}`;
+  rpc(fn,args){L.rpcs.push({fn,args});if(fn==='metrics_prune')return Promise.resolve(L.failPrune?{data:null,error:{message:'function public.metrics_prune() does not exist'}}:{data:3,error:null});
+    return Promise.resolve(L.fail?{data:null,error:{message:'db down'}}:{data:L.stats,error:null});}};}`;
 // where the real package is, if anywhere
 let SBDIR=process.env.HEADS_SB_DIR||'';
 if(!SBDIR){try{require.resolve('@supabase/supabase-js',{paths:[ROOT]});SBDIR=ROOT;}catch(_){}}
@@ -89,12 +92,16 @@ const deepKeys=(o,out=new Set())=>{if(o&&typeof o==='object')for(const [k,v] of 
   ENV.ADMIN_PASSWORD='dorado-secreto-2026';
   r=await admin(fn,'?range=7d',null,'192.0.2.1');ok(r.status===401,'no key -> 401',r.status);
   r=await admin(fn,'?range=7d','dorado-secreto-2025','192.0.2.1');const j401=await r.json();ok(r.status===401&&/contraseña/.test(j401.error),'wrong key -> 401 with a clear message',j401);
+  L.failPrune=true;
   r=await admin(fn,'?range=30d&platform=touch','dorado-secreto-2026','192.0.2.1');const st=await r.json();
+  ok(L.rpcs.length===2&&L.rpcs[0].fn==='metrics_prune'&&r.status===200,'the first admin request runs metrics_prune first; it failing (SQL not run yet) does not stop the stats',L.rpcs.map(x=>x.fn));
+  L.failPrune=false;
   ok(r.status===200&&r.headers.get('cache-control')==='no-store'&&/json/.test(r.headers.get('content-type')),'right key -> 200 JSON, not cached',r.status);
   ok(JSON.stringify(L.rpcs.at(-1))===JSON.stringify({fn:'metrics_stats',args:{p_range:'30d',p_platform:'touch'}}),'asks metrics_stats for 30d / touch',L.rpcs.at(-1));
   ok(st.range==='30d'&&st.platform==='touch'&&st.summary&&st.funnel&&st.causes&&st.countries&&st.errors&&st.quits&&st.daily,'answer: range, platform and every section',Object.keys(st));
   const keys=deepKeys(st);ok(!['session_id','player_id','sid','pid','id','ip'].some(k=>keys.has(k)),'no ids or IPs anywhere in the answer',[...keys].filter(k=>/id|ip/i.test(k)));
   await admin(fn,'?range=forever&platform=fridge','dorado-secreto-2026','192.0.2.1');ok(JSON.stringify(L.rpcs.at(-1).args)==='{"p_range":"7d","p_platform":"all"}','unknown range / platform -> 7d / all',L.rpcs.at(-1));
+  ok(L.rpcs.filter(x=>x.fn==='metrics_prune').length===1,'metrics_prune not again within the day',L.rpcs.map(x=>x.fn));
   r=await fn(new Request('https://example.test/api/admin/stats',{method:'POST',headers:{'x-admin-key':'dorado-secreto-2026'}}),ctx('192.0.2.1'));ok(r.status===405,'POST to the stats -> 405',r.status);
   codes=[];for(let i=0;i<9;i++)codes.push((await admin(fn,'','guess'+i,'192.0.2.9')).status);
   ok(codes.slice(0,8).every(c=>c===401)&&codes[8]===429,'8 wrong tries from one IP, then 429',codes.join(','));
@@ -116,7 +123,8 @@ const deepKeys=(o,out=new Set())=>{if(o&&typeof o==='object')for(const [k,v] of 
     ok(c.apikey==='sb_secret_TESTKEY_123','the secret key goes in the apikey header',c.apikey);
     let body=[];try{body=JSON.parse(c.body);}catch(_){}ok(Array.isArray(body)&&body.length===2&&body[0].country==='ES'&&!c.body.includes('198.51.100.50'),'body: the 2 clean rows, without the IP');
     ok(!/return=representation/.test(c.prefer||''),'no rows read back (insert only needs INSERT)',c.prefer);
-    r=await admin(fr,'?range=all&platform=pc','dorado-secreto-2026','192.0.2.20');const d=calls[1]||{};
+    r=await admin(fr,'?range=all&platform=pc','dorado-secreto-2026','192.0.2.20');const d=calls.find(c=>c.url.endsWith('/rpc/metrics_stats'))||{},pr=calls.find(c=>c.url.endsWith('/rpc/metrics_prune'));
+    ok(pr&&pr.method==='POST','metrics_prune = POST /rest/v1/rpc/metrics_prune',pr);
     ok(r.status===200&&d.url==='https://abcdefgh.supabase.co/rest/v1/rpc/metrics_stats'&&d.method==='POST'&&d.body==='{"p_range":"all","p_platform":"pc"}','stats = POST /rest/v1/rpc/metrics_stats with the range and platform',d);
     const sj=await r.json();ok(sj.summary&&sj.summary.visits===SAMPLE.summary.visits,'the totals come through');
     globalThis.fetch=realFetch;}

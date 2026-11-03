@@ -73,10 +73,11 @@ function readToken(key: Buffer, tok: unknown) {
   return { start, id };
 }
 
-// ---- nicknames: 3-12 of A-Z 0-9 ÁÉÍÓÚÜÑÇ . _ -, upper case; unique on the key (no accents, no . _ -), no bad words, no reserved names ----
-const NICK_RE = /^[A-Z0-9ÁÉÍÓÚÜÑÇ._-]{3,12}$/;
-const FOLD: Record<string, string> = { "Á": "A", "É": "E", "Í": "I", "Ó": "O", "Ú": "U", "Ü": "U", "Ñ": "N", "Ç": "C" };
-const nickKey = (n: string) => n.replace(/[ÁÉÍÓÚÜÑÇ._-]/g, (c) => FOLD[c] ?? ""); // the same as the nick_key column in SQL
+// ---- nicknames: 3-12 of A-Z 0-9 ÁÉÍÓÚÜÑÇ ÀÈÒÏ . _ -, upper case; unique on the key (no accents, no . _ -), no bad words, no reserved names ----
+// (À È Ò Ï since v82b, for Catalan / Valencian names: supabase/v82b-apodos.sql allows them in the table and folds them in the key)
+const NICK_RE = /^[A-Z0-9ÁÉÍÓÚÜÑÇÀÈÒÏ._-]{3,12}$/;
+const FOLD: Record<string, string> = { "Á": "A", "É": "E", "Í": "I", "Ó": "O", "Ú": "U", "Ü": "U", "Ñ": "N", "Ç": "C", "À": "A", "È": "E", "Ò": "O", "Ï": "I" };
+const nickKey = (n: string) => n.replace(/[ÁÉÍÓÚÜÑÇÀÈÒÏ._-]/g, (c) => FOLD[c] ?? ""); // the same as the nick_key column in SQL
 const BAD = /(puta|puto|mierda|polla|joder|cabron|maricon|zorra|nazi|hitler|fuck|shit|cunt|nigg|fagg|bitch|gilipoll|subnormal|pendej|verga|chinga|follar|whore|slut|pussy|porn|penis)/i;
 const LEET: Record<string, string> = { "0": "O", "1": "I", "3": "E", "4": "A", "5": "S", "7": "T", "8": "B" };
 const RESERVED_IN = ["HEADS", "ADMIN", "GOLDENHEAD"]; // anywhere in the nickname

@@ -36,7 +36,7 @@ function server(){
     return {count:all.length,top:all.slice(0,n).map(e=>({pos:e.pos,nick:e.nick,score:e.score,round:e.round,me:e.id===me})),me:m?{pos:m.pos,nick:m.nick,score:m.score,round:m.round}:null};};
   S.handle=async route=>{const rq=route.request(),u=new URL(rq.url()),p=u.pathname,auth=(rq.headers()['authorization']||'').replace(/^Bearer /,'');
     let body=null;try{body=JSON.parse(rq.postData()||'null');}catch(_){}
-    S.calls.push({p,m:rq.method(),auth,body,at:Date.now()});
+    S.calls.push({p,q:u.search,m:rq.method(),auth,body,at:Date.now()});
     const J=(s,j)=>route.fulfill({status:s,contentType:'application/json',body:JSON.stringify(j)});
     if(p==='/api/auth')return S.authOff?J(503,{error:'off'}):J(200,{url:SB,key:'sb_publishable_TEST'});
     if(p==='/api/run')return J(200,{token:`${Date.now()}.${crypto.randomBytes(8).toString('hex')}.sig`});
@@ -49,7 +49,7 @@ function server(){
     if(p==='/api/me'){if(!pl)return J(200,{season:1,player:null});const b=S.board(uid);return J(200,{season:1,player:{nick:pl.nick,banned:false,best:b.me?{score:b.me.score,round:b.me.round}:null,pos:b.me&&b.me.pos,count:b.count}});}
     if(p==='/api/nick'){const n=String(body&&body.nick||'').normalize('NFC').toUpperCase();if(!body||body.accept!==true)return J(400,{error:'terms'});
       if(pl)return J(409,{error:'exists',nick:pl.nick});
-      if(!/^[A-Z0-9ÁÉÍÓÚÜÑÇ._-]{3,12}$/.test(n))return J(400,{error:'format'});
+      if(!/^[A-Z0-9ÁÉÍÓÚÜÑÇÀÈÒÏ._-]{3,12}$/.test(n))return J(400,{error:'format'});
       if(/PUTA|MIERDA/.test(key(n)))return J(400,{error:'bad'});if(/HEADS|ADMIN/.test(key(n)))return J(400,{error:'reserved'});
       if([...SEEDS(),...Object.values(S.players)].some(x=>key(x.nick)===key(n)))return J(409,{error:'taken'});
       S.players[uid]={nick:n};return J(200,{ok:true,nick:n});}
@@ -100,12 +100,15 @@ async function finish(p,S,score=4321,secs=640){for(let i=0;i<100&&!count(S,'/api
 const rankBox=p=>p.waitForFunction(()=>{const b=document.getElementById('rankBox');return !b.hidden&&getComputedStyle(b).opacity>0.99;},null,{timeout:30000}).catch(()=>{});
 const plate=p=>p.evaluate(()=>{const g=id=>document.getElementById(id),btn=g('saveBtn'),r=btn.getBoundingClientRect();
   const hit=el=>{if(!el||el.hidden)return false;const q=el.getBoundingClientRect();const x=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);return !!x&&(x===el||el.contains(x));};
-  return {box:!g('rankBox').hidden,h:g('rankH').textContent,msg:[...g('rankMsg').querySelectorAll('span')].map(s=>s.textContent),rows:g('rankList').querySelectorAll('li:not(.gap)').length,
+  return {box:!g('rankBox').hidden,two:g('endBox').classList.contains('rk'),h:g('rankH').textContent,ghost:[...g('rankList').children].findIndex(l=>l.classList.contains('ghost'))+1,
+    all:!g('rankAll').hidden,allHit:hit(g('rankAll')),rec:g('record').textContent,msg:[...g('rankMsg').querySelectorAll('span')].map(s=>s.textContent),rows:g('rankList').querySelectorAll('li:not(.gap)').length,
     me:(g('rankList').querySelector('li.me span')||{}).textContent||null,btn:!btn.hidden,btnT:btn.querySelector('b').textContent,btnS:btn.querySelector('small').textContent,btnHit:hit(btn),
     btnBox:[r.left,r.top,r.width,r.height].map(Math.round),bar:!g('acctBar').hidden,nick:g('acctNick').textContent,out:!g('acctOut').hidden,del:!g('acctDel').hidden,delHit:hit(g('acctDel')),
     priv:g('acctPriv').getAttribute('href'),again:hit(g('again')),W:innerWidth,H:innerHeight,inside:(()=>{const e=g('endBox').getBoundingClientRect();return e.left>=-1&&e.top>=-1&&e.right<=innerWidth+1&&e.bottom<=innerHeight+1;})()};});
 const scr=p=>p.evaluate(()=>{const a=document.getElementById('acct'),g=id=>document.getElementById(id),q=s=>a.querySelector(s);
   return {open:!a.hidden,s:a.dataset.s,t:(g('acT').getAttribute('aria-label')||''),txt:g('acS').innerText.trim(),go:g('acGo').hidden?null:g('acGo').textContent.trim(),no:g('acNo').hidden?null:g('acNo').textContent.trim(),
+    big:g('acList').classList.contains('big'),meSeen:(()=>{const L=g('acList'),m=L.querySelector('li.me');if(!m)return null;const a=L.getBoundingClientRect(),b=m.getBoundingClientRect();return b.top>=a.top-1&&b.bottom<=a.bottom+1;})(),
+    gap:!!g('acList').querySelector('li.gap'),lastMe:!!(g('acList').lastElementChild&&g('acList').lastElementChild.classList.contains('me')),
     err:g('acErr').textContent,l1:g('acL1').hidden?'':g('acL1').textContent,l2:g('acL2').hidden?'':g('acL2').textContent,rows:g('acList').querySelectorAll('li:not(.gap)').length,me:(q('#acList li.me span')||{}).textContent||null,
     inside:(()=>{const e=g('acBox').getBoundingClientRect();return e.left>=-1&&e.top>=-1&&e.right<=innerWidth+1&&e.bottom<=innerHeight+1;})(),
     cut:[g('acS'),g('acHint'),g('acErr'),q('.acRules'),g('acL1'),g('acL2')].some(x=>x&&!x.hidden&&x.offsetParent&&x.scrollWidth>x.clientWidth+1)};});
@@ -128,7 +131,9 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   ok(count(S,'/api/auth')===0,'/api/auth not asked before the end plate');
   await finish(p,S,4321,640);await rankBox(p);await p.waitForTimeout(600);
   let P=await plate(p);
-  ok(P.box&&P.h==='RANKING DE CAPITANES · TEMPORADA 1'&&P.rows===5,'guest end plate: the season box with the top 5',P);
+  ok(P.box&&P.two&&P.h==='RANKING DE CAPITANES'&&P.rows===5,'guest end plate: two columns, the season panel with five lines',P);
+  ok(P.ghost===5&&P.msg[0]==='Con esta partida entrarías en el puesto #5','4.321 would enter at #5: the «TÚ» line there, and it says so',P);
+  ok(P.all&&P.allHit,'VER RANKING COMPLETO, where it is drawn',P);
   ok(P.btn&&P.btnT==='GUARDAR MI PUNTUACIÓN'&&P.btnS==='con Google'&&P.btnHit,'GUARDAR MI PUNTUACIÓN · con Google, and it answers where it is drawn',P);
   ok(P.again&&P.inside,'REINTENTAR still answers, the whole plate is on screen',P);
   ok(P.bar&&!P.out&&!P.del&&P.priv==='privacidad/','guest: only the privacy link under it (no Salir / Borrar)',P);
@@ -163,7 +168,9 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   await p.fill('#acIn','Sántí');await p.focus('#acIn');await p.keyboard.press('Enter');
   ok(await waitScr(p,'saved'),'Enter in the field saves the nickname, then the run');
   A=await scr(p);const sv=last(S,'/api/save');
-  ok(A.t==='¡PUNTUACIÓN GUARDADA!'&&A.l1==='¡NUEVO RÉCORD!'&&/^Puesto #\d+ de \d+ capitanes$/.test(A.l2)&&A.rows>=5&&A.me==='SÁNTÍ'&&/CAPITÁN\s+SÁNTÍ/.test(A.txt),'result: ¡PUNTUACIÓN GUARDADA!, ¡NUEVO RÉCORD!, place, top with me, CAPITÁN SÁNTÍ',A);
+  ok(A.t==='¡PUNTUACIÓN GUARDADA!'&&A.l1==='¡NUEVO RÉCORD!'&&A.l2==='Puesto #5 de 7 capitanes'&&A.me==='SÁNTÍ'&&/CAPITÁN\s+SÁNTÍ/.test(A.txt),'after saving: the full ranking, ¡PUNTUACIÓN GUARDADA!, ¡NUEVO RÉCORD!, Puesto #5 de 7 capitanes, CAPITÁN SÁNTÍ',A);
+  ok(A.big&&A.rows===7&&A.meSeen,'the whole board (7 captains) in the framed list, my line in view',A);
+  ok(sv.body.n===50,'the save asks for 50 lines (the full ranking)',sv.body.n);
   ok(sv.auth==='tok-u1'&&sv.body.token===st.pend.token&&sv.body.score===4321&&sv.body.round===1&&sv.body.secs===640&&sv.body.plat==='pc'&&sv.body.lang==='es','saved with the Bearer token, the run token, score, round, game clock',sv);
   ok(await p.evaluate(()=>!localStorage.getItem('heads_pending_run')&&localStorage.getItem('heads_capitan')==='SÁNTÍ'),'the pending run is gone (claimed once), the nickname remembered for the plate');
   ok(A.inside&&!A.cut,'result on screen, nothing cut',A);
@@ -178,7 +185,16 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   ok(!P.btn&&P.bar&&P.nick==='SÁNTÍ'&&P.out&&P.del&&P.delHit,'signed in: no button, CAPITÁN SÁNTÍ · Salir · Borrar mi cuenta',P);
   ok(sv2.auth==='tok-u1'&&sv2.body.score===2500&&count(S,'/api/save')===2,'the run saved by itself at the end of the game',sv2);
   ok(P.msg[0]==='Tu mejor de la temporada: 4.321 · ronda 1'&&/^Puesto #\d+ de \d+ capitanes$/.test(P.msg[1])&&P.me==='SÁNTÍ','not a record: season best and place, my line in the top',P.msg);
+  ok(/Récord: 4\.321/.test(P.rec),'and the device record stays on the left',P.rec);
+  ok(!(await scr(p)).open,'signed-in auto-save: no full screen popping up');
+  ok(P.all&&P.allHit,'VER RANKING COMPLETO on the signed-in plate');
   await snap(p,'cuentas_end_signed_pc_es.png');
+  await p.click('#rankAll');ok(await waitScr(p,'board'),'VER RANKING COMPLETO opens the full ranking');
+  A=await scr(p);const vb=last(S,'/api/scores');
+  ok(A.t==='RANKING DE CAPITANES'&&/^Puesto #\d+ de \d+ capitanes$/.test(A.l1)&&A.me==='SÁNTÍ'&&A.big&&A.meSeen&&/CAPITÁN\s+SÁNTÍ/.test(A.txt),'without the saved header: my place, my line, CAPITÁN SÁNTÍ',A);
+  ok(vb&&vb.auth==='tok-u1'&&/n=50/.test(S.calls.filter(c=>c.p==='/api/scores').map(c=>c.q).at(-1)||'')&&/me=1/.test(S.calls.filter(c=>c.p==='/api/scores').map(c=>c.q).at(-1)||''),'asked /api/scores?n=50&me=1 with the session');
+  await settle(p);await snap(p,'cuentas_board_signed_pc_es.png');
+  await p.click('#acGo');await p.waitForTimeout(300);ok(await p.evaluate(()=>document.getElementById('acct').hidden&&!document.getElementById('end').hidden),'SEGUIR: back to the end plate');
   // sign out
   await p.click('#acctOut');await p.waitForTimeout(300);P=await plate(p);
   ok(P.msg[0]==='Sesión cerrada.'&&!P.out&&!P.del&&await p.evaluate(()=>!localStorage.getItem('heads-auth')&&!localStorage.getItem('heads_capitan')),'Salir: session and nickname forgotten on this device',P);
@@ -201,7 +217,7 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   const f0=count(S,'/api/forget');
   await p.click('#acctDel');ok(await waitScr(p,'confirm'),'Borrar mi cuenta: the in-game confirmation');
   A=await scr(p);ok(A.t==='¿BORRAR TU CUENTA?'&&A.go==='BORRAR'&&A.no==='CANCELAR'&&/No se puede deshacer/.test(A.txt)&&/CAPITÁN\s+SÁNTÍ/.test(A.txt),'¿BORRAR TU CUENTA?, BORRAR (red) / CANCELAR',A);
-  ok(await p.evaluate(()=>document.getElementById('acGo').classList.contains('red')),'the delete button is red');
+  ok(await p.evaluate(()=>document.getElementById('acGo').classList.contains('red')&&/button-red\.webp/.test(getComputedStyle(document.getElementById('acGo'),'::before').backgroundImage)),'the delete button is red: Santi\'s plate recoloured, lights included (button-red.webp)');
   await settle(p);await snap(p,'cuentas_delete_pc_es.png');
   await p.keyboard.press('Escape');await p.waitForTimeout(300);
   ok(!(await scr(p)).open&&count(S,'/api/forget')===f0,'Escape = CANCELAR: closed, nothing deleted');
@@ -247,7 +263,7 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   S=server();p=await open(b,S,{phone:true,lang:'en'});
   await play(p,true);await finish(p,S,6789,700);await rankBox(p);await p.waitForFunction(()=>!document.getElementById('saveBtn').hidden,null,{timeout:20000});await p.waitForTimeout(800);
   P=await plate(p);
-  ok(P.h==='CAPTAINS LEADERBOARD · SEASON 1'&&P.btnT==='SAVE MY SCORE'&&P.btnS==='with Google'&&P.btnHit&&P.inside,'phone EN: SAVE MY SCORE · with Google, where it is drawn, plate on screen',P);
+  ok(P.h==='CAPTAINS LEADERBOARD'&&P.btnT==='SAVE MY SCORE'&&P.btnS==='with Google'&&P.btnHit&&P.inside,'phone EN: SAVE MY SCORE · with Google, where it is drawn, plate on screen',P);
   ok(P.btnBox[3]>=34&&P.btnBox[2]>=200,'phone: the button is big enough to tap ('+P.btnBox[2]+'x'+P.btnBox[3]+' px)',P.btnBox);
   const two=await p.evaluate(()=>{const r=document.getElementById('rankBox').getBoundingClientRect(),q=document.getElementById('endPanel').getBoundingClientRect();return {side:r.left>q.right,again:document.getElementById('again').getBoundingClientRect().height};});
   ok(two.side,'phone: the ranking box is a second column, right of the stats',two);
@@ -265,7 +281,7 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   A=await scr(p);ok(/belongs to another captain/.test(A.err),'taken, in English',A.err);
   await p.fill('#acIn','');await p.keyboard.type('capi_7');await p.tap('#acGo');
   ok(await waitScr(p,'saved'),'saved');
-  A=await scr(p);ok(A.t==='SCORE SAVED!'&&A.l1==='NEW RECORD!'&&/^Rank #\d+ of \d+ captains$/.test(A.l2)&&A.me==='CAPI_7'&&/CAPTAIN\s+CAPI_7/.test(A.txt)&&A.inside&&!A.cut,'result in English: SCORE SAVED!, NEW RECORD!, Rank #N of M captains',A);
+  A=await scr(p);ok(A.t==='SCORE SAVED!'&&A.l1==='NEW RECORD!'&&/^Rank #\d+ of \d+ captains$/.test(A.l2)&&A.me==='CAPI_7'&&A.big&&A.meSeen&&/CAPTAIN\s+CAPI_7/.test(A.txt)&&A.inside&&!A.cut,'result in English: SCORE SAVED!, NEW RECORD!, Rank #N of M captains',A);
   await settle(p);await snap(p,'cuentas_result_phone_en.png');
   await p.tap('#acGo');await p.waitForTimeout(400);
   await play(p,true);await finish(p,S,1000,200);await rankBox(p);
@@ -286,6 +302,23 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   P=await plate(p);ok(P.btnT==='SAVE MY SCORE'&&P.btnHit&&P.inside,'PC EN guest plate',P);await snap(p,'cuentas_end_guest_pc_en.png');await p.context().close();
   S=server();p=await open(b,S,{phone:true,lang:'es'});await play(p,true);await finish(p,S,2222,300);await rankBox(p);await p.waitForFunction(()=>!document.getElementById('saveBtn').hidden,null,{timeout:20000});await p.waitForTimeout(800);
   P=await plate(p);ok(P.btnT==='GUARDAR MI PUNTUACIÓN'&&P.btnHit&&P.inside,'phone ES guest plate',P);await snap(p,'cuentas_end_guest_phone_es.png');
+  ok(!p.errs.length,'no page errors',p.errs);await p.context().close();
+
+  // ================= 4b) a big board: top 50, then a gap and my line pinned at the end =================
+  console.log('4b) a big board (64 captains): saved at #65 -> top 50, a gap, my line last and in view; saved at #30 -> my line in the middle');
+  S=server();S.seed=Array.from({length:64},(_,i)=>['CAPI'+(i+1),90000-i*1000,10+i%8]);p=await open(b,S,{});
+  await play(p,false);await finish(p,S,1500,400);await rankBox(p);await p.waitForFunction(()=>!document.getElementById('saveBtn').hidden,null,{timeout:20000});
+  P=await plate(p);ok(P.rows===5&&!P.ghost&&P.msg[0]==='Guarda tu puntuación con tu apodo de capitán','1.500 does not enter the top 5: five captains, no «TÚ» line',P);
+  await clickSave(p,false);await waitScr(p,'nick');await nickTry(p,'ULTIMO');
+  ok(await waitScr(p,'saved'),'saved');A=await scr(p);
+  ok(A.rows===51&&A.gap&&A.lastMe&&A.meSeen&&A.l2==='Puesto #65 de 65 capitanes','top 50, a gap, my line (#65) pinned at the end and scrolled into view',A);
+  await settle(p);await snap(p,'cuentas_board_bottom_pc_es.png');
+  await p.click('#acGo');await p.waitForTimeout(300);
+  await play(p,false);await finish(p,S,60500,1500);await rankBox(p);await p.waitForFunction(()=>!/Guardando/.test(document.getElementById('rankMsg').textContent),null,{timeout:20000}).catch(()=>{});
+  await p.click('#rankAll');await waitScr(p,'board');A=await scr(p);
+  const sc=await p.evaluate(()=>{const L=document.getElementById('acList');return {top:L.scrollTop,max:L.scrollHeight-L.clientHeight};});
+  ok(A.l1==='Puesto #31 de 65 capitanes'&&A.meSeen&&!A.gap&&sc.top>0&&sc.top<sc.max,'VER RANKING COMPLETO at #31: my line in the middle of the list (it scrolled, the page did not)',{A,sc});
+  await settle(p);await snap(p,'cuentas_board_middle_pc_es.png');
   ok(!p.errs.length,'no page errors',p.errs);await p.context().close();
 
   // ================= 5) the real login chunk against a fake Supabase Auth =================

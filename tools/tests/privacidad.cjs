@@ -39,6 +39,7 @@ const PAGES=[['es','privacidad','normas',['identificador de tu cuenta de Google 
     ok(I.links.every(h=>/^(\.\.\/|mailto:headsrescueadmin@gmail\.com$|https:\/\/www\.aepd\.es$)/.test(h)),'links: ../ (the game and the other language), mailto, aepd.es',I.links);
     const miss=must.filter(m=>!I.text.includes(m));ok(!miss.length,'says what it must ('+must.length+' points)',miss);
     ok(I.anchor.includes(anchor),'the rules have their anchor #'+anchor,I.anchor);
+    ok(!/14 años|under 14|menos de 14/.test(I.text),'no age line (Santi: removed)');
     ok(I.fonts&&I.logo,'fonts and logo from the site itself',{f:I.fonts,l:I.logo});
     ok(I.over<=0,'nothing wider than the window');
     await p.screenshot({path:shot(`privacidad_${lang}_pc.png`),fullPage:true});

@@ -13,6 +13,8 @@
 //     you are outside the top, limits clamped, no email anywhere
 //   - deleting: rank_forget deletes the player and every run; deleting the auth user cascades too
 //   - admin: summary, season top with flags, recent and flagged runs, hide / show a run, ban / unban, unknown action or id
+//   - v82b (supabase/v82b-apodos.sql, after the others, twice): À È Ò Ï allowed and folded in the key (ÀLEX = ALEX, JÒRDI = JORDI), existing
+//     nicknames and their keys untouched; metrics_prune() deletes only the anonymous events older than 2 years, and only service_role may call it
 //   - a bigger season (3000 players, 30000 runs) for the speed; the admin answer is saved as tools/tests/ranking-admin-sample.json
 //     (the fake answer the admin page test admin.cjs uses)
 // It works in its own database (heads_rk_test), dropped at the end.
@@ -21,7 +23,7 @@ const fs=require('fs'),path=require('path');
 if(!process.env.HEADS_PG){console.log('skipped: set HEADS_PG=1 and PGHOST/PGPORT/PGUSER for a local PostgreSQL');process.exit(0);}
 let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefined&&!c?'  '+JSON.stringify(i).slice(0,800):''));if(!c)bad++;};
 const DB='heads_rk_test',ROOT=path.join(__dirname,'../..');
-const V81=fs.readFileSync(path.join(ROOT,'supabase/schema.sql'),'utf8'),V82=fs.readFileSync(path.join(ROOT,'supabase/v82-cuentas.sql'),'utf8');
+const V81=fs.readFileSync(path.join(ROOT,'supabase/schema.sql'),'utf8'),V82=fs.readFileSync(path.join(ROOT,'supabase/v82-cuentas.sql'),'utf8'),V82B=fs.readFileSync(path.join(ROOT,'supabase/v82b-apodos.sql'),'utf8');
 const psql=(sql,db=DB)=>execFileSync('psql',['-X','-q','-A','-t','-v','ON_ERROR_STOP=1','-d',db],{input:sql,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:64<<20}).trim();
 const tryq=(sql,db)=>{try{psql(sql,db);return null;}catch(e){return String(e.stderr||e.message).trim();}};
 // SQL literals: strings, booleans, numbers, null, jsonb objects, text[] arrays, and {smallint:n} for the smallint arguments
@@ -75,6 +77,25 @@ const S1={smallint:1};
     r=callS('rank_nick',['99999999-9999-4999-8999-999999999999','NADIE','t',false]);ok(r&&r.error==='nouser','an id that is not an auth user -> nouser',r);
     const pl=JSON.parse(psql(`select json_agg(json_build_object('nick',nick,'key',nick_key,'terms',terms_at is not null,'ver',terms_ver,'prev',from_preview) order by created_at) from public.players`));
     ok(pl.length===2&&pl[0].key==='SANTI'&&pl[1].key==='PENA'&&pl[0].terms&&pl[0].ver==='2026-11-v82'&&pl[1].prev===true,'2 players, keys SANTI / PENA, when the terms were accepted, which version, from a preview',pl);
+    console.log('3b) v82b: À È Ò Ï, and metrics_prune()');
+    const keys0=psql(`select string_agg(nick||'='||nick_key,',' order by nick) from public.players`);
+    ok(tryq(V82B)===null,'v82b-apodos.sql, first run');
+    const sec=tryq(V82B);ok(sec===null,'v82b-apodos.sql, second run (idempotent)',sec);
+    ok(psql(`select string_agg(nick||'='||nick_key,',' order by nick) from public.players`)===keys0,'existing nicknames and keys untouched ('+keys0+')');
+    ok(/ÀÈÒÏ/.test(psql(`select generation_expression from information_schema.columns where table_name='players' and column_name='nick_key'`)),'the key folds À È Ò Ï');
+    r=callS('rank_nick',[uid(3),'ÀLEX','t',false]);ok(r&&r.ok&&r.nick==='ÀLEX','ÀLEX allowed now',r);
+    r=callS('rank_nick',[uid(4),'ALEX','t',false]);ok(r&&r.error==='taken','ALEX -> taken (À = A)',r);
+    r=callS('rank_nick',[uid(4),'JÒRDI.Ç','t',false]);ok(r&&r.ok,'JÒRDI.Ç allowed',r);
+    r=callS('rank_nick',[uid(5),'JORDIC','t',false]);ok(r&&r.error==='taken','JORDIC -> taken (JÒRDI.Ç folds to JORDIC)',r);
+    r=callS('rank_nick',[uid(5),'RAÏM','t',false]);ok(r&&r.ok&&psql(`select nick_key from public.players where nick='RAÏM'`)==='RAIM','RAÏM allowed, key RAIM',r);
+    r=callS('rank_nick',[uid(6),'ÃNA','t',false]);ok(r&&r.error==='format','other accents still refused (ÃNA)',r);
+    psql(`delete from public.players where id in ('${uid(3)}','${uid(4)}','${uid(5)}')`);
+    psql(`insert into public.events (created_at,kind,session_id,version) values (now()-interval '3 years','visit','${'a'.repeat(24)}','v81'),(now()-interval '25 months','visit','${'b'.repeat(24)}','v81'),(now()-interval '23 months','visit','${'c'.repeat(24)}','v81'),(now(),'visit','${'d'.repeat(24)}','v81')`);
+    for(const ro of ['anon','authenticated'])ok(/permission denied/.test(tryq(`set role ${ro}; select public.metrics_prune()`)||''),ro+' cannot call metrics_prune');
+    ok(psql(`set role service_role; select public.metrics_prune()`)==='2'&&psql(`select count(*) from public.events`)==='2','metrics_prune: the 2 events older than 2 years go, the other 2 stay');
+    ok(psql(`set role service_role; select public.metrics_prune()`)==='0','again: nothing to delete');
+    ok(psql(`select prosecdef and array_to_string(proconfig,',')='search_path=""' from pg_proc where proname='metrics_prune'`)==='t','metrics_prune is SECURITY DEFINER with an empty search_path');
+    psql('truncate public.events');
     // more players for the board
     const NICKS=['VEGA_FAN','ORION','KRAKEN','LUNA','TITAN','NOVA','ASTRO7','ZETA','ECO','PULSAR','QUASAR','COMETA'];
     NICKS.forEach((n,i)=>callS('rank_nick',[uid(10+i),n,'t',false]));

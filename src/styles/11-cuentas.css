@@ -32,6 +32,7 @@
 @keyframes sbIn{from{opacity:0;transform:translateY(calc(var(--u)*1.5)) scale(.94)}to{opacity:1;transform:none}}
 @keyframes sbGlow{from{filter:drop-shadow(0 0 3px rgba(255,190,60,.25))}to{filter:drop-shadow(0 0 12px rgba(255,200,80,.6))}}
 @keyframes sbBlink{50%{opacity:.25}}
+#rankBox:not([hidden]){padding-bottom:calc(var(--u)*2.6)} /* REINTENTAR's art reaches 3.5u above its box: keep the last line clear of it */
 /* CAPITÁN {APODO} · Salir · Borrar mi cuenta · Privacidad */
 #acctBar{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:calc(var(--u)*.4) calc(var(--u)*1.1);margin-top:calc(var(--u)*1.1);
   font:600 calc(var(--u)*1.45)/1.2 'TitilliumH','Titillium Web',var(--ef);letter-spacing:.06em;color:rgba(239,230,210,.62)}
@@ -56,19 +57,19 @@ body.touch #acctBar button::after,body.touch #acctBar a::after{content:'';positi
 /* ---------- the account screens (#acct), over the menu or the end plate ---------- */
 #acct{--ef:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;--fb:'TitilliumH','Titillium Web','Segoe UI',system-ui,sans-serif;position:fixed;inset:0;z-index:55;box-sizing:border-box;
   display:flex;overflow:auto;padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
-  background:radial-gradient(ellipse 70% 80% at 50% 46%,rgba(10,6,18,.62),rgba(4,3,10,.88) 62%,rgba(1,1,4,.95));
+  background:radial-gradient(ellipse 70% 80% at 50% 46%,rgba(8,5,14,.8),rgba(4,3,10,.9) 62%,rgba(1,1,4,.96));
   font-family:var(--ef);color:#f3e2b0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 #acct[hidden],#acct [hidden]{display:none!important}
 #acct.in{animation:eFade .3s ease-out both}
 #acct.in #acBox{animation:acIn .42s cubic-bezier(.2,1.25,.4,1) both}
 @keyframes acIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
-#acBox{position:relative;box-sizing:border-box;width:min(620px,100%);margin:auto;padding:34px 46px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
+#acBox{position:relative;box-sizing:border-box;width:min(620px,100%);margin:auto;padding:44px 46px 34px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
 #acBox::before{content:'';position:absolute;inset:0;z-index:-1;background:rgba(14,11,7,.94);border:1.5px solid #e8b13a;box-shadow:0 0 14px rgba(255,190,60,.25),0 10px 30px rgba(0,0,0,.6)}
 #acBox.fr::before{background:none;border:0;box-shadow:none;border-style:solid;border-width:62px 35px 58px;
   border-image:var(--end-frame) 130 72 122 fill / 62px 35px 58px stretch;filter:drop-shadow(0 8px 22px rgba(0,0,0,.65))}
 #acBox{isolation:isolate}
-#acT{max-width:100%;font-size:40px;line-height:1;padding-top:2px}
-#acT .ln{display:block;transform:scaleX(1.16)}
+#acT{display:flex;justify-content:center;max-width:100%;font-size:40px;line-height:1;padding-top:2px}
+#acT .ln{display:inline-block;transform:scaleX(1.16)} /* inline-block: its width is the text's, so 40-cuentas.js (accFit) can shrink a long title */
 #acT .g3>i{animation:eShine 5s .6s ease-in-out infinite}
 #acS{margin:0;max-width:440px;font:600 15px/1.42 var(--fb);color:#e8dcc0;letter-spacing:.01em}
 #acS>span{display:block}
@@ -87,6 +88,7 @@ body.touch #acctBar button::after,body.touch #acctBar a::after{content:'';positi
 #acIn{box-sizing:border-box;width:13.2ch;min-width:0;max-width:62vw;height:50px;padding:0 14px;font:800 24px/1 var(--ef);letter-spacing:.12em;text-transform:uppercase;
   color:#ffe9a8;caret-color:#ffd659;background:rgba(0,0,0,.55);border:1.5px solid rgba(232,182,74,.6);border-radius:0;outline:none;text-align:center;
   -webkit-user-select:text;user-select:text;touch-action:auto;box-shadow:inset 0 0 12px rgba(0,0,0,.6)}
+#acIn::placeholder{color:rgba(232,182,74,.32);letter-spacing:.16em}
 #acIn:focus{border-color:#ffd659;box-shadow:inset 0 0 12px rgba(0,0,0,.6),0 0 12px rgba(255,200,80,.4)}
 #acIn[aria-invalid=true]{border-color:#ff6b57}
 #acHint{margin:0;font:600 12px/1.3 var(--fb);color:rgba(239,230,210,.6)}
@@ -118,7 +120,7 @@ body.touch #acctBar button::after,body.touch #acctBar a::after{content:'';positi
 #acGo:disabled,#acNo:disabled{cursor:default;opacity:.6}
 /* phones (and any short window): the same screens, tighter */
 @media (max-height:520px){
-  #acBox{padding:18px 30px 18px;gap:8px;width:min(580px,100%)}
+  #acBox{padding:26px 30px 20px;gap:8px;width:min(580px,100%)}
   #acBox.fr::before{border-width:40px 23px 38px;border-image-width:40px 23px 38px}
   #acT{font-size:28px}
   #acS{font-size:13px;line-height:1.35}

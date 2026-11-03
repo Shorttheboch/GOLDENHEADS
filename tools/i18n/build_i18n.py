@@ -208,7 +208,7 @@ EN.update({'¿Nos ayudas con estadísticas anónimas?':'Will you help us with an
  'Para mejorar el juego: rondas, dispositivo y país. Sin nombre ni cuenta.':'To improve the game: rounds, device and country. No name, no account.','SÍ':'YES'})
 # ---- v82: Google accounts and the Season 1 ranking (index.html #rankBox / #acct, src/game/26-ranking.js, src/game/40-cuentas.js) ----
 EN.update({'RANKING DE CAPITANES · TEMPORADA 1':'CAPTAINS LEADERBOARD · SEASON 1','GUARDAR MI PUNTUACIÓN':'SAVE MY SCORE','con Google':'with Google',
- 'CAPITÁN':'CAPTAIN','Salir':'Sign out','Borrar mi cuenta':'Delete my account','Privacidad':'Privacy','Apodo':'Nickname',
+ 'CAPITÁN':'CAPTAIN','APODO':'NICKNAME','Salir':'Sign out','Borrar mi cuenta':'Delete my account','Privacidad':'Privacy','Apodo':'Nickname',
  'De 3 a 12 letras o números (también . _ -). Sin espacios.':'3 to 12 letters or digits (also . _ -). No spaces.',
  'Guardando tu partida…':'Saving your run…','Partida guardada · en revisión':'Run saved · under review',
  'Elige tu apodo para guardar la partida':'Choose your nickname to save this run','Esta cuenta está fuera del ranking.':'This account is off the leaderboard.',

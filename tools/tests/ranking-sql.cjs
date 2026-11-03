@@ -97,7 +97,7 @@ const S1={smallint:1};
     ok(board(false,500).top.length===14&&board(false,0).top.length===1&&board(false,-3).top.length===1,'limit clamped to 1..50');
     ok(!JSON.stringify([b,board(false,50)]).includes('@'),'no email anywhere in the board');
     // flagged, rejected, banned, test
-    r=save(uid(11),99999,9,{status:'flagged',flags:['score_round']});ok(r.saved&&r.status==='flagged'&&r.new_best===false&&r.best.score===8000,'a flagged run: saved, not a new best, best stays 8000',r);
+    r=save(uid(11),99999,9,{status:'flagged',flags:['score']});ok(r.saved&&r.status==='flagged'&&r.new_best===false&&r.best.score===8000,'a flagged run: saved, not a new best, best stays 8000',r);
     ok(board(false,20).top.find(x=>x.nick==='ORION').score===8000,'the flagged run is not on the board');
     r=save(uid(12),50000,9,{status:'rejected'});ok(board(false,20).top.find(x=>x.nick==='KRAKEN').score===8000,'a rejected run is not on the board');
     r=save(uid(13),12345,7,{test:true});ok(r.saved&&r.board.count===1&&r.board.top[0].nick==='LUNA','a test (preview) run: only on the test board (1 player there)',r.board);
@@ -115,7 +115,7 @@ const S1={smallint:1};
     ok(a.top.length===14&&a.top[0].nick==='VEGA_FAN'&&a.top[0].run>0&&/^[0-9a-f-]{36}$/.test(a.top[0].player)&&'flags' in a.top[0],'season top with run id, player id and flags',a.top[0]);
     const orion=a.top.find(x=>x.nick==='ORION');ok(orion.flagged===1&&orion.runs===2,'ORION: 2 runs, 1 flagged',orion);
     ok(a.recent.length===18&&a.recent[0].at>=a.recent[1].at&&a.recent.some(x=>x.status==='rejected')&&a.recent[0].csecs!==undefined,'recent runs, newest first, every status',a.recent.slice(0,2));
-    ok(a.flagged.length===1&&a.flagged[0].nick==='ORION'&&a.flagged[0].flags[0]==='score_round','flagged runs',a.flagged);
+    ok(a.flagged.length===1&&a.flagged[0].nick==='ORION'&&a.flagged[0].flags[0]==='score','flagged runs',a.flagged);
     ok(!JSON.stringify(a).includes('@'),'no email anywhere in the admin answer');
     const fr=a.flagged[0].run;
     r=callS('rank_moderate',['show',fr,null,null]);ok(r.ok&&board(false,20).top[0].nick==='ORION'&&board(false,20).top[0].score===99999,'show the flagged run: ORION goes to #1 with 99999',board(false,3).top);
@@ -147,7 +147,7 @@ const S1={smallint:1};
       insert into public.runs (player_id,token_id,score,round,secs,stats,platform,lang,version,status,flags,test,created_at)
         select ('00000000-0000-4000-8000-'||lpad((1+(g*7919)%3000)::text,12,'0'))::uuid, lpad(to_hex(g),16,'0'), 500+(g::bigint*104729)%40000, 1+(g*31)%18, 60+(g*13)%2000,
                jsonb_build_object('kills',g%90,'csecs',50+(g*13)%1900), case when g%5<3 then 'touch' else 'pc' end, 'es','v82',
-               case when g%97=0 then 'flagged' when g%331=0 then 'rejected' else 'ok' end, case when g%97=0 then array['score_round'] else '{}'::text[] end,
+               case when g%97=0 then 'flagged' when g%331=0 then 'rejected' else 'ok' end, case when g%97=0 then array['score'] else '{}'::text[] end,
                g%41=0, now()-((g%43200)||' minutes')::interval
         from generate_series(1,30000) g;`);
     let t0=Date.now();b=board(false,10,uid(77));const msB=Date.now()-t0;

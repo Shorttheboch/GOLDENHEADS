@@ -6,10 +6,12 @@
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#05050a">
-<title>HEADS · Estadísticas</title>
+<title>HEADS · Estadísticas y ranking</title>
 <!-- v81: Santi's page for the anonymous play metrics (served at /admin, see netlify.toml). Not part of the game bundle, Spanish only, no outside libraries.
      It asks GET /api/admin/stats (netlify/functions/metrics.mts) with the password in the x-admin-key header; the password lives in sessionStorage only.
-     Every number arrives already added up by the SQL function metrics_stats (supabase/schema.sql); test games (?ronda=N) are left out there. -->
+     Every number arrives already added up by the SQL function metrics_stats (supabase/schema.sql); test games (?ronda=N) are left out there.
+     v82: a second tab, Ranking (Season 1 of the Google accounts): GET /api/admin/ranking (netlify/functions/ranking.mts -> rank_admin in
+     supabase/v82-cuentas.sql) with the same password; hide / show a run, ban / unban a player (POST /api/admin/ranking). Never an email. -->
 <style>
 @font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f600.woff2) format('woff2');font-weight:600;font-display:swap}
 @font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f700.woff2) format('woff2');font-weight:700;font-display:swap}
@@ -111,7 +113,30 @@ i.mo{background:var(--mo)!important}
 .chip{display:inline-block;margin:0 4px 4px 0;padding:2px 6px;border:1px solid rgba(232,182,74,.3);font-size:11px;color:var(--ink2);white-space:nowrap}
 .two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 22px}
 @media (max-width:820px){main{grid-template-columns:minmax(0,1fr)}.two-col{grid-template-columns:minmax(0,1fr)}}
+/* v82: tabs (Estadísticas / Ranking) and the ranking tables */
+.tabs{display:flex;gap:2px}
+.tabs button{height:32px;padding:0 12px 0 14px;border:1px solid rgba(232,182,74,.45);background:rgba(10,8,4,.6);color:#e9d9a8;cursor:pointer;font:800 11px/1 var(--fT);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.tabs button[aria-selected=true]{background:linear-gradient(180deg,#fff0b0,#e9b440);color:#1d150a;border-color:#ffe08a}
+.tabs button:focus-visible{outline:2px solid var(--gold-hi);outline-offset:1px}
+.tblw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl td.nk{font:800 13px/1.2 var(--fT);letter-spacing:.06em;color:var(--gold-hi);white-space:nowrap}
+.tbl td .pid{display:block;color:var(--ink3);font:11px/1.3 ui-monospace,Consolas,monospace}
+.tbl td.act{white-space:nowrap;text-align:right}
+.tbl tr.ban td{opacity:.55}
+.mini{height:26px;padding:0 9px;margin:2px 0 2px 4px;border:1px solid rgba(232,182,74,.5);background:rgba(10,8,4,.6);color:#e9d9a8;cursor:pointer;font:800 10px/1 var(--fT);letter-spacing:.12em;text-transform:uppercase}
+.mini:hover,.mini:focus-visible{outline:none;box-shadow:0 0 8px rgba(255,200,80,.5)}
+.mini.red{border-color:rgba(255,107,87,.65);color:#ffb2a6}
+.mini:disabled{opacity:.5;cursor:default}
+.st{display:inline-block;padding:2px 6px;font:800 10px/1.2 var(--fT);letter-spacing:.1em;text-transform:uppercase;border:1px solid}
+.st.ok{color:#9fe0a8;border-color:rgba(120,210,140,.45)}.st.flagged{color:#ffd27a;border-color:rgba(255,200,90,.55)}.st.rejected{color:#ff9d8f;border-color:rgba(255,107,87,.55)}.st.ban{color:#ff9d8f;border-color:rgba(255,107,87,.55)}
+.warnbar{margin:0 0 12px;padding:8px 12px;border:1px dashed rgba(127,211,234,.6);color:#9fdcff}
+#banDlg{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);padding:16px}
+#banDlg form{width:min(420px,100%);padding:20px 18px}
+#banDlg h2{margin:0 0 6px;font-size:16px}#banDlg p{margin:0 0 10px;color:var(--ink2);font-size:13px}
+#banDlg input{width:100%;height:40px;padding:0 10px;margin-bottom:12px;background:rgba(0,0,0,.55);border:1px solid rgba(232,182,74,.45);border-radius:0;font-size:16px}
+#banDlg .row{display:flex;gap:10px;justify-content:flex-end}
 @media (max-width:560px){
+  .tabs{width:100%}.tabs button{flex:1}
   .wrap{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
   header img{height:34px}header h1{font-size:18px}
   .bar{position:static;gap:8px}.bar .sp{display:none}.seg{width:100%}.seg button{flex:1;padding:0 4px;letter-spacing:.08em}
@@ -124,7 +149,7 @@ i.mo{background:var(--mo)!important}
 </head>
 <body>
 <div class="wrap">
-  <header><img src="/assets/ui/menuui/logo.webp" alt="HEADS Rescue"><div><h1 class="g3">Estadísticas</h1><div class="sub">Métricas anónimas del juego · solo para Santi</div></div></header>
+  <header><img src="/assets/ui/menuui/logo.webp" alt="HEADS Rescue"><div><h1 class="g3">Estadísticas</h1><div class="sub">Métricas anónimas y ranking del juego · solo para Santi</div></div></header>
 
   <form id="login" class="box" hidden autocomplete="on">
     <h2 class="g3">Acceso</h2>
@@ -137,6 +162,7 @@ i.mo{background:var(--mo)!important}
 
   <div id="app" hidden>
     <div class="bar box">
+      <div class="tabs" id="tabs" role="tablist" aria-label="Vista"><button type="button" role="tab" data-v="stats" aria-selected="true">Estadísticas</button><button type="button" role="tab" data-v="rank" aria-selected="false">Ranking</button></div>
       <div class="seg" id="range" role="group" aria-label="Periodo"><button type="button" data-v="today">Hoy</button><button type="button" data-v="7d">7 días</button><button type="button" data-v="30d">30 días</button><button type="button" data-v="all">Todo</button></div>
       <div class="seg" id="plat" role="group" aria-label="Plataforma"><button type="button" data-v="all">Todos</button><button type="button" data-v="pc">PC</button><button type="button" data-v="touch">Móvil</button></div>
       <span class="sp"></span><span id="stamp"></span>
@@ -144,12 +170,17 @@ i.mo{background:var(--mo)!important}
     </div>
     <p id="state" role="status"></p>
     <main id="out"></main>
+    <main id="rkOut" hidden></main>
   </div>
 </div>
+<div id="banDlg" hidden role="dialog" aria-modal="true" aria-labelledby="banT"><form class="box" id="banF"><h2 class="g3" id="banT">Banear</h2>
+  <p id="banP">Sus partidas dejan de salir en el ranking y no puede guardar más. Se puede deshacer.</p>
+  <input id="banNote" maxlength="200" placeholder="Motivo (opcional, solo lo ves tú)" autocomplete="off">
+  <div class="row"><button class="btn ghost" type="button" id="banNo">Cancelar</button><button class="btn" type="submit">Banear</button></div></form></div>
 <script>
 'use strict';
 const KEY='heads_admin_key',PREF='heads_admin_view',$=id=>document.getElementById(id);
-const S={range:'7d',platform:'all',data:null,busy:0};
+const S={range:'7d',platform:'all',view:'stats',data:null,busy:0,ban:null};
 try{Object.assign(S,JSON.parse(sessionStorage.getItem(PREF)||'{}'));}catch(_){}
 const getKey=()=>{try{return sessionStorage.getItem(KEY)||'';}catch(_){return '';}};
 const setKey=k=>{try{k?sessionStorage.setItem(KEY,k):sessionStorage.removeItem(KEY);}catch(_){}};
@@ -240,7 +271,7 @@ function render(d){
   $('out').innerHTML=out.join('');}
 // ---- loading ----
 function view(){for(const [id,k] of [['range','range'],['plat','platform']])for(const b of $(id).querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.v===S[k]));
-  try{sessionStorage.setItem(PREF,JSON.stringify({range:S.range,platform:S.platform}));}catch(_){}}
+  try{sessionStorage.setItem(PREF,JSON.stringify({range:S.range,platform:S.platform,view:S.view}));}catch(_){}}
 function showLogin(msg){$('app').hidden=true;$('login').hidden=false;$('loginErr').textContent=msg||'';$('pw').value='';setTimeout(()=>$('pw').focus(),0);}
 async function load(){const key=getKey();if(!key)return showLogin();const n=++S.busy;view();
   $('state').className='';$('state').textContent='Cargando…';
@@ -253,12 +284,64 @@ async function load(){const key=getKey();if(!key)return showLogin();const n=++S.
   $('app').hidden=false;$('login').hidden=true;
   if(!r.ok||!j||!j.summary){$('state').className='bad';$('state').textContent=r.status===503?'Falta configurar el servidor: '+((j&&j.error)||'')+' (variables SUPABASE_URL, SUPABASE_SECRET_KEY y ADMIN_PASSWORD en Netlify).':'Error del servidor ('+r.status+'): '+((j&&j.error)||'sin respuesta')+'.';return;}
   S.data=j;$('state').textContent='';$('stamp').textContent='Actualizado '+when(j.at||Date.now());render(j);}
-$('login').addEventListener('submit',e=>{e.preventDefault();const k=$('pw').value;if(!k)return;setKey(k);$('loginErr').textContent='';load();});
+$('login').addEventListener('submit',e=>{e.preventDefault();const k=$('pw').value;if(!k)return;setKey(k);$('loginErr').textContent='';setView(S.view);});
 for(const [id,k] of [['range','range'],['plat','platform']])$(id).addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(!b||S[k]===b.dataset.v)return;S[k]=b.dataset.v;load();});
-$('reload').onclick=()=>load();
-$('logout').onclick=()=>{setKey('');S.data=null;$('out').innerHTML='';showLogin();};
+$('reload').onclick=()=>S.view==='rank'?loadRank():load();
+$('logout').onclick=()=>{setKey('');S.data=null;$('out').innerHTML='';$('rkOut').innerHTML='';showLogin();};
+// ---- v82: the Ranking tab (Season 1 of the Google accounts) ----
+const FLAG={no_clock:'sin reloj del juego',clock:'el juego dice más tiempo del que vio el servidor',fast:'rondas de menos de 15 s',score:'más de 6.000 puntos por ronda'};
+const STN={ok:'En el ranking',flagged:'En revisión',rejected:'Oculta'};
+const pid=p=>p?`<span class="pid" title="${esc(p)}">${esc(String(p).slice(0,8))}</span>`:'';
+const flags=f=>(f||[]).map(x=>`<span class="chip" title="${esc(x)}">${esc(FLAG[x]||x)}</span>`).join('');
+const secs=r=>dur(r.secs)+(r.csecs!=null?` <small class="pid" title="reloj del juego">juego ${dur(r.csecs)}</small>`:'');
+const runBtns=r=>(r.status!=='ok'?`<button class="mini" type="button" data-a="show" data-run="${r.run}">Mostrar</button>`:'')+(r.status!=='rejected'?`<button class="mini" type="button" data-a="hide" data-run="${r.run}">Ocultar</button>`:'');
+const banBtn=r=>r.banned?`<button class="mini" type="button" data-a="unban" data-player="${esc(r.player)}">Desbanear</button>`:`<button class="mini red" type="button" data-a="ban" data-player="${esc(r.player)}" data-nick="${esc(r.nick)}">Banear</button>`;
+function renderRank(d){const s=d.summary||{},o=[];
+  o.push(sec('Ranking · Temporada 1','Partidas guardadas con cuenta de Google (mejor partida de cada capitán). '+(d.test?'Estás en una vista previa: solo partidas de prueba.':'Solo partidas del sitio real (las de las vistas previas van aparte).'),
+    (d.test?'<p class="warnbar">Vista previa de Netlify: estas son las partidas de prueba, no las reales.</p>':'')+
+    `<div class="kpis">${[kpi(N(s.ranked),'capitanes en el ranking'),kpi(N(s.accounts),'cuentas con apodo'),kpi(N(s.runs),'partidas guardadas'),kpi(N(s.today),'partidas hoy'),
+      kpi(N(s.flagged),'en revisión'),kpi(N(s.rejected),'ocultas'),kpi(N(s.banned),'baneados')].join('')}</div>`,true));
+  const F=d.flagged||[];
+  o.push(sec('En revisión','Partidas raras: guardadas pero fuera del ranking hasta que las mires. «Mostrar» las pone en el ranking, «Ocultar» las deja fuera.',
+    F.length?`<div class="tblw"><table class="tbl"><thead><tr><th>Cuándo</th><th>Capitán</th><th class="n">Puntos</th><th class="n">Ronda</th><th class="hide-s">Tiempo</th><th>Motivo</th><th></th></tr></thead><tbody>${F.map(r=>`<tr class="${r.banned?'ban':''}"><td class="n">${esc(when(r.at))}</td><td class="nk">${esc(r.nick)}${pid(r.player)}</td><td class="n">${N(r.score)}</td><td class="n">${N(r.round)}</td><td class="hide-s">${secs(r)}</td><td>${flags(r.flags)}</td><td class="act">${runBtns(r)}${banBtn(r)}</td></tr>`).join('')}</tbody></table></div>`:empty('Nada en revisión.'),true));
+  const T=d.top||[];
+  o.push(sec('Top de la temporada','La mejor partida que cuenta de cada capitán (los baneados, al final y atenuados). Ocultar quita esa partida; si tiene otras, sube la siguiente.',
+    T.length?`<div class="tblw"><table class="tbl"><thead><tr><th class="n">#</th><th>Capitán</th><th class="n">Puntos</th><th class="n">Ronda</th><th class="hide-s">Fecha</th><th class="hide-s">Partidas</th><th class="hide-s">Avisos</th><th></th></tr></thead><tbody>${T.map(r=>`<tr class="${r.banned?'ban':''}"><td class="n">${r.banned?'—':N(r.pos)}</td><td class="nk">${esc(r.nick)}${r.banned?' <span class="st ban">baneado</span>':''}${pid(r.player)}</td><td class="n">${N(r.score)}</td><td class="n">${N(r.round)}</td><td class="hide-s">${esc(when(r.at))}</td><td class="n hide-s">${N(r.runs)}${r.flagged?` · ${N(r.flagged)} en revisión`:''}${r.rejected?` · ${N(r.rejected)} ocultas`:''}</td><td class="hide-s">${flags(r.flags)}</td><td class="act"><button class="mini" type="button" data-a="hide" data-run="${r.run}">Ocultar</button>${banBtn(r)}</td></tr>`).join('')}</tbody></table></div>`:empty('Aún no hay nadie en el ranking.'),true));
+  const R=d.recent||[];
+  o.push(sec('Últimas partidas','Las más recientes, de todos los estados. Tiempo = medido por el servidor (desde que empezó la partida hasta que se guardó); «juego» = el reloj del propio juego.',
+    R.length?`<div class="tblw"><table class="tbl"><thead><tr><th>Cuándo</th><th>Capitán</th><th class="n">Puntos</th><th class="n">Ronda</th><th class="hide-s">Tiempo</th><th class="hide-s">Dónde</th><th>Estado</th><th></th></tr></thead><tbody>${R.map(r=>`<tr class="${r.banned?'ban':''}"><td class="n">${esc(when(r.at))}</td><td class="nk">${esc(r.nick)}${pid(r.player)}</td><td class="n">${N(r.score)}</td><td class="n">${N(r.round)}</td><td class="hide-s">${secs(r)}</td><td class="hide-s">${esc(nm('plat',r.platform||'?'))}</td><td><span class="st ${esc(r.status)}">${esc(STN[r.status]||r.status)}</span>${flags(r.flags)}</td><td class="act">${runBtns(r)}${banBtn(r)}</td></tr>`).join('')}</tbody></table></div>`:empty('Ninguna partida todavía.'),true));
+  const B=d.banned||[];
+  o.push(sec('Baneados','Cuentas fuera del ranking: no pueden guardar partidas.',
+    B.length?`<div class="tblw"><table class="tbl"><thead><tr><th>Capitán</th><th>Desde</th><th>Motivo</th><th></th></tr></thead><tbody>${B.map(r=>`<tr><td class="nk">${esc(r.nick)}${pid(r.player)}</td><td class="n">${esc(when(r.at))}</td><td>${esc(r.note||'—')}</td><td class="act"><button class="mini" type="button" data-a="unban" data-player="${esc(r.player)}">Desbanear</button></td></tr>`).join('')}</tbody></table></div>`:empty('Nadie baneado.'),true));
+  $('rkOut').innerHTML=o.join('');}
+async function loadRank(){const key=getKey();if(!key)return showLogin();const n=++S.busy;view();
+  $('state').className='';$('state').textContent='Cargando…';let r,j=null;
+  try{r=await fetch('/api/admin/ranking',{headers:{'x-admin-key':key},cache:'no-store'});j=await r.json().catch(()=>null);}
+  catch(_){if(n===S.busy){$('app').hidden=false;$('login').hidden=true;$('state').className='bad';$('state').textContent='No se pudo conectar con el servidor. Prueba otra vez.';}return;}
+  if(n!==S.busy)return;
+  if(r.status===401){setKey('');return showLogin('Contraseña incorrecta.');}
+  if(r.status===429){setKey('');return showLogin((j&&j.error)||'Demasiados intentos. Espera unos minutos.');}
+  $('app').hidden=false;$('login').hidden=true;
+  if(!r.ok||!j||!j.summary){$('state').className='bad';$('rkOut').innerHTML='';$('state').textContent=r.status===503?'Falta configurar el servidor: '+((j&&j.error)||'')+' (variables SUPABASE_URL, SUPABASE_SECRET_KEY y ADMIN_PASSWORD en Netlify, y supabase/v82-cuentas.sql en Supabase).':'Error del servidor ('+r.status+'): '+((j&&j.error)||'sin respuesta')+'.';return;}
+  $('state').textContent='';$('stamp').textContent='Actualizado '+when(j.at||Date.now());renderRank(j);}
+async function act(body,btn){const key=getKey();if(!key)return showLogin();if(btn)btn.disabled=true;
+  let r,j=null;try{r=await fetch('/api/admin/ranking',{method:'POST',headers:{'x-admin-key':key,'content-type':'application/json'},body:JSON.stringify(body)});j=await r.json().catch(()=>null);}catch(_){}
+  if(!r||!r.ok){if(btn)btn.disabled=false;$('state').className='bad';$('state').textContent='No se pudo hacer: '+((j&&j.error)||(r?'error '+r.status:'sin conexión'))+'.';return;}
+  loadRank();}
+$('rkOut').addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(!b)return;const a=b.dataset.a;
+  if(a==='hide'||a==='show')return act({action:a,run:Number(b.dataset.run)},b);
+  if(a==='unban')return act({action:'unban',player:b.dataset.player},b);
+  if(a==='ban'){S.ban=b.dataset.player;$('banT').textContent='Banear a '+b.dataset.nick;$('banNote').value='';$('banDlg').hidden=false;setTimeout(()=>$('banNote').focus(),0);}});
+$('banNo').onclick=()=>{$('banDlg').hidden=true;};
+$('banF').addEventListener('submit',e=>{e.preventDefault();$('banDlg').hidden=true;act({action:'ban',player:S.ban,note:$('banNote').value.trim()});});
+$('banDlg').addEventListener('keydown',e=>{if(e.key==='Escape')$('banDlg').hidden=true;});
+function setView(v){S.view=v==='rank'?'rank':'stats';for(const b of $('tabs').querySelectorAll('button'))b.setAttribute('aria-selected',String(b.dataset.v===S.view));
+  const rk=S.view==='rank';$('range').hidden=$('plat').hidden=rk;$('out').hidden=rk;$('rkOut').hidden=!rk;
+  try{sessionStorage.setItem(PREF,JSON.stringify({range:S.range,platform:S.platform,view:S.view}));}catch(_){}
+  return rk?loadRank():load();}
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(b&&b.dataset.v!==S.view)setView(b.dataset.v);});
 if(!['today','7d','30d','all'].includes(S.range))S.range='7d';if(!['all','pc','touch'].includes(S.platform))S.platform='all';
-getKey()?load():showLogin();
+getKey()?setView(S.view):showLogin();
 </script>
 </body>
 </html>

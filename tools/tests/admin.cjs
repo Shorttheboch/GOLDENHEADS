@@ -8,11 +8,16 @@
 //   - range and platform buttons ask the server again (range=30d&platform=touch...) and are remembered on reload
 //   - empty period (no data yet), server not configured (503) and too many tries (429) show clear messages
 //   - phone width (390 portrait, 844 landscape): nothing wider than the screen
+//   - v82, the Ranking tab: GET /api/admin/ranking with the same password (the fake answer is tools/tests/ranking-admin-sample.json, made by
+//     ranking-sql.cjs from the real SQL); summary, En revisión / Top / Últimas partidas / Baneados with one row per entry, no email anywhere;
+//     Ocultar / Mostrar a run, Banear (with a note, in the page's own dialog) / Desbanear a player = POST /api/admin/ranking; remembered on
+//     reload; 503 says what is missing; phone widths: nothing wider than the screen (screenshots admin_ranking_*.png)
 const {chromium}=require('playwright');
 const fs=require('fs'),path=require('path');
 const {BASE,ARGS,shot,ROOT}=require('./lib.cjs');
 let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefined&&!c?'  '+JSON.stringify(i).slice(0,500):''));if(!c)bad++;};
 const SAMPLE=JSON.parse(fs.readFileSync(path.join(__dirname,'metrics-stats-sample.json'),'utf8'));
+const RSAMPLE=JSON.parse(fs.readFileSync(path.join(__dirname,'ranking-admin-sample.json'),'utf8'));
 const PASS='dorado-2026';
 const EMPTY={summary:{visits:0,sessions:0,players:0,returning:0,games:0,games_pc:0,games_touch:0,secs_total:0,secs_avg:null,left_no_play:0,consent_yes:0,consent_no:0,consent_unset:0,test_games:2},
   daily:[],funnel:[],last_round:{all:null,pc:null,touch:null},round_secs:[],causes:[],countries:[],cities:[],platforms:{},os:{},browsers:{},screens:{},langs:{},
@@ -31,6 +36,12 @@ async function page(b,opt,mode){
     if(key!==PASS)return r.fulfill({status:401,contentType:'application/json',body:JSON.stringify({error:'contraseña incorrecta'})});
     const d=p.mode==='empty'?EMPTY:SAMPLE;
     r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({range:u.searchParams.get('range'),platform:u.searchParams.get('platform'),at:new Date().toISOString(),...d})});});
+  p.posts=[];p.rmode='data';
+  await p.route('**/api/admin/ranking*',r=>{const q=r.request(),key=q.headers()['x-admin-key'];p.calls.push({q:'ranking',key,m:q.method()});
+    if(key!==PASS)return r.fulfill({status:401,contentType:'application/json',body:JSON.stringify({error:'contraseña incorrecta'})});
+    if(p.rmode==='503')return r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'ranking no configurado'})});
+    if(q.method()==='POST'){let b=null;try{b=JSON.parse(q.postData()||'null');}catch(_){}p.posts.push(b);return r.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'});}
+    r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({...RSAMPLE,at:new Date().toISOString()})});});
   await p.goto(BASE+'/admin.html');return p;}
 const login=async(p,pw)=>{await p.fill('#pw',pw);await p.click('#login button[type=submit]');await p.waitForTimeout(400);};
 const loggedIn=p=>p.waitForFunction(()=>!document.getElementById('app').hidden&&document.querySelectorAll('#out section').length>0,null,{timeout:15000}).then(()=>true,()=>false);
@@ -94,7 +105,55 @@ const look=p=>p.evaluate(()=>{let t=document.getElementById('out').innerText;for
   ok(!p.errs.length,'no page errors (PC)',p.errs);ok(!p.outside.length,'no request to another site',p.outside);
   await p.context().close();
 
-  console.log('5) phone');
+  console.log('5) the Ranking tab (v82)');
+  p=await page(b,{viewport:{width:1280,height:720}});await login(p,PASS);ok(await loggedIn(p),'in (statistics first)');
+  ok(await p.evaluate(()=>[...document.querySelectorAll('#tabs button')].map(b=>b.textContent+':'+b.getAttribute('aria-selected')).join(','))==='Estadísticas:true,Ranking:false','two tabs: Estadísticas (selected) / Ranking');
+  await p.click('#tabs button[data-v=rank]');
+  await p.waitForFunction(()=>document.querySelectorAll('#rkOut section').length>0,null,{timeout:15000});await p.waitForTimeout(300);
+  const rk=()=>p.evaluate(()=>{const o=document.getElementById('rkOut'),secs=[...o.querySelectorAll('section')];
+    return {titles:secs.map(x=>x.querySelector('h2').textContent),rows:secs.map(x=>x.querySelectorAll('tbody tr').length),text:o.innerText,html:o.innerHTML,
+      stats:!document.getElementById('out').hidden,range:!document.getElementById('range').hidden,plat:!document.getElementById('plat').hidden,
+      over:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth};});
+  let K=await rk();const lastR=p.calls.filter(c=>c.q==='ranking').at(-1);
+  ok(lastR&&lastR.key===PASS&&lastR.m==='GET','GET /api/admin/ranking with the x-admin-key header',lastR);
+  ok(JSON.stringify(K.titles)===JSON.stringify(['Ranking · Temporada 1','En revisión','Top de la temporada','Últimas partidas','Baneados']),'5 sections',K.titles);
+  ok(JSON.stringify(K.rows)===JSON.stringify([0,RSAMPLE.flagged.length,RSAMPLE.top.length,RSAMPLE.recent.length,RSAMPLE.banned.length]),'one row per run / player',K.rows);
+  ok(!K.stats&&!K.range&&!K.plat,'statistics, period and platform hidden in the Ranking tab');
+  ok(K.text.includes(RSAMPLE.summary.runs.toLocaleString('es-ES'))&&K.text.includes(RSAMPLE.top[0].nick)&&/más de 6\.000 puntos por ronda/.test(K.text)&&/trampas/.test(K.text),'numbers, nicknames, flags in words, ban notes');
+  ok(!/@/.test(K.html)&&!/NaN|undefined|\[object/.test(K.text),'no email, no NaN / undefined');
+  ok(K.over<=0,'nothing wider than the window ('+K.over+')');
+  await p.screenshot({path:shot('admin_ranking_pc.png'),fullPage:true});
+  const fr=RSAMPLE.flagged[0],tp=RSAMPLE.top[0],bn=RSAMPLE.banned[0];
+  await p.click(`#rkOut button[data-a=hide][data-run="${fr.run}"]`);await p.waitForTimeout(400);
+  ok(JSON.stringify(p.posts.at(-1))===JSON.stringify({action:'hide',run:fr.run}),'Ocultar = POST {action:hide, run}',p.posts.at(-1));
+  ok(p.calls.filter(c=>c.q==='ranking'&&c.m==='GET').length>=2,'and the lists are asked again');
+  await p.click(`#rkOut button[data-a=show][data-run="${fr.run}"]`);await p.waitForTimeout(400);
+  ok(JSON.stringify(p.posts.at(-1))===JSON.stringify({action:'show',run:fr.run}),'Mostrar = POST {action:show, run}',p.posts.at(-1));
+  const nb=p.posts.length;await p.click(`#rkOut button[data-a=ban][data-player="${tp.player}"]`);await p.waitForTimeout(200);
+  ok(await p.evaluate(()=>!document.getElementById('banDlg').hidden&&/Banear a /.test(document.getElementById('banT').textContent)),'Banear opens the page\'s own dialog (with the nickname)');
+  await p.screenshot({path:shot('admin_ranking_ban.png')});
+  await p.click('#banNo');ok(p.posts.length===nb&&await p.evaluate(()=>document.getElementById('banDlg').hidden),'Cancelar: nothing sent');
+  await p.click(`#rkOut button[data-a=ban][data-player="${tp.player}"]`);await p.fill('#banNote','  trampas con la consola ');await p.click('#banF button[type=submit]');await p.waitForTimeout(400);
+  ok(JSON.stringify(p.posts.at(-1))===JSON.stringify({action:'ban',player:tp.player,note:'trampas con la consola'}),'Banear = POST {action:ban, player, note}',p.posts.at(-1));
+  await p.click(`#rkOut section:last-of-type button[data-a=unban][data-player="${bn.player}"]`);await p.waitForTimeout(400);
+  ok(JSON.stringify(p.posts.at(-1))===JSON.stringify({action:'unban',player:bn.player}),'Desbanear = POST {action:unban, player}',p.posts.at(-1));
+  await p.reload();await p.waitForFunction(()=>document.querySelectorAll('#rkOut section').length>0,null,{timeout:15000}).catch(()=>{});
+  ok(await p.evaluate(()=>document.querySelector('#tabs button[data-v=rank]').getAttribute('aria-selected')==='true'&&!document.getElementById('rkOut').hidden),'reload: still on the Ranking tab');
+  p.rmode='503';await p.click('#reload');await p.waitForTimeout(500);
+  st=await p.evaluate(()=>document.getElementById('state').textContent);ok(/v82-cuentas\.sql/.test(st)&&/SUPABASE_SECRET_KEY/.test(st),'503: says what is missing',st);
+  p.rmode='data';await p.click('#tabs button[data-v=stats]');await p.waitForTimeout(500);
+  ok(await p.evaluate(()=>document.querySelectorAll('#out section').length===8&&document.getElementById('rkOut').hidden&&!document.getElementById('range').hidden),'back to Estadísticas: the 8 sections and the period buttons');
+  ok(!p.errs.length,'no page errors (Ranking tab)',p.errs);ok(!p.outside.length,'no request to another site',p.outside);
+  await p.context().close();
+  for(const [w,h] of [[390,844],[844,390]]){
+    p=await page(b,{viewport:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+    await p.evaluate(k=>{sessionStorage.setItem('heads_admin_key',k);sessionStorage.setItem('heads_admin_view',JSON.stringify({range:'7d',platform:'all',view:'rank'}));},PASS);await p.reload();
+    await p.waitForFunction(()=>document.querySelectorAll('#rkOut section').length>0,null,{timeout:15000}).catch(()=>{});await p.waitForTimeout(300);
+    K=await rk();ok(K.titles.length===5&&K.over<=0,w+'x'+h+': Ranking tab, nothing wider than the screen ('+K.over+')',K.titles);
+    await p.screenshot({path:shot(`admin_ranking_phone_${w}x${h}.png`)});
+    ok(!p.errs.length,w+'x'+h+': no page errors',p.errs);await p.context().close();}
+
+  console.log('6) phone');
   for(const [w,h] of [[390,844],[844,390]]){
     p=await page(b,{viewport:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true});
     await p.evaluate(k=>sessionStorage.setItem('heads_admin_key',k),PASS);await p.reload();

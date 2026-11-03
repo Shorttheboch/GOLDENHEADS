@@ -117,10 +117,15 @@ function accOpen(k,o={}){if(k==='fail'&&!accPendGet())k='fail0';if(k==='confirm'
     if(!rankRender($('acList'),o.res.board))$('acList').innerHTML='';}
   const go=$('acGo'),no=$('acNo');go.hidden=!T[2];no.hidden=!T[3];go.querySelector('span').textContent=T[2]||'';no.textContent=T[3]||'';
   go.className=k==='confirm'?'red':'';go.disabled=no.disabled=false;el.classList.toggle('busy',k==='wait'||k==='saving');
-  if(k==='nick'){$('acErr').textContent='';$('acIn').value='';accPrivLinks($('acNick'));}
-  const was=el.hidden;el.hidden=false;document.body.classList.add('acctOn');if(was){el.classList.remove('in');void el.offsetWidth;el.classList.add('in');}
+  if(k==='nick'){$('acErr').textContent='';$('acIn').value='';$('acIn').placeholder=TR('APODO');accPrivLinks($('acNick'));}
+  const was=el.hidden;el.hidden=false;document.body.classList.add('acctOn');accFit();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(accFit);if(was){el.classList.remove('in');void el.offsetWidth;el.classList.add('in');}
   if(document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();
   setTimeout(()=>{if(el.hidden)return;if(k==='nick'&&!isTouch)$('acIn').focus();else if(!go.hidden&&!isTouch)go.focus();},60);}
+// a long title (¡PUNTUACIÓN GUARDADA!, NO SE HA INICIADO SESIÓN, English...) shrinks to the width of the frame
+function accFit(){const t=$('acT'),l=t.firstElementChild,b=$('acBox');if(!l||b.offsetParent===null)return;t.style.fontSize='';
+  const cs=getComputedStyle(b),max=b.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-8,w=l.offsetWidth*1.16; // (layout width x the scaleX of .ln: no animation in it)
+  if(w>max)t.style.fontSize=(parseFloat(getComputedStyle(t).fontSize)*max/w).toFixed(1)+'px';}
+addEventListener('resize',()=>{if(!$('acct').hidden)accFit();});
 function accClose(){const el=$('acct');el.hidden=true;el.classList.remove('in');document.body.classList.remove('acctOn');ACC.scr='';
   if(!$('end').hidden){accBar();fitEndPlate();}}
 $('acGo').addEventListener('click',e=>{e.stopPropagation();if(ACC.scr==='nick')return accNickSubmit();const f=ACC.onGo;if(f)f();else accClose();});

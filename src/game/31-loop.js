@@ -34,7 +34,7 @@ function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.text
 qaHud();
 function tick(){const _qa0=performance.now();
   if((TC.paused||MTUT.on)&&state==='play'){clock.getDelta();tcOrientTick();if(MTUT.on)mtutFrame();if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);return;} // touch pause · v66 phone tutorial
-  const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;let dt=rdt;if(hitStop>0){hitStop-=rdt;dt=rdt*0.12;} // tiny freeze on kills
+  const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;let dt=rdt;if(hitStop>0){hitStop-=rdt;dt=rdt*0.12;}dt*=xpClock(rdt); // tiny freeze on kills · v77: the EXTRA POWER pose runs in real time and slows the world (0.4x) for a moment
   // v76: while the first egg is shown (CINE.mode 'egg') the world stands still: dt is ~0 for everything; fdt (real time) only drives the sparks, the camera shake and the egg itself
   const eggC=CINE.on&&CINE.mode==='egg',fdt=eggC?rdt:dt;if(eggC)dt=1e-4;
   FLOW.dz=(state==='play'||state==='menu')?CFG.worldV*dt:0;
@@ -78,13 +78,13 @@ function tick(){const _qa0=performance.now();
     const w=THREE.MathUtils.clamp(camOrbit/2.6,0,1),cyaw=camYaw+camOrbit,cpit=camPitch*(1-w)+0.15*w,ccp=Math.cos(cpit);
     const fc=new THREE.Vector3(-Math.sin(cyaw)*ccp,Math.sin(cpit),-Math.cos(cyaw)*ccp);
     const rightC=new THREE.Vector3(Math.cos(camYaw),0,-Math.sin(camYaw));
-    const pivot=P.pos.clone().addScaledVector(UP,0.5-0.2*w).addScaledVector(rightC,(isTouch?0.8:0.98)*(1-w));
-    const want=pivot.clone().addScaledVector(fc,-((isTouch?2.55:3.3)-0.5*w)); // v56: closer on phones so the astronaut reads bigger
+    const pivot=P.pos.clone().addScaledVector(UP,0.5-0.2*w+0.45*XP.push).addScaledVector(rightC,(isTouch?0.8:0.98)*(1-w));
+    const want=pivot.clone().addScaledVector(fc,-((isTouch?2.55:3.3)-0.5*w-XP.push)); // v77: XP.push = the push-in during the EXTRA POWER pose · v56: closer on phones so the astronaut reads bigger
     // v72: camPos is the smoothed wish; the camera itself comes in along the arm when the ship or a rock is in the way (camArm, 05-rocks.js)
     camPos.lerp(want,1-Math.exp(-12*dt));camera.position.copy(camArm(CAM.head.copy(P.pos).addScaledVector(UP,0.5-0.2*w),pivot,camPos,dt));camera.lookAt(pivot.clone().addScaledVector(fc,20*(1-w)+0.01));
     if(CINE.on){if(CINE.mode==='boss')bossCam(dt);else{CINE.nPos.copy(camera.position);CINE.nLook.copy(pivot).addScaledVector(fc,20);if(CINE.mode==='egg')eggCam(rdt);else cineCam(dt);}}
     // lens feel: a short zoom kick on the dash, and a slow, tiny hand-held drift
-    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=CINE.on&&CINE.fov?CINE.fov:62+fovK; /* v67: a cinematic can set its own lens */if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
+    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=CINE.on&&CINE.fov?CINE.fov:62+fovK-XP.fovD; /* v67: a cinematic can set its own lens */if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
     if(!window.__camOv){camera.rotateX(Math.sin(t*0.83)*0.0015+Math.sin(t*2.1)*0.0005);camera.rotateY(Math.sin(t*0.61+1.3)*0.0017+Math.sin(t*1.7)*0.0005);}
     $('cross').style.visibility=w>0.3?'hidden':'';camFill.intensity=0.6+1.3*w;
     if(window.__camOv){camera.position.copy(P.pos).add(window.__camOv);camera.lookAt(P.pos.clone().add(window.__camLook||new THREE.Vector3()));}
@@ -107,7 +107,7 @@ function tick(){const _qa0=performance.now();
     poseArms(aimDir,sucking||welding,dt,welding?R.pa.pos.clone().sub(childPos('LeftArm')).normalize():tcDust&&P.carry<CFG.tankCap?tcDust.clone().sub(childPos('LeftArm')).normalize():null,t);
     // pistol in right hand
     
-    {const gw=P.gripW||childPos('RightHand'),z=aimTarget.clone().sub(gw).normalize(),y=(P.gripHole||UP).clone();y.addScaledVector(z,-y.dot(z)).normalize();
+    {const gw=P.gripW||childPos('RightHand'),z=xpAimDir(aimTarget.clone().sub(gw).normalize()),y=(P.gripHole||UP).clone();y.addScaledVector(z,-y.dot(z)).normalize();
      PM4.makeBasis(new THREE.Vector3().crossVectors(y,z),y,z);pistol.quaternion.setFromRotationMatrix(PM4);pistol.position.copy(gw).sub(PGRIP.clone().applyQuaternion(pistol.quaternion));}
     xpUpdate(dt,t);
     // recoil kick + muzzle flash

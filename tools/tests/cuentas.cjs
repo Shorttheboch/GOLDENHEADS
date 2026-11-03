@@ -27,19 +27,22 @@ const SB='https://fake-ref.supabase.co';
 // ---------- the fake server (what netlify/functions/ranking.mts answers) ----------
 function server(){
   const S={players:{},runs:[],used:new Set(),calls:[],authOff:false,scoresOff:false,users:{'tok-u1':'u1','tok-u2':'u2','real-tok':'u3'},n:0};
-  const SEED=[['ORION',15200,12],['LUNA',9800,9],['KRAKEN',7400,8],['NOVA',5100,6],['ZETA',2600,4],['ECO',900,2]].map(([nick,score,round],i)=>({id:'s'+i,nick,score,round,t:i}));
+  S.seed=[['ORION',15200,12],['LUNA',9800,9],['KRAKEN',7400,8],['NOVA',5100,6],['ZETA',2600,4],['ECO',900,2]];
+  const SEEDS=()=>S.seed.map(([nick,score,round],i)=>({id:'s'+i,nick,score,round,t:i}));
   const key=n=>n.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[._-]/g,'');
-  S.board=me=>{const best={};for(const r of S.runs){const p=S.players[r.u];if(!p)continue;if(!best[r.u]||r.score>best[r.u].score)best[r.u]={id:r.u,nick:p.nick,score:r.score,round:r.round,t:r.t};}
-    const all=[...SEED,...Object.values(best)].sort((a,b)=>b.score-a.score||a.t-b.t).map((e,i)=>({...e,pos:i+1}));
+  S.board=(me,n=10)=>{n=Math.min(50,Math.max(1,n||10));const best={};for(const r of S.runs){const p=S.players[r.u];if(!p)continue;if(!best[r.u]||r.score>best[r.u].score)best[r.u]={id:r.u,nick:p.nick,score:r.score,round:r.round,t:r.t};}
+    const all=[...SEEDS(),...Object.values(best)].sort((a,b)=>b.score-a.score||a.t-b.t).map((e,i)=>({...e,pos:i+1}));
     const m=all.find(e=>e.id===me);
-    return {count:all.length,top:all.slice(0,10).map(e=>({pos:e.pos,nick:e.nick,score:e.score,round:e.round,me:e.id===me})),me:m?{pos:m.pos,nick:m.nick,score:m.score,round:m.round}:null};};
+    return {count:all.length,top:all.slice(0,n).map(e=>({pos:e.pos,nick:e.nick,score:e.score,round:e.round,me:e.id===me})),me:m?{pos:m.pos,nick:m.nick,score:m.score,round:m.round}:null};};
   S.handle=async route=>{const rq=route.request(),u=new URL(rq.url()),p=u.pathname,auth=(rq.headers()['authorization']||'').replace(/^Bearer /,'');
     let body=null;try{body=JSON.parse(rq.postData()||'null');}catch(_){}
     S.calls.push({p,m:rq.method(),auth,body,at:Date.now()});
     const J=(s,j)=>route.fulfill({status:s,contentType:'application/json',body:JSON.stringify(j)});
     if(p==='/api/auth')return S.authOff?J(503,{error:'off'}):J(200,{url:SB,key:'sb_publishable_TEST'});
     if(p==='/api/run')return J(200,{token:`${Date.now()}.${crypto.randomBytes(8).toString('hex')}.sig`});
-    if(p==='/api/scores'){if(S.scoresOff)return J(503,{error:'ranking no configurado'});const b=S.board(null);return J(200,{season:1,count:b.count,top:b.top});}
+    if(p==='/api/scores'){if(S.scoresOff)return J(503,{error:'ranking no configurado'});const n=+(u.searchParams.get('n')||10);
+      if(u.searchParams.get('me')==='1'){const b=S.board(S.users[auth]||null,n);return J(200,{season:1,count:b.count,top:b.top,me:b.me});}
+      const b=S.board(null,n);return J(200,{season:1,count:b.count,top:b.top});}
     if(p==='/api/m')return route.fulfill({status:204});
     const uid=S.users[auth];if(!uid)return J(401,{error:'session'});
     const pl=S.players[uid];
@@ -48,12 +51,12 @@ function server(){
       if(pl)return J(409,{error:'exists',nick:pl.nick});
       if(!/^[A-Z0-9ÁÉÍÓÚÜÑÇ._-]{3,12}$/.test(n))return J(400,{error:'format'});
       if(/PUTA|MIERDA/.test(key(n)))return J(400,{error:'bad'});if(/HEADS|ADMIN/.test(key(n)))return J(400,{error:'reserved'});
-      if([...SEED,...Object.values(S.players)].some(x=>key(x.nick)===key(n)))return J(409,{error:'taken'});
+      if([...SEEDS(),...Object.values(S.players)].some(x=>key(x.nick)===key(n)))return J(409,{error:'taken'});
       S.players[uid]={nick:n};return J(200,{ok:true,nick:n});}
     if(p==='/api/save'){if(!pl)return J(403,{error:'nick'});if(!body||typeof body.token!=='string')return J(400,{error:'token'});
       if(body.token.startsWith('old.'))return J(400,{error:'expired'});
       if(S.used.has(body.token))return J(409,{error:'used'});S.used.add(body.token);
-      const prev=S.board(uid).me;S.runs.push({u:uid,score:body.score,round:body.round,t:++S.n+100});const b=S.board(uid);
+      const prev=S.board(uid).me;S.runs.push({u:uid,score:body.score,round:body.round,t:++S.n+100});const b=S.board(uid,body.n);
       const best=S.runs.filter(r=>r.u===uid).sort((a,c)=>c.score-a.score)[0];
       return J(200,{saved:true,status:'ok',nick:pl.nick,newBest:!prev||body.score>prev.score,prevBest:prev?prev.score:null,best:{score:best.score,round:best.round},count:b.count,top:b.top,me:b.me});}
     if(p==='/api/forget'){delete S.players[uid];S.runs=S.runs.filter(r=>r.u!==uid);return J(200,{deleted:true,runs:1});}

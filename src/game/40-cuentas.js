@@ -71,7 +71,7 @@ async function accEndGuest(pend,seq){const box=$('rankBox'),live=()=>seq===ACC.s
   if(!d)return rankOff(); // the ranking does not answer: the one column of v44
   const can=!!(pend&&cfg),R=rankRender($('rankList'),d,{fill:true,ghost:can?pend:null});
   $('rankAll').hidden=!R.has;
-  if(can){$('saveBtn').hidden=false;accSaveBtn(false);accPreload();accMsg(R.ghost?`Con esta partida entrarías en el puesto #${R.ghost}`:'Guarda tu puntuación con tu apodo de capitán');}
+  if(can){$('saveBtn').hidden=false;accSaveBtn(false);accPreload();accMsg(!R.ghost?'Guarda tu puntuación con tu apodo de capitán':R.has?`Con esta partida entrarías en el puesto #${R.ghost}`:'¡Guárdala y serás el primero del ranking!');}
   accBar();box.hidden=false;fitEndPlate();}
 async function accEndSave(pend,seq){const live=()=>seq===ACC.seq&&!$('end').hidden;
   const r=await accSave(pend);if(!live())return;

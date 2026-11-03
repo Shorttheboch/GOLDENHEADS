@@ -55,7 +55,7 @@ function jumpOrient(s){if(s.state!=='leap'||!s.jumpN)return false;const sc=s.mes
   const k=w*w*(3-2*w);s.mesh.quaternion.copy(_sjq1).slerp(_sjq2,k);return true;}
 // ---- 4. puntos del cuerpo (en el espacio del grupo, a escala 1; el modelo va -rootOff abajo): colmillos, cabeza, tórax por debajo y a los lados, abdomen (punta,
 // panza, lados, arriba). Con un poco de holgura por el muelle del abdomen y el cabeceo del vuelo.
-const JUMP_PTS=[[0,0.02,0.47],[0,-0.13,0.3],[0,-0.14,0.05],[0.24,-0.06,0.12],[-0.24,-0.06,0.12],[0,-0.05,-1.27],[0,-0.29,-0.7],[0.5,0.02,-0.66],[-0.5,0.02,-0.66],[0,0.56,-0.66],[0,0.3,-1.1],[0,-0.2,-1.05]].map(a=>new THREE.Vector3(...a));
+const JUMP_PTS=[[0,0.02,0.47],[0,-0.13,0.3],[0,-0.14,0.05],[0.24,-0.06,0.12],[-0.24,-0.06,0.12],[0,-0.05,-1.27],[0,-0.27,-0.7],[0.5,0.02,-0.66],[-0.5,0.02,-0.66],[0,0.56,-0.66],[0,0.3,-1.1],[0,-0.2,-1.05]].map(a=>new THREE.Vector3(...a));
 const _jpw=new THREE.Vector3(),_jpn=new THREE.Vector3(),_jpq=new THREE.Vector3(),_sjN=new THREE.Vector3(),_sjL=new THREE.Vector3();
 // cuánto hay que sacar a la araña (a lo largo de la normal del casco bajo su centro) para que ningún punto quede dentro del casco (con mar); 0 si nada entra.
 // Góndolas y pilones (cápsulas) y alas (vóxeles) van aparte: lo que haga falta para sacar los puntos de ellas se suma en _sjX (un desplazamiento, no a lo largo de N)

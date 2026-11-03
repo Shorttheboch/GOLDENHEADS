@@ -3,6 +3,7 @@
 // GET  /api/admin/stats     ?range=today|7d|30d|all&platform=all|pc|touch, for the admin page (public/admin.html, /admin).
 //                           Header x-admin-key must equal ADMIN_PASSWORD. Answers only totals (SQL function public.metrics_stats, supabase/schema.sql).
 // Env (Netlify, scope Functions; Production AND Deploy Previews): SUPABASE_URL, SUPABASE_SECRET_KEY (sb_secret_...), ADMIN_PASSWORD.
+// Deploy Previews and branch deploys store their events as tests (test = true): they show only in the test count of /admin, never in the numbers.
 // Privacy: the IP is only used here, in memory, hashed with a random salt for the rate limit, and never stored. Country / region / city come from Netlify geo.
 // Every field is whitelisted and clamped; anything else is dropped. Paths are relative (/api/...): no domain anywhere.
 import { createClient } from "@supabase/supabase-js";
@@ -57,7 +58,7 @@ const DATA: Record<string, [string, (v: unknown) => unknown][]> = {
 };
 const decode = (s: unknown) => { if (typeof s !== "string" || !s) return null; try { return decodeURIComponent(s); } catch { return s; } };
 
-function clean(e: any, geo: Context["geo"] | undefined) {
+function clean(e: any, geo: Context["geo"] | undefined, preview: boolean) {
   if (!e || typeof e !== "object" || Array.isArray(e)) return null;
   const kind = oneOf(e.kind, ["visit", "end", "quit", "error"]);
   if (!kind || typeof e.sid !== "string" || !ID.test(e.sid)) return null;
@@ -67,7 +68,7 @@ function clean(e: any, geo: Context["geo"] | undefined) {
   const play = kind === "end" || kind === "quit";
   return {
     kind, session_id: e.sid, player_id: typeof e.pid === "string" && ID.test(e.pid) ? e.pid : null,
-    version: typeof e.ver === "string" && /^v\d{1,4}$/.test(e.ver) ? e.ver : "v?", test: e.test === true,
+    version: typeof e.ver === "string" && /^v\d{1,4}$/.test(e.ver) ? e.ver : "v?", test: e.test === true || preview,
     platform: oneOf(e.plat, ["pc", "touch"]), os: oneOf(e.os, OS) ?? "other", browser: oneOf(e.br, BR) ?? "other", lang: oneOf(e.lang, ["es", "en"]),
     game: play ? int(e.game, 1, 999) : null, round: play ? int(e.round, 1, 999) : null, secs: play ? int(e.secs, 0, 86_400) : null,
     cause: kind === "end" ? oneOf(e.cause, ["dead", "ship", "cargo"]) : null,
@@ -98,7 +99,8 @@ export default async (req: Request, context: Context) => {
       let body: any;
       try { body = JSON.parse(text); } catch { return json({ error: "datos no válidos" }, 400); }
       const list = Array.isArray(body?.e) ? body.e : [body];
-      const rows = list.slice(0, MAX_EVENTS).map((e: unknown) => clean(e, context.geo)).filter(Boolean);
+      const preview = !!context.deploy?.context && context.deploy.context !== "production";
+      const rows = list.slice(0, MAX_EVENTS).map((e: unknown) => clean(e, context.geo, preview)).filter(Boolean);
       if (!rows.length) return json({ error: "datos no válidos" }, 400);
       const sb = db();
       if (!sb) return json({ error: "métricas no configuradas" }, 503);

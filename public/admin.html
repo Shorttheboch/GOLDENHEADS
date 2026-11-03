@@ -193,7 +193,7 @@ function render(d){
       kpi(s.visits?(s.games/s.visits).toLocaleString('es-ES',{maximumFractionDigits:2}):'—','partidas por visita'),
       kpi(dur(s.secs_total),'tiempo jugado total'),kpi(dur(s.secs_avg),'por partida (media)'),kpi(P(s.left_no_play,s.visits),'se va sin jugar',N(s.left_no_play)+' visitas')].join('')}</div>`+
     (daily.length>1?`<h3>Por día</h3>${legend([['var(--pc)','Visitas'],['var(--mo)','Partidas']])}<div class="days" role="img" aria-label="Visitas y partidas por día">${daily.map(x=>`<div title="${esc(day(x.day))}: ${N(x.visits)} visitas · ${N(x.games)} partidas"><i style="height:${pct(x.visits,dmax)}%"></i><i class="g" style="height:${pct(x.games,dmax)}%"></i></div>`).join('')}</div><div class="daysx"><span>${esc(day(daily[0].day))}</span><span>máx. ${N(dmax)}</span><span>${esc(day(daily[daily.length-1].day))}</span></div>`:'')+
-    `<p class="note">Respuestas a la pregunta: sí ${N(s.consent_yes)} · no ${N(s.consent_no)} · sin responder ${N(s.consent_unset)}. Partidas de prueba (<code>?ronda=N</code>) fuera de todas las cifras: ${N(s.test_games)}.</p>`,true));
+    `<p class="note">Respuestas a la pregunta: sí ${N(s.consent_yes)} · no ${N(s.consent_no)} · sin responder ${N(s.consent_unset)}. Partidas de prueba (<code>?ronda=N</code> y vistas previas de Netlify) fuera de todas las cifras: ${N(s.test_games)}.</p>`,true));
   // Hasta dónde llegan
   const F=d.funnel||[],f1=F[0]||{all:0,pc:0,touch:0},RS={};for(const r of d.round_secs||[])RS[r.round]=r;
   const lr=d.last_round||{};

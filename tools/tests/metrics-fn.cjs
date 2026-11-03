@@ -8,7 +8,7 @@
 //   POST /api/m   a batch is cleaned key by key (unknown keys, kinds and values dropped, numbers clamped, texts trimmed), geo added (country, region, city),
 //                 the IP never stored, a single event and a sendBeacon text/plain body work, bad JSON / nothing valid -> 400, too big -> 413,
 //                 more than 12 events -> only 12, GET -> 405, rate limit per IP (31st request in a minute -> 429, another IP still fine),
-//                 no Supabase variables -> 503, a database error -> 500
+//                 no Supabase variables -> 503, a database error -> 500, events from a Deploy Preview stored as tests
 //   GET /api/admin/stats   no ADMIN_PASSWORD -> 503, missing or wrong x-admin-key -> 401, right one -> 200 with the totals of metrics_stats (range and
 //                 platform whitelisted), 8 wrong tries from one IP -> 429 for that IP only, no raw rows or ids in the answer
 const path=require('path'),fs=require('fs'),{pathToFileURL}=require('url'),{register}=require('module');
@@ -29,7 +29,7 @@ export async function resolve(spec,ctx,next){if(spec==='@supabase/supabase-js'){
 
 const ENV={};globalThis.Netlify={env:{get:k=>ENV[k]}};
 const IP='203.0.113.77',GEO={city:'Val%C3%A8ncia',country:{code:'ES',name:'Spain'},subdivision:{code:'VC',name:'Valencia'},timezone:'Europe/Madrid'};
-const ctx=(ip=IP)=>({ip,geo:GEO,params:{}});
+const ctx=(ip=IP,dc='production')=>({ip,geo:GEO,params:{},deploy:{context:dc,id:'d1',published:dc==='production'}});
 const SID='0123456789abcdef01234567',PID='fedcba9876543210fedcba98';
 const post=(fn,body,{ip,type='application/json'}={})=>fn(new Request('https://example.test/api/m',{method:'POST',headers:{'content-type':type},body:typeof body==='string'?body:JSON.stringify(body)}),ctx(ip));
 const admin=(fn,q,key,ip)=>fn(new Request('https://example.test/api/admin/stats'+q,{headers:key==null?{}:{'x-admin-key':key}}),ctx(ip));
@@ -69,6 +69,9 @@ const deepKeys=(o,out=new Set())=>{if(o&&typeof o==='object')for(const [k,v] of 
   r=await post(fn,{kind:'quit',sid:SID,game:1,round:2,secs:30},{type:'text/plain;charset=UTF-8'});
   ok(r.status===204&&L.inserts.length===2&&L.inserts[1].rows.length===1,'a single event, sent as text/plain like sendBeacon -> 204',r.status);
   // limits
+  // a Deploy Preview stores its events as tests
+  L.inserts.length=0;r=await fn(new Request('https://example.test/api/m',{method:'POST',body:JSON.stringify({kind:'visit',sid:SID})}),ctx('198.51.100.3','deploy-preview'));
+  ok(r.status===204&&L.inserts[0].rows[0].test===true,'Deploy Preview: stored as a test (never in the numbers)',L.inserts[0]&&L.inserts[0].rows[0].test);
   r=await post(fn,'{not json');ok(r.status===400,'bad JSON -> 400',r.status);
   r=await post(fn,{e:[{kind:'nope'}]});ok(r.status===400,'nothing valid -> 400',r.status);
   r=await post(fn,{e:[{kind:'error',sid:SID,msg:'x'.repeat(17000)}]});ok(r.status===413,'body over 16 KB -> 413',r.status);

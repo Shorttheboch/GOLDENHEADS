@@ -19,7 +19,7 @@ create table if not exists public.events (
   player_id   text check (player_id is null or player_id ~ '^[0-9a-f]{16,32}$'), -- only with consent
   game        smallint,                 -- end / quit: number of the game inside the session (1, 2, ...)
   version     text not null,            -- 'v81', ...
-  test        boolean not null default false,  -- games started with ?ronda=N: never counted
+  test        boolean not null default false,  -- games started with ?ronda=N, and every event of a Deploy Preview: never counted
   country     text,                     -- from Netlify geo: ISO code ('ES')
   region      text,                     -- subdivision ('Valencia')
   city        text,

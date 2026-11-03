@@ -23,7 +23,7 @@ function mtConsentLoad(){const c=mtLS('heads_stats');MT.cs=c==='1'?'yes':c==='0'
 mtConsentLoad();
 // device, once: OS and browser family from the user agent (iPadOS reports itself as a Mac with touch), screen class from the screen size in CSS px
 MT.env=(()=>{try{const ua=navigator.userAgent||'',W=Math.max(screen.width,screen.height),H=Math.min(screen.width,screen.height);
-  const os=instIOS()?'ios':/Android/.test(ua)?'android':/Windows/.test(ua)?'windows':/Macintosh|Mac OS X/.test(ua)?'mac':'other';
+  const os=instIOS()?'ios':/Android/.test(ua)?'android':/Windows/.test(ua)?'windows':/Macintosh|Mac OS X/.test(ua)?'mac':/Linux|X11|CrOS/.test(ua)?'linux':'other';
   const br=/Edg(e|A|iOS)?\//.test(ua)?'edge':/OPR\/|OPT\/|Opera/.test(ua)?'opera':/SamsungBrowser/.test(ua)?'samsung':/Firefox\/|FxiOS/.test(ua)?'firefox':/CriOS|Chrome\/|Chromium/.test(ua)?'chrome':/Safari\//.test(ua)?'safari':'other';
   return {os,br,scr:isTouch?(H<500?'phone':'tablet'):(W<1366?'pc-s':W<=1920?'pc-m':'pc-l'),bl:(navigator.language||'').slice(0,2).toLowerCase()};}
  catch(_){return {os:'other',br:'other',scr:isTouch?'phone':'pc-m',bl:''};}})();

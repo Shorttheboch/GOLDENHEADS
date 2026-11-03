@@ -30,22 +30,22 @@
   {
    "day": "2026-10-05",
    "games": 23,
-   "visits": 19
+   "visits": 18
   },
   {
    "day": "2026-10-06",
    "games": 22,
-   "visits": 19
+   "visits": 20
   },
   {
    "day": "2026-10-07",
    "games": 24,
-   "visits": 22
+   "visits": 21
   },
   {
    "day": "2026-10-08",
    "games": 30,
-   "visits": 26
+   "visits": 27
   },
   {
    "day": "2026-10-09",
@@ -54,23 +54,23 @@
   },
   {
    "day": "2026-10-10",
-   "games": 29,
+   "games": 28,
    "visits": 24
   },
   {
    "day": "2026-10-11",
-   "games": 21,
-   "visits": 14
+   "games": 19,
+   "visits": 13
   },
   {
    "day": "2026-10-12",
-   "games": 24,
+   "games": 26,
    "visits": 21
   },
   {
    "day": "2026-10-13",
-   "games": 13,
-   "visits": 13
+   "games": 14,
+   "visits": 14
   },
   {
    "day": "2026-10-14",
@@ -84,13 +84,13 @@
   },
   {
    "day": "2026-10-16",
-   "games": 22,
-   "visits": 21
+   "games": 21,
+   "visits": 20
   },
   {
    "day": "2026-10-17",
-   "games": 23,
-   "visits": 27
+   "games": 24,
+   "visits": 28
   },
   {
    "day": "2026-10-18",
@@ -99,12 +99,12 @@
   },
   {
    "day": "2026-10-19",
-   "games": 27,
+   "games": 25,
    "visits": 18
   },
   {
    "day": "2026-10-20",
-   "games": 20,
+   "games": 22,
    "visits": 18
   },
   {
@@ -115,12 +115,12 @@
   {
    "day": "2026-10-22",
    "games": 17,
-   "visits": 18
+   "visits": 17
   },
   {
    "day": "2026-10-23",
    "games": 18,
-   "visits": 16
+   "visits": 17
   },
   {
    "day": "2026-10-24",
@@ -129,23 +129,23 @@
   },
   {
    "day": "2026-10-25",
-   "games": 21,
-   "visits": 17
+   "games": 20,
+   "visits": 16
   },
   {
    "day": "2026-10-26",
-   "games": 21,
-   "visits": 18
+   "games": 22,
+   "visits": 19
   },
   {
    "day": "2026-10-27",
-   "games": 16,
-   "visits": 17
+   "games": 15,
+   "visits": 16
   },
   {
    "day": "2026-10-28",
-   "games": 28,
-   "visits": 27
+   "games": 29,
+   "visits": 28
   },
   {
    "day": "2026-10-29",
@@ -165,17 +165,17 @@
   {
    "day": "2026-11-01",
    "games": 32,
-   "visits": 30
+   "visits": 29
   },
   {
    "day": "2026-11-02",
-   "games": 35,
+   "games": 34,
    "visits": 27
   },
   {
    "day": "2026-11-03",
-   "games": 8,
-   "visits": 13
+   "games": 9,
+   "visits": 14
   }
  ],
  "langs": {
@@ -426,7 +426,7 @@
     }
    ],
    "msg": "TypeError: Cannot read properties of undefined (reading 'position')",
-   "last": "2026-10-30T20:13:32.592+01:00",
+   "last": "2026-10-30T20:41:47.792+01:00",
    "sessions": 7
   },
   {
@@ -455,7 +455,7 @@
     }
    ],
    "msg": "RangeError: Maximum call stack size exceeded",
-   "last": "2026-10-25T20:47:34.739+01:00",
+   "last": "2026-10-25T21:15:49.939+01:00",
    "sessions": 5
   },
   {
@@ -479,7 +479,7 @@
     }
    ],
    "msg": "(promesa) AbortError: The play() request was interrupted",
-   "last": "2026-11-01T05:24:00.372+01:00",
+   "last": "2026-11-01T05:52:15.572+01:00",
    "sessions": 4
   }
  ],
@@ -589,7 +589,7 @@
   "games_pc": 296,
   "secs_avg": 276,
   "sessions": 600,
-  "returning": 51,
+  "returning": 50,
   "consent_no": 176,
   "secs_total": 182724,
   "test_games": 6,

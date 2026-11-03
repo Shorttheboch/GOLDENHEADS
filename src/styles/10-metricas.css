@@ -44,5 +44,4 @@ body.touch .mtAskB button::before{content:'';position:absolute;left:-3px;right:-
 /* v82: a small link to the privacy page under the text (PC) / the question (phone) */
 .mtAskP{display:inline-block;margin-top:4px;font:600 10.5px/1.1 'TitilliumH','Titillium Web',system-ui,sans-serif;letter-spacing:.04em;color:#d9b45a;text-decoration:underline;text-decoration-color:rgba(232,182,74,.45);text-underline-offset:.18em}
 .mtAskP:hover,.mtAskP:focus-visible{color:#ffe08a;outline:none}
-body.touch #mtAskQ{display:inline} /* phone: the link follows the question on its last line, so the box is no taller than in v81 */
-body.touch .mtAskP{display:inline;margin:0 0 0 6px;font-size:9.5px;white-space:nowrap}
+body.touch .mtAskP{display:block;width:max-content;margin-top:1px;font-size:9px;line-height:1} /* phone: one short line (the stacked SÍ / NO are about as tall) */

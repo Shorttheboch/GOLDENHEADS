@@ -157,21 +157,30 @@
   </div>
 </div>
 <div class="screen" id="end" hidden>
-  <div id="endBox"><!-- v82: two columns while the ranking is on (#endBox.rk): the run on the left, Santi's framed ranking panel on the right, REINTENTAR under both -->
+  <div id="endBox"><!-- v44 one centred column. v82: while the ranking is on (#endBox.rk) the framed panel holds two slides, the run's stats and the Season 1
+       ranking, that swap sideways inside the frame (26-ranking.js ENDV): tabs above it, gold chevrons on its edges, ←/→ and a swipe; the swap comes by itself
+       5 s after the stats have come in (a gold line under RANKING fills meanwhile) -->
     <div id="endRun">
       <div id="endHead"><div id="endT"></div><div id="endS"><span></span></div></div>
       <div class="eLbl"><span>PUNTUACIÓN</span></div>
       <div id="bigScore"></div>
       <div id="endRound"></div>
-      <div id="endPanel"><div id="endStats"></div></div>
+      <div id="endTabs" role="tablist" hidden><button type="button" role="tab" id="endTab0" aria-selected="true" aria-controls="endSlide0">TU PARTIDA</button><i aria-hidden="true">·</i><button type="button" role="tab" id="endTab1" aria-selected="false" aria-controls="rankBox"><span>RANKING</span><b class="prog" aria-hidden="true"><i></i></b></button></div>
+      <div id="endPanel">
+        <button type="button" class="chev l" id="endPrev" aria-label="Ver tu partida" hidden><svg viewBox="0 0 20 32" aria-hidden="true"><path d="M14 4 4 16l10 12"/></svg></button>
+        <div id="endTrack">
+          <div class="slide" id="endSlide0" role="tabpanel"><div id="endStats"></div></div>
+          <div class="slide off-r" id="rankBox" role="tabpanel" hidden><!-- v82: Season 1 top 5 (26-ranking.js) and the Google account (40-cuentas.js, look: src/styles/11-cuentas.css) -->
+            <div id="rankH"><span>RANKING DE CAPITANES</span><span class="rkS">TEMPORADA 1</span></div>
+            <div id="rankMsg" aria-live="polite"></div><ol id="rankList" data-noi18n></ol>
+            <button id="rankAll" type="button">VER RANKING COMPLETO</button>
+            <button id="saveBtn" class="sbBtn" type="button" hidden><i class="sbL"></i><span class="sbT"><b>GUARDAR MI PUNTUACIÓN</b><small>con Google</small></span><i class="sbL r"></i></button>
+            <div id="acctBar" hidden><span class="abMe" hidden><span class="abCap">CAPITÁN</span> <b id="acctNick" data-noi18n></b></span><button type="button" id="acctOut" hidden>Salir</button><button type="button" id="acctDel" hidden>Borrar mi cuenta</button><a id="acctPriv" data-priv="priv" href="privacidad/" target="_blank" rel="noopener">Privacidad</a></div></div>
+        </div>
+        <button type="button" class="chev r" id="endNext" aria-label="Ver el ranking" hidden><svg viewBox="0 0 20 32" aria-hidden="true"><path d="M6 4l10 12L6 28"/></svg></button>
+      </div>
       <div id="record"></div>
     </div>
-    <div id="rankBox" hidden><!-- v82: Season 1 top 5 (26-ranking.js) and the Google account (40-cuentas.js, look: src/styles/11-cuentas.css) -->
-      <div id="rankH">RANKING DE CAPITANES</div><div id="rankS"><span>TEMPORADA 1</span></div>
-      <div id="rankMsg" aria-live="polite"></div><ol id="rankList" data-noi18n></ol>
-      <button id="rankAll" type="button">VER RANKING COMPLETO</button>
-      <button id="saveBtn" type="button" hidden><i class="sbL"></i><span class="sbT"><b>GUARDAR MI PUNTUACIÓN</b><small>con Google</small></span><i class="sbL r"></i></button>
-      <div id="acctBar" hidden><span class="abMe" hidden><span class="abCap">CAPITÁN</span> <b id="acctNick" data-noi18n></b></span><button type="button" id="acctOut" hidden>Salir</button><button type="button" id="acctDel" hidden>Borrar mi cuenta</button><a id="acctPriv" data-priv="priv" href="privacidad/" target="_blank" rel="noopener">Privacidad</a></div></div>
     <button id="again" type="button"><b>REINTENTAR</b><small>ENTER</small></button>
   </div>
 </div>
@@ -188,7 +197,7 @@
       <p class="acRules" data-rich>Al guardar aceptas la <a data-priv="priv" href="privacidad/" target="_blank" rel="noopener">privacidad</a> y las <a data-priv="normas" href="privacidad/#normas" target="_blank" rel="noopener">normas del ranking</a>.</p>
     </form>
     <div id="acRes" hidden><p id="acL1"></p><p id="acL2"></p><ol class="rkList" id="acList" data-noi18n></ol></div>
-    <div id="acBtns"><button type="button" id="acGo"><span></span></button><button type="button" id="acNo"></button></div>
+    <div id="acBtns"><button type="button" id="acSave" class="sbBtn" hidden><i class="sbL"></i><span class="sbT"><b>GUARDAR MI PUNTUACIÓN</b><small>con Google</small></span><i class="sbL r"></i></button><button type="button" id="acGo"><span></span></button><button type="button" id="acNo"></button></div>
   </div>
 </div>
 

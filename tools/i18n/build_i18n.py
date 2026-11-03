@@ -208,7 +208,8 @@ EN.update({'¿Nos ayudas con estadísticas anónimas?':'Will you help us with an
  'Para mejorar el juego: rondas, dispositivo y país. Sin nombre ni cuenta.':'To improve the game: rounds, device and country. No name, no account.','SÍ':'YES'})
 # ---- v82: Google accounts and the Season 1 ranking (index.html #rankBox / #acct, src/game/26-ranking.js, src/game/40-cuentas.js) ----
 EN.update({'RANKING DE CAPITANES':'CAPTAINS LEADERBOARD','TEMPORADA 1':'SEASON 1','VER RANKING COMPLETO':'VIEW FULL LEADERBOARD','¡Sé el primero!':'Be the first!',
- 'TÚ':'YOU','sin guardar':'not saved','¡Guárdala y serás el primero del ranking!':'Save it and be the first on the leaderboard!','Cargando…':'Loading…','Temporada 1 · 1 capitán':'Season 1 · 1 captain',
+ 'TÚ':'YOU','sin guardar':'not saved','TU PARTIDA':'YOUR RUN','RANKING':'LEADERBOARD','Ver tu partida':'See your run','Ver el ranking':'See the leaderboard',
+ '¿GUARDAMOS TU PUNTUACIÓN?':'SHALL WE SAVE YOUR SCORE?','Guárdala con tu apodo en el ranking de capitanes.':'Save it under your nickname on the captains leaderboard.',"¡Es tu nuevo récord!":"It's your new record!",'¡Guárdala y serás el primero del ranking!':'Save it and be the first on the leaderboard!','Cargando…':'Loading…','Temporada 1 · 1 capitán':'Season 1 · 1 captain',
  'GUARDAR MI PUNTUACIÓN':'SAVE MY SCORE','con Google':'with Google',
  'CAPITÁN':'CAPTAIN','APODO':'NICKNAME','Salir':'Sign out','Borrar mi cuenta':'Delete my account','Privacidad':'Privacy','Apodo':'Nickname',
  'De 3 a 12 letras o números (también . _ -). Sin espacios.':'3 to 12 letters or digits (also . _ -). No spaces.',
@@ -241,7 +242,7 @@ EN.update({'RANKING DE CAPITANES':'CAPTAINS LEADERBOARD','TEMPORADA 1':'SEASON 1
  'Tu sesión ha caducado: vuelve a entrar con Google para borrar la cuenta, o escríbenos a headsrescueadmin@gmail.com.':'Your session has expired: sign in with Google again to delete the account, or write to headsrescueadmin@gmail.com.'})
 P.extend([[r'^Tu mejor de la temporada: ([\d.,]+) · ronda (\d+)$','Your season best: $1 · round $2'],[r'^Puesto #(\d+) de ([\d.,]+) capitanes$','Rank #$1 of $2 captains'],
  [r'^Puesto #(\d+) de 1 capitán$','Rank #$1 of 1 captain'],[r'^Temporada 1 · ([\d.,]+) capitanes$','Season 1 · $1 captains'],
- [r'^Con esta partida entrarías en el puesto #(\d+)$',"With this run you'd be #$1"]])
+ [r'^Con esta partida entrarías en el puesto #(\d+)$',"With this run you'd be #$1"],[r'^Entrarías en el puesto #(\d+)$',"You'd be #$1"]])
 H.update({'Al guardar aceptas la <a data-priv="priv" href="privacidad/" target="_blank" rel="noopener">privacidad</a> y las <a data-priv="normas" href="privacidad/#normas" target="_blank" rel="noopener">normas del ranking</a>.':
   'By saving you accept the <a data-priv="priv" href="privacy/" target="_blank" rel="noopener">privacy policy</a> and the <a data-priv="normas" href="privacy/#rules" target="_blank" rel="noopener">leaderboard rules</a>.'})
 # sanity: every tutorial line must exist verbatim in the game code

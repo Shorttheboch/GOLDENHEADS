@@ -57,7 +57,7 @@ const accPlaceLine=j=>j&&j.me?accPlace(j.me.pos,j.count):'';
 function accPlateSaved(j){if(j.status==='flagged')accMsg(['Partida guardada · en revisión',accBestLine(j.best)]);
   else accMsg([j.newBest?'¡NUEVO RÉCORD!':accBestLine(j.best),accPlaceLine(j)],j.newBest?'new':'');
   $('rankAll').hidden=!rankRender($('rankList'),j,{fill:true}).has;}
-async function accEnd(){const seq=++ACC.seq,pend=RANK.pending,box=$('rankBox'),live=()=>seq===ACC.seq&&!$('end').hidden;
+async function accEnd(){const seq=++ACC.seq,pend=RANK.pending,box=$('rankBox'),live=()=>seq===ACC.seq&&!$('end').hidden;ACC.nagged=false;ACC.qual=null;
   if(accSigned()){accBar();box.hidden=false;
     if(pend){accMsg('Guardando tu partida…');fitEndPlate();return accEndSave(pend,seq);}
     const d=await fetch('/api/scores').then(r=>r.ok?r.json():null).catch(()=>null);if(!live())return;
@@ -65,11 +65,13 @@ async function accEnd(){const seq=++ACC.seq,pend=RANK.pending,box=$('rankBox'),l
     $('rankAll').hidden=!rankRender($('rankList'),d,{fill:true}).has;fitEndPlate();return;}
   return accEndGuest(pend,seq);}
 // guest: the top, and the button when this run can be saved and the login is configured
-async function accEndGuest(pend,seq){const box=$('rankBox'),live=()=>seq===ACC.seq&&!$('end').hidden;
-  const [d,cfg]=await Promise.all([fetch('/api/scores').then(r=>r.ok?r.json():null).catch(()=>null),pend?accCfg():null]);
+async function accEndGuest(pend,seq){const box=$('rankBox'),live=()=>seq===ACC.seq&&!$('end').hidden;ACC.qual=null;
+  // the top 50 (the same cached answer for everybody): the top 5 for the panel, and whether this run would make the top 50 (the reminder, accNag)
+  const [d,cfg]=await Promise.all([fetch('/api/scores?n='+AC_FULL).then(r=>r.ok?r.json():null).catch(()=>null),pend?accCfg():null]);
   if(!live())return;
-  if(!d)return rankOff(); // the ranking does not answer: the one column of v44
+  if(!d)return rankOff(); // the ranking does not answer: v44, the stats only
   const can=!!(pend&&cfg),R=rankRender($('rankList'),d,{fill:true,ghost:can?pend:null});
+  if(can){const top=Array.isArray(d.top)?d.top:[],pos=1+top.filter(e=>e.score>=pend.score).length;ACC.qual=pos<=AC_FULL&&(pos<=top.length||top.length<AC_FULL)?pos:null;}
   $('rankAll').hidden=!R.has;
   if(can){$('saveBtn').hidden=false;accSaveBtn(false);accPreload();accMsg(!R.ghost?'Guarda tu puntuación con tu apodo de capitán':R.has?`Con esta partida entrarías en el puesto #${R.ghost}`:'¡Guárdala y serás el primero del ranking!');}
   accBar();box.hidden=false;fitEndPlate();}
@@ -88,11 +90,12 @@ async function accEndSave(pend,seq){const live=()=>seq===ACC.seq&&!$('end').hidd
 function accPendSet(p){if(p)acLS(ACC_K.pend,JSON.stringify(p));}
 function accSaveBtn(busy){const b=$('saveBtn');b.disabled=busy;b.classList.toggle('busy',busy);b.querySelector('b').textContent=busy?'ABRIENDO GOOGLE…':'GUARDAR MI PUNTUACIÓN';}
 // guest: off to Google. The run waits in this device; the language picker is skipped on the way back (the player already chose).
-$('saveBtn').addEventListener('click',async e=>{e.stopPropagation();const p=RANK.pending;if(!p||ACC.busy)return;ACC.busy=true;
+$('saveBtn').addEventListener('click',e=>{e.stopPropagation();accStartSave();});
+async function accStartSave(){const p=RANK.pending;if(!p||ACC.busy)return;ACC.busy=true;ACC.nagged=true;
   accPendSet(p);acLS(ACC_K.go,String(Date.now()));try{sessionStorage.setItem('heads_lang_skip','1');}catch(_){}
   accSaveBtn(true);try{window.menuSfx&&menuSfx('button');}catch(_){}
   try{const a=await accLoad();await a.signIn(location.origin+location.pathname);} // the page leaves for Google here
-  catch(_){ACC.busy=false;acLS(ACC_K.go,null);accSaveBtn(false);accMsg('Google no está disponible ahora mismo. Inténtalo más tarde.');}});
+  catch(_){ACC.busy=false;acLS(ACC_K.go,null);accSaveBtn(false);accMsg('Google no está disponible ahora mismo. Inténtalo más tarde.');}}
 $('acctOut').addEventListener('click',async e=>{e.stopPropagation();accForgetLocal();accBar();accMsg('Sesión cerrada.');fitEndPlate();});
 $('acctDel').addEventListener('click',e=>{e.stopPropagation();accOpen('confirm');});
 $('rankAll').addEventListener('click',e=>{e.stopPropagation();accBoard();});
@@ -105,7 +108,7 @@ const AC_T={ // title, text, primary, secondary
   used:['YA ESTABA GUARDADA','Esta partida ya está en el ranking.','SEGUIR'],expired:['LA PARTIDA HA CADUCADO','Han pasado más de 4 horas. Juega otra: ahora se guardará sola.','SEGUIR'],
   invalid:['NO SE PUDO GUARDAR','El servidor no ha aceptado esta partida.','SEGUIR'],
   hello:['SESIÓN INICIADA','Desde ahora tus partidas se guardan solas al terminar.','SEGUIR'],
-  board:['RANKING DE CAPITANES','','SEGUIR'],loading:['RANKING DE CAPITANES','Cargando…',null,'CERRAR'],
+  board:['RANKING DE CAPITANES','','SEGUIR'],nag:['¿GUARDAMOS TU PUNTUACIÓN?','Guárdala con tu apodo en el ranking de capitanes.','REINTENTAR'],loading:['RANKING DE CAPITANES','Cargando…',null,'CERRAR'],
   fail:['NO SE HA INICIADO SESIÓN','Google no ha confirmado el acceso. Tu partida sigue guardada en este dispositivo unas horas.','PROBAR OTRA VEZ','AHORA NO'],
   fail0:['NO SE HA INICIADO SESIÓN','Google no ha confirmado el acceso.','PROBAR OTRA VEZ','AHORA NO'],
   off:['RANKING NO DISPONIBLE','No podemos conectar con el ranking ahora mismo. Inténtalo más tarde.','CERRAR'],
@@ -125,7 +128,7 @@ function accOpen(k,o={}){if(k==='fail'&&!accPendGet())k='fail0';if(k==='confirm'
   if(o.res){$('acL1').textContent=o.res.l1||'';$('acL2').textContent=o.res.l2||'';$('acL1').className=o.res.cls||'';$('acL1').hidden=!o.res.l1;$('acL2').hidden=!o.res.l2;
     if(!rankRender(L,o.res.board,{n:o.big?AC_FULL:RANK.show}).has)L.innerHTML='';}
   const go=$('acGo'),no=$('acNo');go.hidden=!T[2];no.hidden=!T[3];go.querySelector('span').textContent=T[2]||'';no.textContent=T[3]||'';
-  go.className=k==='confirm'?'red':'';go.disabled=no.disabled=false;el.classList.toggle('busy',k==='wait'||k==='saving'||k==='loading');
+  go.className=k==='confirm'?'red':'';go.disabled=no.disabled=false;$('acSave').hidden=k!=='nag';ACC.onEsc=o.esc||null;el.classList.toggle('busy',k==='wait'||k==='saving'||k==='loading');
   if(k==='nick'){$('acErr').textContent='';$('acIn').value='';$('acIn').placeholder=TR('APODO');accPrivLinks($('acNick'));}
   const was=el.hidden;el.hidden=false;document.body.classList.add('acctOn');accFit();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(accFit);if(was){el.classList.remove('in');void el.offsetWidth;el.classList.add('in');}
   if(document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();
@@ -149,7 +152,11 @@ function accClose(){const el=$('acct');el.hidden=true;el.classList.remove('in');
 $('acGo').addEventListener('click',e=>{e.stopPropagation();if(ACC.scr==='nick')return accNickSubmit();const f=ACC.onGo;if(f)f();else accClose();});
 $('acNo').addEventListener('click',e=>{e.stopPropagation();const f=ACC.onNo;if(f)f();else accClose();});
 $('acNick').addEventListener('submit',e=>{e.preventDefault();accNickSubmit();});
-$('acct').addEventListener('keydown',e=>{e.stopPropagation();if(e.code==='Escape'&&!$('acNo').hidden&&!$('acNo').disabled)$('acNo').click();});
+$('acct').addEventListener('keydown',e=>{e.stopPropagation();if(e.code!=='Escape')return;if(ACC.onEsc)ACC.onEsc();else if(!$('acNo').hidden&&!$('acNo').disabled)$('acNo').click();});
+// the reminder: Enter / Space retry even when the focus is not on a button (it is the default action)
+addEventListener('keydown',e=>{if(ACC.scr!=='nag'||e.target.closest&&e.target.closest('button'))return;
+  if(['Enter','NumpadEnter','Space'].includes(e.code)){e.preventDefault();$('acGo').click();}else if(e.code==='Escape'&&ACC.onEsc)ACC.onEsc();},true);
+$('acSave').addEventListener('click',e=>{e.stopPropagation();accClose();accStartSave();});
 $('acct').addEventListener('click',e=>e.stopPropagation());
 
 // a result screen from the server's answer to /api/save (also updates the end plate if it is open behind)
@@ -180,6 +187,17 @@ async function accClaim(player){const p=accPendGet();
   if(r.s===401){accForgetLocal();return accOpen('fail',{go:accRelogin});}
   if(r.j.error==='nick')return accOpen('nick',{no:accDrop});
   return accResult(r);}
+// «¿GUARDAMOS TU PUNTUACIÓN?»: retrying (REINTENTAR, Enter, R) before the ranking slide was ever shown, as a guest with a run that can be saved and
+// that would make the top 50 or is a new record on this device. At most once a browser session (saying no counts). Never waits for anything:
+// everything it needs is already known when the plate is up; if it is not, there is no reminder. Answers true when it is showing.
+function accNag(){if(!RANK.on||!ENDV.on||ENDV.seen||accSigned()||ACC.nagged||ACC.scr)return false;
+  const p=RANK.pending;if(!p||$('saveBtn').hidden)return false;
+  let done=false;try{done=!!sessionStorage.getItem('heads_save_nag');}catch(_){done=true;}if(done)return false;
+  if(!ACC.qual&&!RANK.newRec)return false;
+  try{sessionStorage.setItem('heads_save_nag','1');}catch(_){}ACC.nagged=true;
+  const retry=()=>{accClose();endRetry();};
+  accOpen('nag',{go:retry,esc:retry,res:{l1:fmtN(p.score),l2:ACC.qual?`Entrarías en el puesto #${ACC.qual}`:'¡Es tu nuevo récord!',cls:'score'}});
+  return true;}
 // VER RANKING COMPLETO: the full screen without the saved header (with my line and place when signed in)
 async function accBoard(){if(ACC.scr)return;accOpen('loading');const signed=accSigned();
   let r=signed?await accApi('/api/scores?n='+AC_FULL+'&me=1'):{s:401};

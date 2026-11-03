@@ -26,7 +26,7 @@ const PAGES=[['es','privacidad','normas',['identificador de tu cuenta de Google 
     p.on('pageerror',e=>errs.push(e.message));p.on('request',r=>{const u=new URL(r.url());if(u.origin!==new URL(BASE).origin)outside.push(r.url());});
     const r=await p.goto(BASE+`/${dir}/`);ok(r&&r.status()===200,'200');
     const src=fs.readFileSync(path.join(ROOT,'public',dir,'index.html'),'utf8');
-    const I=await p.evaluate(()=>({lang:document.documentElement.lang,title:document.title,text:document.body.innerText,scripts:document.scripts.length,
+    const I=await p.evaluate(()=>({lang:document.documentElement.lang,title:document.title,text:document.body.textContent.replace(/\s+/g,' '),scripts:document.scripts.length,
       links:[...document.querySelectorAll('a')].map(a=>a.getAttribute('href')),anchor:[...document.querySelectorAll('section[id]')].map(s=>s.id),
       fonts:document.fonts.check('800 16px TekturE')&&document.fonts.check('600 14px TitilliumH'),logo:(i=>i&&i.complete&&i.naturalWidth>0)(document.querySelector('header img')),
       over:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth}));
@@ -42,11 +42,11 @@ const PAGES=[['es','privacidad','normas',['identificador de tu cuenta de Google 
     ok(I.fonts&&I.logo,'fonts and logo from the site itself',{f:I.fonts,l:I.logo});
     ok(I.over<=0,'nothing wider than the window');
     await p.screenshot({path:shot(`privacidad_${lang}_pc.png`),fullPage:true});
+    ok(!errs.length&&!outside.length,'no errors, nothing from another site',{errs,outside});
     // the other language and back to the game
     const other=lang==='es'?'privacy':'privacidad';await p.click(`nav a[href="../${other}/"]`);await p.waitForLoadState();
     ok(new URL(p.url()).pathname===`/${other}/`,'the language link goes to /'+other+'/',p.url());
     await p.goBack();await p.click('nav a.go');await p.waitForLoadState();ok(new URL(p.url()).pathname==='/','«'+(lang==='es'?'Volver al juego':'Back to the game')+'» goes to the game (../)',p.url());
-    ok(!errs.length&&!outside.length,'no errors, nothing from another site',{errs,outside});
     await ctx.close();
     for(const [w,h] of [[390,844],[844,390]]){const c2=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true}),q=await c2.newPage();
       await q.goto(BASE+`/${dir}/#${anchor}`);await q.waitForTimeout(400);

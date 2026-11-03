@@ -54,6 +54,14 @@ body.touch #acctBar button::after,body.touch #acctBar a::after{content:'';positi
 .rkList li.me{background:rgba(232,182,74,.18)}.rkList li.me span,.rkList li.me b{color:#ffd659}
 .rkList li.gap{display:block;text-align:center;background:none;padding:0;line-height:1;color:rgba(239,230,210,.5)}
 
+/* phones in landscape (and any short, wide window): the plate is a narrow column with empty sides, so the ranking box goes to a second column
+   on the right, a quarter bigger. Only while the box is shown (a ?ronda=N game or the ranking down keep the one column of v44). */
+@media (max-height:520px) and (min-aspect-ratio:17/10){
+  #endBox:has(>#rankBox:not([hidden])){display:grid;grid-template-columns:calc(var(--u)*120) auto;column-gap:calc(var(--u)*4);justify-items:center;align-items:start;width:auto}
+  #endBox:has(>#rankBox:not([hidden]))>*{grid-column:1}
+  #endBox>#rankBox:not([hidden]){--u:calc(min(1vh,.5625vw)*1.28);grid-column:2;grid-row:1 / span 8;align-self:center;width:calc(var(--u)*58);margin-top:0;padding-bottom:0}
+}
+
 /* ---------- the account screens (#acct), over the menu or the end plate ---------- */
 #acct{--ef:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;--fb:'TitilliumH','Titillium Web','Segoe UI',system-ui,sans-serif;position:fixed;inset:0;z-index:55;box-sizing:border-box;
   display:flex;overflow:auto;padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));

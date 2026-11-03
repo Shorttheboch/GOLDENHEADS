@@ -129,7 +129,7 @@ function accOpen(k,o={}){if(k==='fail'&&!accPendGet())k='fail0';if(k==='confirm'
   if(k==='nick'){$('acErr').textContent='';$('acIn').value='';$('acIn').placeholder=TR('APODO');accPrivLinks($('acNick'));}
   const was=el.hidden;el.hidden=false;document.body.classList.add('acctOn');accFit();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(accFit);if(was){el.classList.remove('in');void el.offsetWidth;el.classList.add('in');}
   if(document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();
-  if(o.big){accFit();accScrollMe();}
+  if(o.big)accFit(); // (it also brings my line into view)
   setTimeout(()=>{if(el.hidden)return;if(k==='nick'&&!isTouch)$('acIn').focus();else if(!go.hidden&&!isTouch)go.focus();},60);}
 // the full list: my line in the middle of the frame (only the list scrolls, never the page)
 function accScrollMe(){const L=$('acList'),me=L.querySelector('li.me');if(!me)return;
@@ -138,8 +138,9 @@ function accScrollMe(){const L=$('acList'),me=L.querySelector('li.me');if(!me)re
 // SESIÓN, English...) shrinks to the width of the frame; the full list takes the height that is left, so SEGUIR is always on screen
 function accFit(){const t=$('acT'),l=t.firstElementChild,b=$('acBox');if(!l||b.offsetParent===null)return;t.style.fontSize='';
   const z=Math.max(1,Math.min(2,Math.min(innerWidth/960,innerHeight/540)*0.75));b.style.zoom=z>1.02?z.toFixed(3):'';
-  const L=$('acList');if(L.classList.contains('big')){L.style.maxHeight='none';const free=innerHeight-24-b.getBoundingClientRect().height,lh=L.getBoundingClientRect().height,row=L.firstElementChild?L.firstElementChild.getBoundingClientRect().height:20;
-    const want=Math.max(row*3.2,Math.min(lh,lh+free));L.style.maxHeight=(want/(z>1.02?z:1)).toFixed(0)+'px';}
+  const L=$('acList');if(L.classList.contains('big')){const st=L.scrollTop;L.style.maxHeight='none';const free=innerHeight-24-b.getBoundingClientRect().height,lh=L.getBoundingClientRect().height,row=L.firstElementChild?L.firstElementChild.getBoundingClientRect().height:20;
+    const want=Math.max(row*3.2,Math.min(lh,lh+free));L.style.maxHeight=(want/(z>1.02?z:1)).toFixed(0)+'px';
+    if(L.querySelector('li.me'))accScrollMe();else L.scrollTop=st;} // (refitting the height must not lose the place in the list)
   const cs=getComputedStyle(b),max=b.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-8,w=l.offsetWidth*1.16; // (layout width x the scaleX of .ln: no animation in it)
   if(w>max)t.style.fontSize=(parseFloat(getComputedStyle(t).fontSize)*max/w).toFixed(1)+'px';}
 addEventListener('resize',()=>{if(!$('acct').hidden)accFit();});

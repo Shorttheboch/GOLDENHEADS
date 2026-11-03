@@ -63,7 +63,7 @@ function endSwap(from,to,s){from.classList.remove('off'); // seen while it leave
   const OUT=300,IN=390,DL=110,svg=!isTouch,B=svg?Math.max(6,from.offsetWidth*.03):Math.max(2,from.offsetWidth*.008);
   const fo=svg?[{},{}]:[{filter:'blur(0px)'},{filter:`blur(${B.toFixed(1)}px)`}];
   ENDX.a=from.animate([{transform:'none',opacity:1,...fo[0]},{transform:`translateX(${-42*s}%) scaleX(1.08)`,opacity:0,...fo[1]}],
-    {duration:OUT,easing:'cubic-bezier(.45,0,.8,.45)',fill:'forwards'});
+    {duration:OUT,easing:'cubic-bezier(.4,0,.75,.5)',fill:'forwards'});
   ENDX.b=to.animate([{offset:0,transform:`translateX(${40*s}%) scaleX(1.08)`,opacity:0,...(svg?{}:{filter:`blur(${B.toFixed(1)}px)`}),easing:'cubic-bezier(.16,.62,.34,1)'},
     {offset:.45,opacity:1},...(svg?[]:[{offset:.6,filter:'blur(0px)'}]),
     {offset:.72,transform:`translateX(${-1.8*s}%) scaleX(.995)`,easing:'ease-in-out'},{offset:.87,transform:`translateX(${.6*s}%) scaleX(1)`,easing:'ease-in-out'},

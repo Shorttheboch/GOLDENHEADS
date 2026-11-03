@@ -16,6 +16,7 @@
 //    The swap itself: frame times during four swaps against the plate standing still; caught half way (animations paused): the stats frame on its
 //    way out left, the ranking frame coming in, both half seen, the sideways SVG blur on PC / a light CSS blur on touch, the tabs and chevrons where
 //    they were; at the end nothing left (no blur, no transform); reduced motion: a plain crossfade
+//    (only the running animations are paused and resumed: play() on a finished one would start it again)
 // 3) the reminder «¿GUARDAMOS TU PUNTUACIÓN?» (guests): REINTENTAR / Enter / R before the ranking was seen, with a run that makes the top 50 → shown,
 //    with the score and «Entrarías en el puesto #N», REINTENTAR has the focus, Enter retries; only once a session; not after the ranking was seen;
 //    not when the run would not make the top 50 and is no record; a new device record alone is enough («¡Es tu nuevo récord!»); Esc and Space retry
@@ -185,23 +186,23 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
     ok(ft.swap.p95<=Math.max(40,ft.still.p95*1.6),`${tag}: frame times, standing still avg ${ft.still.avg} / 95% ${ft.still.p95} ms; during four swaps avg ${ft.swap.avg} / 95% ${ft.swap.p95} / worst ${ft.swap.max} ms`,ft);
     await p.waitForTimeout(700);
     const prevAt=async()=>p.evaluate(()=>{const r=document.getElementById('endPrev').getBoundingClientRect(),t=document.getElementById('endTabs').getBoundingClientRect();return [r.left,r.top,t.left,t.top].map(v=>Math.round(v*10)/10).join();});
-    if(phone)await p.tap('#endTab1');else await p.click('#endTab1');await p.waitForTimeout(160);await p.evaluate(()=>document.getAnimations().forEach(a=>a.pause()));
+    if(phone)await p.tap('#endTab1');else await p.click('#endTab1');await p.waitForTimeout(190);await p.evaluate(()=>(window.__held=document.getAnimations().filter(a=>a.playState==='running')).forEach(a=>a.pause()));
     const M=await p.evaluate(()=>{const a=document.getElementById('endSlide0'),b=document.getElementById('rankBox'),ga=getComputedStyle(a),gb=getComputedStyle(b),pn=document.getElementById('endPanel').getBoundingClientRect();
       return {fa:a.style.filter,fb:b.style.filter,ca:ga.filter,cb:gb.filter,oa:+ga.opacity,ob:+gb.opacity,va:ga.visibility,vb:gb.visibility,ta:ga.transform,
         left:a.getBoundingClientRect().left<pn.left-2,right:b.getBoundingClientRect().left>pn.left+2,sa:document.querySelector('#endBlurA feGaussianBlur').getAttribute('stdDeviation'),sb:document.querySelector('#endBlurB feGaussianBlur').getAttribute('stdDeviation')};});
     const mid=await prevAt();
-    ok(M.va==='visible'&&M.vb==='visible'&&M.oa>0.02&&M.oa<0.98&&M.ob>0.02&&M.ob<0.98&&M.left&&M.right,tag+': half way: the stats frame on its way out to the left, the ranking frame coming in from the right, both half seen',M);
+    ok(M.va==='visible'&&M.vb==='visible'&&M.oa>0.02&&M.oa<0.98&&M.ob>0.02&&M.left&&M.right,tag+': half way: the stats frame on its way out to the left and fading, the ranking frame coming in from the right',M);
     if(phone)ok(!M.fa&&/blur\(/.test(M.ca)&&/blur\(/.test(M.cb),tag+': touch: a light CSS blur on both frames (no SVG filter)',M);
     else ok(M.fa==='url("#endBlurA")'&&M.fb==='url("#endBlurB")'&&/^[1-9][\d.]* 0$/.test(M.sa)&&/^[\d.]+ 0$/.test(M.sb)&&+M.sa.split(' ')[0]>2,tag+': PC: the sideways-only blur (SVG, stdDeviation "N 0") on both frames, growing on the one leaving ('+M.sa+')',M);
     if(w===1920)await p.screenshot({path:shot(`cartel_swap_${w}x${h}_${lang}.png`),timeout:240000});
-    await p.evaluate(()=>document.getAnimations().forEach(a=>a.play()));await p.waitForTimeout(800);
+    await p.evaluate(()=>(window.__held||[]).forEach(a=>a.play()));await p.waitForTimeout(800);
     const E=await p.evaluate(()=>{const a=document.getElementById('endSlide0'),b=document.getElementById('rankBox');return {a:a.className,va:getComputedStyle(a).visibility,ob:+getComputedStyle(b).opacity,fa:a.style.filter,fb:b.style.filter,cb:getComputedStyle(b).filter,tb:getComputedStyle(b).transform,anims:a.getAnimations().length+b.getAnimations().length};});
     ok(await slide(p)===1&&/off/.test(E.a)&&E.va==='hidden'&&E.ob===1&&!E.fa&&!E.fb&&E.cb==='none'&&E.tb==='none'&&!E.anims,tag+': then the ranking frame sharp and in place, the stats frame put away, no blur or animation left',E);
     ok(mid===await prevAt(),tag+': the tabs and the ‹ chevron did not travel with the frames');
-    if(w===960){await p.emulateMedia({reducedMotion:'reduce'});await p.click('#endTab0');await p.waitForTimeout(120);await p.evaluate(()=>document.getAnimations().forEach(a=>a.pause()));
+    if(w===960){await p.emulateMedia({reducedMotion:'reduce'});await p.click('#endTab0');await p.waitForTimeout(120);await p.evaluate(()=>(window.__held=document.getAnimations().filter(a=>a.playState==='running')).forEach(a=>a.pause()));
       const RM=await p.evaluate(()=>{const a=getComputedStyle(document.getElementById('endSlide0')),b=getComputedStyle(document.getElementById('rankBox'));return {ta:a.transform,tb:b.transform,fa:a.filter,fb:b.filter,oa:+a.opacity,ob:+b.opacity};});
       ok(RM.ta==='none'&&RM.tb==='none'&&RM.fa==='none'&&RM.fb==='none'&&RM.oa>0.02&&RM.oa<0.98&&RM.ob>0.02&&RM.ob<0.98,tag+': reduced motion: a plain crossfade (no travel, no blur)',RM);
-      await p.evaluate(()=>document.getAnimations().forEach(a=>a.play()));await p.waitForTimeout(500);await p.emulateMedia({reducedMotion:null});}
+      await p.evaluate(()=>(window.__held||[]).forEach(a=>a.play()));await p.waitForTimeout(500);await p.emulateMedia({reducedMotion:null});}
     // no ranking: nothing moves
     S.down=true;t0=await finish(p,4321,true);await at(tIn+7000);
     ok(await p.evaluate(()=>document.getElementById('endTabs').hidden&&document.getElementById('rankBox').hidden&&document.getElementById('endTab0').getAttribute('aria-selected')==='true'),tag+': ranking down: no swap at all');

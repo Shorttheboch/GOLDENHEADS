@@ -6,7 +6,8 @@
 // loaded only when needed through window.HEADS_AUTH, src/cuentas/loader.js) · netlify/functions/ranking.mts (the referee: /api/auth, /api/me,
 // /api/nick, /api/save, /api/forget) · markup #rankBox / #acct in index.html · look src/styles/11-cuentas.css · privacy page public/privacidad/.
 // The login is a redirect (PKCE), so the page reloads: before leaving, the run waits in localStorage (heads_pending_run: token, score, round,
-// stats; 4 h, claimed once); back from Google, over the menu: nickname if needed -> the run saved -> the result (place, top). The address is
+// stats; 4 h, claimed once); back from Google, over the menu: nickname if needed -> the run saved -> the full ranking (top 50, my line, place).
+// VER RANKING COMPLETO (end-plate panel) opens the same screen without the header. Signed-in auto-saves do not pop it every game. The address is
 // cleaned of the login's ?code= / ?error=. redirectTo is built from location (origin + path): no domain written anywhere.
 // Without the Supabase settings (/api/auth 503) there is simply no button; the game never waits for any of this and never shows an error box.
 // Nothing here runs per frame. The game keys are ignored while #acct is open (body.acctOn, 21-input-pc.js).
@@ -42,31 +43,36 @@ function accPendGet(){let p=null;try{p=JSON.parse(acLS(ACC_K.pend)||'null');}cat
   if(!p||typeof p!=='object'||typeof p.token!=='string'||!(p.at>0)){if(p)acLS(ACC_K.pend,null);return null;}
   if(Date.now()-p.at>ACC_PEND_MS){acLS(ACC_K.pend,null);return {expired:true};}
   return p;}
-const accSave=p=>accApi('/api/save',{body:{token:p.token,score:p.score,round:p.round,stats:p.stats,secs:p.secs,plat:p.plat,lang:p.lang}});
+const accSave=(p,n)=>accApi('/api/save',{body:{token:p.token,score:p.score,round:p.round,stats:p.stats,secs:p.secs,plat:p.plat,lang:p.lang,n:n||RANK.show}});
+const AC_FULL=50; // lines of the full ranking screen (the server gives 50 at most)
 
 /* ---------- the end plate (rankShow -> accEnd) ---------- */
 function accMsg(lines,cls){const m=$('rankMsg');m.className=cls||'';m.innerHTML='';for(const l of [].concat(lines).filter(Boolean)){const s=document.createElement('span');s.textContent=l;m.appendChild(s);}}
 function accBar(){const b=$('acctBar'),me=!!ACC.nick&&accSigned();b.querySelector('.abMe').hidden=!me;$('acctNick').textContent=me?ACC.nick:'';
   $('acctOut').hidden=$('acctDel').hidden=!me;accPrivLinks(b);b.hidden=false;}
 const accBestLine=b=>b?`Tu mejor de la temporada: ${fmtN(b.score)} · ronda ${b.round}`:'';
-const accPlaceLine=j=>j&&j.me?`Puesto #${j.me.pos} de ${fmtN(j.count)} capitanes`:'';
+const accPlace=(pos,count)=>count===1?`Puesto #${pos} de 1 capitán`:`Puesto #${pos} de ${fmtN(count)} capitanes`;
+const accPlaceLine=j=>j&&j.me?accPlace(j.me.pos,j.count):'';
 // a saved run on the end plate: ¡NUEVO RÉCORD! or the season best, the place, the top
 function accPlateSaved(j){if(j.status==='flagged')accMsg(['Partida guardada · en revisión',accBestLine(j.best)]);
   else accMsg([j.newBest?'¡NUEVO RÉCORD!':accBestLine(j.best),accPlaceLine(j)],j.newBest?'new':'');
-  rankRender($('rankList'),j);}
+  $('rankAll').hidden=!rankRender($('rankList'),j,{fill:true}).has;}
 async function accEnd(){const seq=++ACC.seq,pend=RANK.pending,box=$('rankBox'),live=()=>seq===ACC.seq&&!$('end').hidden;
   if(accSigned()){accBar();box.hidden=false;
     if(pend){accMsg('Guardando tu partida…');fitEndPlate();return accEndSave(pend,seq);}
     const d=await fetch('/api/scores').then(r=>r.ok?r.json():null).catch(()=>null);if(!live())return;
-    if(!rankRender($('rankList'),d))box.hidden=!ACC.nick;fitEndPlate();return;}
+    if(!d)return rankOff();
+    $('rankAll').hidden=!rankRender($('rankList'),d,{fill:true}).has;fitEndPlate();return;}
   return accEndGuest(pend,seq);}
 // guest: the top, and the button when this run can be saved and the login is configured
 async function accEndGuest(pend,seq){const box=$('rankBox'),live=()=>seq===ACC.seq&&!$('end').hidden;
   const [d,cfg]=await Promise.all([fetch('/api/scores').then(r=>r.ok?r.json():null).catch(()=>null),pend?accCfg():null]);
   if(!live())return;
-  const has=rankRender($('rankList'),d),can=!!(pend&&cfg&&d);
-  if(can){$('saveBtn').hidden=false;accSaveBtn(false);accPreload();accMsg(has?'Guarda tu puntuación con tu apodo de capitán':'Aún no hay nadie en el ranking: ¡sé el primero!');accBar();}
-  box.hidden=!has&&!can;fitEndPlate();}
+  if(!d)return rankOff(); // the ranking does not answer: the one column of v44
+  const can=!!(pend&&cfg),R=rankRender($('rankList'),d,{fill:true,ghost:can?pend:null});
+  $('rankAll').hidden=!R.has;
+  if(can){$('saveBtn').hidden=false;accSaveBtn(false);accPreload();accMsg(R.ghost?`Con esta partida entrarías en el puesto #${R.ghost}`:'Guarda tu puntuación con tu apodo de capitán');}
+  accBar();box.hidden=false;fitEndPlate();}
 async function accEndSave(pend,seq){const live=()=>seq===ACC.seq&&!$('end').hidden;
   const r=await accSave(pend);if(!live())return;
   if(r.s===200&&r.j.saved){accSetNick(r.j.nick);accBar();accPlateSaved(r.j);}
@@ -89,6 +95,7 @@ $('saveBtn').addEventListener('click',async e=>{e.stopPropagation();const p=RANK
   catch(_){ACC.busy=false;acLS(ACC_K.go,null);accSaveBtn(false);accMsg('Google no está disponible ahora mismo. Inténtalo más tarde.');}});
 $('acctOut').addEventListener('click',async e=>{e.stopPropagation();accForgetLocal();accBar();accMsg('Sesión cerrada.');fitEndPlate();});
 $('acctDel').addEventListener('click',e=>{e.stopPropagation();accOpen('confirm');});
+$('rankAll').addEventListener('click',e=>{e.stopPropagation();accBoard();});
 
 /* ---------- the account screens (#acct), over the menu or the end plate ---------- */
 const AC_T={ // title, text, primary, secondary
@@ -98,6 +105,7 @@ const AC_T={ // title, text, primary, secondary
   used:['YA ESTABA GUARDADA','Esta partida ya está en el ranking.','SEGUIR'],expired:['LA PARTIDA HA CADUCADO','Han pasado más de 4 horas. Juega otra: ahora se guardará sola.','SEGUIR'],
   invalid:['NO SE PUDO GUARDAR','El servidor no ha aceptado esta partida.','SEGUIR'],
   hello:['SESIÓN INICIADA','Desde ahora tus partidas se guardan solas al terminar.','SEGUIR'],
+  board:['RANKING DE CAPITANES','','SEGUIR'],loading:['RANKING DE CAPITANES','Cargando…',null,'CERRAR'],
   fail:['NO SE HA INICIADO SESIÓN','Google no ha confirmado el acceso. Tu partida sigue guardada en este dispositivo unas horas.','PROBAR OTRA VEZ','AHORA NO'],
   fail0:['NO SE HA INICIADO SESIÓN','Google no ha confirmado el acceso.','PROBAR OTRA VEZ','AHORA NO'],
   off:['RANKING NO DISPONIBLE','No podemos conectar con el ranking ahora mismo. Inténtalo más tarde.','CERRAR'],
@@ -113,14 +121,19 @@ function accOpen(k,o={}){if(k==='fail'&&!accPendGet())k='fail0';if(k==='confirm'
   if(o.cap&&ACC.nick){const c=document.createElement('span');c.className='acMe';c.innerHTML='<span>CAPITÁN</span> <b data-noi18n></b>';c.querySelector('b').textContent=ACC.nick;s.appendChild(c);}
   s.hidden=!s.childNodes.length;
   $('acNick').hidden=k!=='nick';$('acRes').hidden=!o.res;
+  const L=$('acList');L.classList.toggle('big',!!o.big);L.scrollTop=0;
   if(o.res){$('acL1').textContent=o.res.l1||'';$('acL2').textContent=o.res.l2||'';$('acL1').className=o.res.cls||'';$('acL1').hidden=!o.res.l1;$('acL2').hidden=!o.res.l2;
-    if(!rankRender($('acList'),o.res.board))$('acList').innerHTML='';}
+    if(!rankRender(L,o.res.board,{n:o.big?AC_FULL:RANK.show}).has)L.innerHTML='';}
   const go=$('acGo'),no=$('acNo');go.hidden=!T[2];no.hidden=!T[3];go.querySelector('span').textContent=T[2]||'';no.textContent=T[3]||'';
-  go.className=k==='confirm'?'red':'';go.disabled=no.disabled=false;el.classList.toggle('busy',k==='wait'||k==='saving');
+  go.className=k==='confirm'?'red':'';go.disabled=no.disabled=false;el.classList.toggle('busy',k==='wait'||k==='saving'||k==='loading');
   if(k==='nick'){$('acErr').textContent='';$('acIn').value='';$('acIn').placeholder=TR('APODO');accPrivLinks($('acNick'));}
   const was=el.hidden;el.hidden=false;document.body.classList.add('acctOn');accFit();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(accFit);if(was){el.classList.remove('in');void el.offsetWidth;el.classList.add('in');}
   if(document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();
+  if(o.big)accScrollMe();
   setTimeout(()=>{if(el.hidden)return;if(k==='nick'&&!isTouch)$('acIn').focus();else if(!go.hidden&&!isTouch)go.focus();},60);}
+// the full list: my line in the middle of the frame (only the list scrolls, never the page)
+function accScrollMe(){const L=$('acList'),me=L.querySelector('li.me');if(!me)return;
+  const y=me.offsetTop-(L.clientHeight-me.offsetHeight)/2;L.scrollTop=Math.max(0,Math.min(y,L.scrollHeight-L.clientHeight));}
 // a long title (¡PUNTUACIÓN GUARDADA!, NO SE HA INICIADO SESIÓN, English...) shrinks to the width of the frame
 function accFit(){const t=$('acT'),l=t.firstElementChild,b=$('acBox');if(!l||b.offsetParent===null)return;t.style.fontSize='';
   const cs=getComputedStyle(b),max=b.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-8,w=l.offsetWidth*1.16; // (layout width x the scaleX of .ln: no animation in it)
@@ -139,7 +152,7 @@ function accResult(r){acLS(ACC_K.pend,null); // claimed once, whatever the serve
   const j=r.j||{};
   if(r.s===200&&j.saved){accSetNick(j.nick);if(!$('end').hidden)accPlateSaved(j);
     const res={l1:j.status==='flagged'?accBestLine(j.best):j.newBest?'¡NUEVO RÉCORD!':accBestLine(j.best),l2:accPlaceLine(j),cls:j.newBest&&j.status!=='flagged'?'new':'',board:j};
-    return accOpen(j.status==='flagged'?'flagged':'saved',{res,cap:true});}
+    return accOpen(j.status==='flagged'?'flagged':'saved',{res,cap:true,big:true});} // the full ranking (top 50, my line, my place)
   if(j.error==='used')return accOpen('used',{cap:true});
   if(j.error==='expired')return accOpen('expired',{cap:true});
   if(j.error==='banned')return accOpen('banned');
@@ -154,14 +167,23 @@ async function accAfterLogin(){accOpen('wait');
   if(r.j.player.banned){acLS(ACC_K.pend,null);return accOpen('banned');}
   return accClaim(r.j.player);}
 async function accClaim(player){const p=accPendGet();
-  if(!p){const b=player&&player.best,res=b?{l1:accBestLine(b),l2:player.pos?`Puesto #${player.pos} de ${fmtN(player.count)} capitanes`:''}:null;return accOpen('hello',{cap:true,res});}
+  if(!p){const b=player&&player.best,res=b?{l1:accBestLine(b),l2:player.pos?accPlace(player.pos,player.count):''}:null;return accOpen('hello',{cap:true,res});}
   if(p.expired)return accOpen('expired',{cap:true});
   accOpen('saving');
-  const r=await accSave(p);
+  const r=await accSave(p,AC_FULL);
   if(r.s===0||r.s>=500||r.s===429)return accOpen('neterr',{go:()=>accClaim(player),no:accDrop});
   if(r.s===401){accForgetLocal();return accOpen('fail',{go:accRelogin});}
   if(r.j.error==='nick')return accOpen('nick',{no:accDrop});
   return accResult(r);}
+// VER RANKING COMPLETO: the full screen without the saved header (with my line and place when signed in)
+async function accBoard(){if(ACC.scr)return;accOpen('loading');const signed=accSigned();
+  let r=signed?await accApi('/api/scores?n='+AC_FULL+'&me=1'):{s:401};
+  if(r.s===401||r.s===403){if(r.s===401&&signed&&r.j.error==='session')accForgetLocal();
+    r=await fetch('/api/scores?n='+AC_FULL,{cache:'no-store'}).then(async x=>({s:x.status,j:x.ok?await x.json():{}}),()=>({s:0,j:{}}));}
+  if(ACC.scr!=='loading')return; // closed meanwhile
+  if(r.s!==200)return accOpen('neterr',{go:()=>{accClose();accBoard();}});
+  const d=r.j,res={l1:d.me?accPlace(d.me.pos,d.count):d.count?(d.count===1?'Temporada 1 · 1 capitán':`Temporada 1 · ${fmtN(d.count)} capitanes`):'Aún no hay nadie en el ranking: ¡sé el primero!',board:d};
+  accOpen('board',{res,big:true,cap:!!d.me});}
 // "AHORA NO" while a run waits: the player chose not to save it
 function accDrop(){acLS(ACC_K.pend,null);accClose();}
 async function accRelogin(){accOpen('wait');acLS(ACC_K.go,String(Date.now()));try{sessionStorage.setItem('heads_lang_skip','1');}catch(_){}

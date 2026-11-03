@@ -6,7 +6,8 @@
 // What it checks:
 //   /api/auth     the Supabase URL and the PUBLISHABLE key from the environment (503 without them, never a sb_secret_ key), cacheable
 //   /api/run      a signed token; the key is derived (RANK_SECRET if set, else SUPABASE_SECRET_KEY) and differs between the real site and previews
-//   /api/scores   the board of season 1, real runs on the real site and test runs on previews, cached 20 s by Netlify's CDN
+//   /api/scores   the board of season 1, real runs on the real site and test runs on previews, cached 20 s by Netlify's CDN; ?n= lines (1-50,
+//                 default 10); &me=1 with a Bearer token adds my own line (checked with Supabase Auth, never cached)
 //   sessions      no / bad Authorization -> 401, an account that is not Google -> 403, the player id always from Supabase Auth (never from the body)
 //   /api/nick     terms must be accepted, format (3-12, letters, digits, ÁÉÍÓÚÜÑÇ . _ -, at least 3 letters or digits), upper case, bad words
 //                 (also with 0/1/3/4/5/7 for letters), reserved names, taken / exists from the database, preview flag, limit per IP
@@ -81,6 +82,13 @@ let IPN=0;const nip=()=>'198.51.100.'+(++IPN);
   ok(JSON.stringify(L.rpcs.at(-1))===JSON.stringify({fn:'rank_board',args:{p_season:1,p_test:false,p_limit:10,p_player:null}}),'rank_board(1, real, 10, nobody)',L.rpcs.at(-1));
   ok(/s-maxage=20/.test(r.headers.get('netlify-cdn-cache-control')||''),'cached 20 s by the CDN',r.headers.get('netlify-cdn-cache-control'));
   await req(fn,'/api/scores',{dc:'deploy-preview'});ok(L.rpcs.at(-1).args.p_test===true,'on a preview: the test board');
+  for(const [q,n] of [['?n=50',50],['?n=5',5],['?n=500',50],['?n=0',1],['?n=-3',1],['?n=abc',10],['?n=',10],['?n=7.6',8]]){await req(fn,'/api/scores'+q);ok(L.rpcs.at(-1).args.p_limit===n,q+' -> '+n+' lines',L.rpcs.at(-1).args);}
+  r=await req(fn,'/api/scores?n=50&me=1',{auth:'tok-google',ip:nip()});j=await J(r);
+  ok(r.status===200&&j.me&&j.me.pos===2&&j.top.length===3&&L.rpcs.at(-1).args.p_player===U1&&L.rpcs.at(-1).args.p_limit===50,'&me=1 with a Google session: my line, the id from Supabase Auth',{j,a:L.rpcs.at(-1).args});
+  ok(r.headers.get('cache-control')==='no-store'&&!r.headers.get('netlify-cdn-cache-control'),'... and never cached',r.headers.get('netlify-cdn-cache-control'));
+  r=await req(fn,'/api/scores?me=1',{auth:'tok-nope',ip:nip()});ok(r.status===200&&L.rpcs.at(-1).args.p_player===null,'&me=1 with a token Supabase refuses: the board without me (no error)',L.rpcs.at(-1).args);
+  r=await req(fn,'/api/scores?me=1',{auth:'tok-email',ip:nip()});ok(r.status===200&&L.rpcs.at(-1).args.p_player===null,'&me=1 with a non-Google account: without me');
+  r=await req(fn,'/api/scores?me=1',{ip:nip()});ok(r.status===200&&L.rpcs.at(-1).args.p_player===null&&!r.headers.get('netlify-cdn-cache-control'),'&me=1 without a token: without me, not cached');
   await req(fn,'/api/scores',{dc:'branch-deploy'});ok(L.rpcs.at(-1).args.p_test===true,'on a branch deploy: the test board too');
   ok(L.created.length===1&&L.created[0].key==='sb_secret_TESTKEY_123'&&L.created[0].opts.auth.persistSession===false,'one server client, with the secret key, no session kept',L.created);
   L.fail=true;r=await req(fn,'/api/scores');ok(r.status===500,'database error -> 500',r.status);L.fail=false;
@@ -124,7 +132,9 @@ let IPN=0;const nip=()=>'198.51.100.'+(++IPN);
   r=await save({...GOOD,token:forge(KP,600)});j=await J(r);const sv=L.rpcs.at(-1);
   ok(r.status===200&&j.saved&&j.status==='ok'&&j.newBest===true&&j.prevBest===4000&&j.best.score===4200&&j.count===3&&j.top.length===3&&j.me.pos===2&&j.nick==='SANTI','saved: status, new best, best, place and top',j);
   ok(sv.fn==='rank_submit'&&sv.args.p_player===U1&&sv.args.p_token==='0123456789abcdef'&&sv.args.p_score===4200&&sv.args.p_round===4&&Math.abs(sv.args.p_secs-600)<=1,'rank_submit: the session\'s id (not the body\'s), the token id, score, round, server-measured seconds (600)',sv.args);
-  ok(sv.args.p_platform==='touch'&&sv.args.p_lang==='en'&&sv.args.p_version==='v82'&&sv.args.p_test===false&&sv.args.p_season===1&&sv.args.p_status==='ok'&&sv.args.p_flags.length===0,'platform, language, version, real (not test), season 1, ok, no flags',sv.args);
+  ok(sv.args.p_platform==='touch'&&sv.args.p_lang==='en'&&sv.args.p_version==='v82'&&sv.args.p_test===false&&sv.args.p_season===1&&sv.args.p_status==='ok'&&sv.args.p_flags.length===0&&sv.args.p_limit===10,'platform, language, version, real (not test), season 1, ok, no flags, 10 lines',sv.args);
+  r=await save({...GOOD,n:50,token:forge(KP,600)});ok(L.rpcs.at(-1).args.p_limit===50,'n:50 -> the board answered with 50 lines (the full ranking after saving)');
+  r=await save({...GOOD,n:999,token:forge(KP,600)});ok(L.rpcs.at(-1).args.p_limit===50,'n:999 -> 50 at most');
   ok(JSON.stringify(sv.args.p_stats)===JSON.stringify({kills:31,heads:7,acc:44,saved:900,repairs:3,combat:1200,cargo:3000,spit:0,inc:0,eggs:0,xp:1,csecs:580}),'stats whitelisted (unknown keys dropped) + the game\'s clock (csecs)',sv.args.p_stats);
   r=await save({...GOOD,token:forge(KT,600)});ok(r.status===400&&(await J(r)).error==='token','a preview token on the real site -> token',r.status);
   r=await save({...GOOD,token:forge(KP,600)},{dc:'deploy-preview'});ok(r.status===400,'a real-site token on a preview -> token',r.status);

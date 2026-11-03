@@ -1,10 +1,11 @@
 // HEADS · Rescate Dorado — Google accounts and the Season 1 ranking (v82). The referee: the game never writes to the database.
 //   GET  /api/auth             the Supabase URL and PUBLISHABLE key for the browser's Google login (read at run time, never built into the page)
 //   POST /api/run              signed token for a new run (the server notes when the run started); one use
-//   GET  /api/scores           the season board: top 10 + number of ranked players (no login needed)
+//   GET  /api/scores           the season board: ?n= lines (1-50, default 10) + number of ranked players (no login needed, cached 20 s);
+//                              with &me=1 and a Bearer token, also my own line (never cached)
 //   GET  /api/me               Bearer: the signed-in player (nickname, best, place), or null when this Google account has no nickname yet
 //   POST /api/nick             Bearer: {nick, accept:true} chooses the nickname, once (unique, checked, cannot be changed afterwards)
-//   POST /api/save             Bearer: {token, score, round, stats, secs, plat, lang} saves a finished run under the player's nickname
+//   POST /api/save             Bearer: {token, score, round, stats, secs, plat, lang, n} saves a finished run under the player's nickname (n = lines of the board answered)
 //   POST /api/forget           Bearer: deletes the account: the player, all its runs and the Supabase Auth user (GDPR)
 //   GET  /api/admin/ranking    x-admin-key = ADMIN_PASSWORD: season top, recent and flagged runs, banned players (public/admin.html)
 //   POST /api/admin/ranking    x-admin-key: {action: hide|show, run} or {action: ban|unban, player, note}
@@ -25,7 +26,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Config, Context } from "@netlify/functions";
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 
-const SEASON = 1, TOP_N = 10, VERSION = "v82";
+const SEASON = 1, TOP_N = 10, MAX_N = 50, VERSION = "v82"; // MAX_N: rank_board in supabase/v82-cuentas.sql gives 50 lines at most
 const TERMS_VER = "2026-11-v82";              // the privacy page and ranking rules the player accepts with the nickname
 const MAX_AGE_MS = 4 * 60 * 60 * 1000;        // a run token (and so a pending run kept by a guest during the login) is valid for 4 hours
 const MAX_BODY = 8_000;
@@ -126,6 +127,8 @@ async function body(req: Request) {
   try { const b = JSON.parse(text || "{}"); return b && typeof b === "object" && !Array.isArray(b) ? b : null; } catch { return null; }
 }
 const sha = (s: string) => createHash("sha256").update(s).digest();
+// how many lines of the board to answer: 1..MAX_N, TOP_N when missing or not a number
+const lines = (v: unknown) => { const n = Math.round(Number(v)); return v === null || v === undefined || v === "" || !Number.isFinite(n) ? TOP_N : Math.min(MAX_N, Math.max(1, n)); };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async (req: Request, context: Context) => {
@@ -180,7 +183,14 @@ export default async (req: Request, context: Context) => {
     // ---------- the board, for everybody ----------
     if (path === "/api/scores") {
       if (req.method !== "GET") return json({ error: "método no permitido" }, 405);
-      const b = await rpc(sb, "rank_board", { p_season: SEASON, p_test: preview, p_limit: TOP_N, p_player: null });
+      const q = new URL(req.url).searchParams, n = lines(q.get("n"));
+      if (q.get("me") === "1") { // my own line too: the session is checked, and the answer is never cached (its address differs from the shared one)
+        if (over("u:", ip, 10 * 60_000, 120)) return json({ error: "demasiadas peticiones" }, 429);
+        const u = req.headers.get("authorization") ? await who(req, sb) : null;
+        const b = await rpc(sb, "rank_board", { p_season: SEASON, p_test: preview, p_limit: n, p_player: u?.google ? u.id : null });
+        return json({ season: SEASON, count: b?.count ?? 0, top: b?.top ?? [], me: b?.me ?? null });
+      }
+      const b = await rpc(sb, "rank_board", { p_season: SEASON, p_test: preview, p_limit: n, p_player: null });
       return json({ season: SEASON, count: b?.count ?? 0, top: b?.top ?? [] }, 200, {
         "netlify-cdn-cache-control": "public, durable, s-maxage=20, stale-while-revalidate=60",
       });
@@ -250,7 +260,7 @@ export default async (req: Request, context: Context) => {
     const r = await rpc(sb, "rank_submit", {
       p_player: u.id, p_token: tok.id, p_score: score, p_round: round, p_secs: Math.min(86_400, Math.round(elapsed)), p_stats: stats,
       p_platform: ["pc", "touch"].includes(b.plat) ? b.plat : null, p_lang: ["es", "en"].includes(b.lang) ? b.lang : null, p_version: VERSION,
-      p_status: flags.length ? "flagged" : "ok", p_flags: flags, p_test: preview, p_season: SEASON, p_limit: TOP_N,
+      p_status: flags.length ? "flagged" : "ok", p_flags: flags, p_test: preview, p_season: SEASON, p_limit: lines(b.n),
     });
     if (r?.error === "nick") return json({ error: "nick" }, 403);
     if (r?.error === "banned") return json({ error: "banned" }, 403);

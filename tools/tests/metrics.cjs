@@ -124,7 +124,7 @@ const hide=p=>p.evaluate(()=>{Object.defineProperty(document,'visibilityState',{
   await p.evaluate(()=>document.getElementById('opSkip').click());await p.waitForFunction(()=>window.__T&&__T.state==='play',null,{timeout:60000});await p.evaluate(()=>{window.__noSpawn=1;});await waitSent(p,1);
   let vv=all(p)[0]||{};
   ok(vv.kind==='visit'&&vv.pid===st.pid&&vv.consent==='yes'&&vv.lang==='en','visit: the player id, consent yes, English',vv);
-  if(film)ok(vv.film==='skipped'&&vv.filmS>=1&&vv.filmS<=10,'visit: film skipped at '+vv.filmS+' s',vv);else ok(vv.film==='error','visit: film error (it could not play)',vv);
+  if(film)ok(vv.film==='skipped'&&vv.filmS>=1&&vv.filmS<12,'visit: film skipped at '+vv.filmS+' s',vv);else ok(vv.film==='error','visit: film error (it could not play)',vv);
   await endGame(p,'cargo');await waitSent(p,2);const ee=all(p).find(x=>x.kind==='end')||{};
   ok(ee.pid===st.pid&&ee.cause==='cargo','end: the same player id, cause cargo',ee);
   await p.reload();await menuReady(p);

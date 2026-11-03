@@ -108,5 +108,15 @@
   "a": "const MUSIC={url:",
   "b": "window.__MUS=()=>({M:MUSIC,g:musicGain,say,endGame,tick:musicTick,VOQ,on:musicOn});const MUSIC={url:",
   "file": "game"
+ },
+ {
+  "a": "function say(id,prio=2,o={}){",
+  "b": "function say(id,prio=2,o={}){(window.__sayLog=window.__sayLog||[]).push(id);",
+  "file": "game"
+ },
+ {
+  "a": "window.__xp={XP,xpStart,",
+  "b": "window.__xpT=XPT;window.__xp={XP,xpStart,",
+  "file": "game"
  }
 ]

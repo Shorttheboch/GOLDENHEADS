@@ -201,6 +201,8 @@ EN.update({'Mátala antes de que destroce la nave':'Kill it before it wrecks the
  'Viene a por ti · su núcleo del pecho es el punto débil':"It's coming for you · the core in its chest is the weak spot"})
 # ---- v68: PC key hints at the bottom left (#pcKeys; SOLDAR, MANTÉN, ASPIRAR and ROTURA already exist above) ----
 EN.update({'IMPULSO':'BOOST','CLIC DERECHO':'RIGHT CLICK','VE A DEJAR LOS TRICOMAS':'DROP OFF THE TRICHOMES','EN LA BODEGA':'IN THE HOLD'})
+# ---- v77: title of the first EXTRA POWER (EXTRA POWER stays as it is; the line under it carries the seconds of plasma) ----
+P.append([r'^Plasma (\d+) s · atraviesa arañas$','Plasma $1 s · pierces spiders'])
 # sanity: every tutorial line must exist verbatim in the game code
 for k in H:
     if k not in b: print('TUT NOT FOUND:',k[:60])

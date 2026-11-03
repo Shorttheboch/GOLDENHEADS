@@ -12,3 +12,15 @@
 #xpFlash{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;background:radial-gradient(ellipse at 50% 55%,rgba(120,220,255,.0) 30%,rgba(90,200,255,.35) 70%,rgba(255,200,90,.28))}
 #xpFlash.go{animation:xpFl .7s ease-out both}@keyframes xpFl{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
 body:has(#menu:not([hidden])) #xpS{visibility:hidden!important}
+/* ===== v77: the title of the first EXTRA POWER on a device (big gold Tektur lettering, same .g3 as the end plate; a cyan line under it) ===== */
+#xpT{--u:min(1vh,.5625vw);--g3glow:rgba(70,190,255,.65);position:fixed;left:0;right:0;top:33%;z-index:6;display:flex;flex-direction:column;align-items:center;pointer-events:none;opacity:0;
+  font-family:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif}
+#xpT .xpTl{font-size:calc(var(--u)*9.6);transform:scaleX(1.2)}
+#xpT .xpTs{display:flex;align-items:center;gap:calc(var(--u)*1.6);margin-top:calc(var(--u)*1.5);font:800 calc(var(--u)*2.3)/1 'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;letter-spacing:.3em;white-space:nowrap;
+  color:#bff1ff;text-shadow:0 0 .12em rgba(90,205,255,.95),0 0 .5em rgba(40,150,255,.7),0 2px 5px rgba(0,0,0,.8)}
+#xpT .xpTs::before,#xpT .xpTs::after{content:'';width:calc(var(--u)*5);height:max(2px,calc(var(--u)*.22));background:#7fdcff;box-shadow:0 0 6px rgba(80,200,255,.9)}
+#xpT.go{animation:xpTo 1.6s .28s both}
+@keyframes xpTo{0%{opacity:0;transform:scale(1.7);filter:blur(9px)}13%{opacity:1;transform:scale(1);filter:blur(0)}76%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.05);filter:blur(1px)}}
+body.ended #xpT,body.cine #xpT,body:has(#menu:not([hidden])) #xpT{display:none}
+/* on PC the round message sits just above the title: it waits the ~1.9 s the title is up (the phone keeps #msg at the bottom) */
+body:not(.touch):has(#xpT.go) #msg{visibility:hidden!important}

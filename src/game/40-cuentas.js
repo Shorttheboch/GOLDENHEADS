@@ -121,7 +121,7 @@ function accOpen(k,o={}){if(k==='fail'&&!accPendGet())k='fail0';if(k==='confirm'
   if(o.cap&&ACC.nick){const c=document.createElement('span');c.className='acMe';c.innerHTML='<span>CAPITÁN</span> <b data-noi18n></b>';c.querySelector('b').textContent=ACC.nick;s.appendChild(c);}
   s.hidden=!s.childNodes.length;
   $('acNick').hidden=k!=='nick';$('acRes').hidden=!o.res;
-  const L=$('acList');L.classList.toggle('big',!!o.big);L.scrollTop=0;
+  const L=$('acList');L.classList.toggle('big',!!o.big);L.scrollTop=0;L.style.maxHeight='';
   if(o.res){$('acL1').textContent=o.res.l1||'';$('acL2').textContent=o.res.l2||'';$('acL1').className=o.res.cls||'';$('acL1').hidden=!o.res.l1;$('acL2').hidden=!o.res.l2;
     if(!rankRender(L,o.res.board,{n:o.big?AC_FULL:RANK.show}).has)L.innerHTML='';}
   const go=$('acGo'),no=$('acNo');go.hidden=!T[2];no.hidden=!T[3];go.querySelector('span').textContent=T[2]||'';no.textContent=T[3]||'';
@@ -129,13 +129,17 @@ function accOpen(k,o={}){if(k==='fail'&&!accPendGet())k='fail0';if(k==='confirm'
   if(k==='nick'){$('acErr').textContent='';$('acIn').value='';$('acIn').placeholder=TR('APODO');accPrivLinks($('acNick'));}
   const was=el.hidden;el.hidden=false;document.body.classList.add('acctOn');accFit();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(accFit);if(was){el.classList.remove('in');void el.offsetWidth;el.classList.add('in');}
   if(document.exitPointerLock&&document.pointerLockElement)document.exitPointerLock();
-  if(o.big)accScrollMe();
+  if(o.big){accFit();accScrollMe();}
   setTimeout(()=>{if(el.hidden)return;if(k==='nick'&&!isTouch)$('acIn').focus();else if(!go.hidden&&!isTouch)go.focus();},60);}
 // the full list: my line in the middle of the frame (only the list scrolls, never the page)
 function accScrollMe(){const L=$('acList'),me=L.querySelector('li.me');if(!me)return;
   const y=me.offsetTop-(L.clientHeight-me.offsetHeight)/2;L.scrollTop=Math.max(0,Math.min(y,L.scrollHeight-L.clientHeight));}
-// a long title (¡PUNTUACIÓN GUARDADA!, NO SE HA INICIADO SESIÓN, English...) shrinks to the width of the frame
+// the screens are drawn for 960 x 540 and grow with bigger windows (zoom, up to x2); a long title (¡PUNTUACIÓN GUARDADA!, NO SE HA INICIADO
+// SESIÓN, English...) shrinks to the width of the frame; the full list takes the height that is left, so SEGUIR is always on screen
 function accFit(){const t=$('acT'),l=t.firstElementChild,b=$('acBox');if(!l||b.offsetParent===null)return;t.style.fontSize='';
+  const z=Math.max(1,Math.min(2,Math.min(innerWidth/960,innerHeight/540)*0.75));b.style.zoom=z>1.02?z.toFixed(3):'';
+  const L=$('acList');if(L.classList.contains('big')){L.style.maxHeight='none';const free=innerHeight-24-b.getBoundingClientRect().height,lh=L.getBoundingClientRect().height,row=L.firstElementChild?L.firstElementChild.getBoundingClientRect().height:20;
+    const want=Math.max(row*3.2,Math.min(lh,lh+free));L.style.maxHeight=(want/(z>1.02?z:1)).toFixed(0)+'px';}
   const cs=getComputedStyle(b),max=b.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-8,w=l.offsetWidth*1.16; // (layout width x the scaleX of .ln: no animation in it)
   if(w>max)t.style.fontSize=(parseFloat(getComputedStyle(t).fontSize)*max/w).toFixed(1)+'px';}
 addEventListener('resize',()=>{if(!$('acct').hidden)accFit();});

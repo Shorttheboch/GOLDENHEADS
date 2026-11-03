@@ -54,7 +54,7 @@ let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefine
  p=await boot('?ronda=6');r=await st(p);
  ok(r.round===6&&r.spitN===0,'round 6, no Escupidora met yet',r);
  await lateReady(p);
- let got=null;for(let i=0;i<40&&!got;i++){await p.evaluate(()=>{__heads.P.hp=100;__heads.P.inv=0.5;__step(20);});got=await p.evaluate(()=>__heads.spiders.some(s=>s.kind==='spitter')?{spitN:__ronda.spitN,spitFirstW:__ronda.spitFirstW,cine:__heads.CINE.on,mode:__heads.CINE.mode}:null);}
+ let got=null;for(let i=0;i<40&&!got;i++){await p.evaluate(()=>{__heads.P.hp=100;__heads.P.inv=0.5;for(const pa of __T.PATCHES)pa.hp=25;__T.cargo=5000;__step(20);});got=await p.evaluate(()=>__heads.spiders.some(s=>s.kind==='spitter')?{spitN:__ronda.spitN,spitFirstW:__ronda.spitFirstW,cine:__heads.CINE.on,mode:__heads.CINE.mode}:null);}
  ok(got&&got.spitN===1&&got.spitFirstW===5,'the Escupidora arrives as the first one (spitFirstW = round 6)',got);
  ok(got&&got.cine&&got.mode==='boss','with her scene',got);
  await p.close();
@@ -63,7 +63,7 @@ let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefine
  p=await boot('?ronda=8');r=await st(p);
  ok(r.round===8&&r.spitN===2&&r.incN===0,'round 8: 2 Escupidoras met, no Incineradora yet',r);
  await lateReady(p);
- got=null;for(let i=0;i<40&&!got;i++){await p.evaluate(()=>{__heads.P.hp=100;__heads.P.inv=0.5;__step(20);});got=await p.evaluate(()=>__heads.INCS.length?{incN:__ronda.incN,cine:__heads.CINE.on}:null);}
+ got=null;for(let i=0;i<40&&!got;i++){await p.evaluate(()=>{__heads.P.hp=100;__heads.P.inv=0.5;for(const pa of __T.PATCHES)pa.hp=25;__T.cargo=5000;__step(20);});got=await p.evaluate(()=>__heads.INCS.length?{incN:__ronda.incN,cine:__heads.CINE.on}:null);}
  ok(got&&got.incN===1,'the Incineradora arrives as the first one',got);
  await p.close();
 
@@ -72,7 +72,7 @@ let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefine
  ok(r.round===9&&r.spitN===2&&r.incN===1&&r.spitFirstW===5,'round 9: 2 Escupidoras and 1 Incineradora met',r);
  ok(r.eggPlan>=1,'an egg is planned in this round (2 rounds after the first Escupidora, skipping the Incineradora round)',r.eggPlan);
  await lateReady(p);
- got=null;for(let i=0;i<120&&!got;i++){await p.evaluate(()=>{__heads.P.hp=100;__heads.P.inv=0.5;__step(20);});got=await p.evaluate(()=>__heads.EGGS.length?{eggs:__heads.EGGS.length,t:+__heads.WB.rt.toFixed(1)}:null);} // the astronaut stays healthy
+ got=null;for(let i=0;i<120&&!got;i++){await p.evaluate(()=>{__heads.P.hp=100;__heads.P.inv=0.5;for(const pa of __T.PATCHES)pa.hp=25;__T.cargo=5000;__step(20);});got=await p.evaluate(()=>__heads.EGGS.length?{eggs:__heads.EGGS.length,t:+__heads.WB.rt.toFixed(1)}:null);} // the astronaut and the ship stay healthy (the ship used to fall first now and then)
  ok(!!got,'an egg is laid',got||await p.evaluate(()=>({state:__T.state,toSpawn:__T.toSpawn,rt:__heads.WB.rt,eggPlan:__ronda.eggPlan,late:__late.s,spiders:__heads.spiders.map(s=>s.kind+':'+s.state)})));
  await p.close();
 

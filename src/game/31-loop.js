@@ -207,10 +207,11 @@ function tick(){const _qa0=performance.now();
     if(state==='play'&&!inBreak&&WB.bossT>0&&lateOk('crab')){WB.bossT-=dt;if(WB.bossT<=0){WB.bossT=0;spawnSpitter(true);}}
     if(state==='play'&&!inBreak&&WB.incT>0&&lateOk('bip')){WB.incT-=dt;if(WB.incT<=0){WB.incT=0;spawnInc(incN===0);}}
     if(state==='play'&&!inBreak&&WB.spitQ&&WB.spitQ.length&&lateOk('crab')){WB.spitQ[0]-=dt;if(WB.spitQ[0]<=0){WB.spitQ.shift();spawnSpitter();}}
+    incSpitTick();bossGiftTick(); // v83: the Escupidora of the Incineradora rounds from round 14 (below) · the gift at half life (16-points-prizes.js)
     if(state==='play'&&!inBreak&&cloudPlan<0&&cloudLastW!==wave&&wave>=2&&cargo<CFG.cargo*0.6){const W0=waveDef(wave);cloudPlan=Math.min(0.9,(W0.n-toSpawn)/Math.max(1,W0.n)+0.1);cloudLastW=wave;} // dropped below 60 % mid-round
     if(state==='play'&&!inBreak&&cloudPlan>=0){const W0=waveDef(wave);if((W0.n-toSpawn)/Math.max(1,W0.n)>=cloudPlan){cloudPlan=-1;spawnCloud();}}
     WB.rt=(WB.rt||0)+dt;
-    if(state==='play'&&!inBreak&&eggPlan.length){const W0=waveDef(wave),fr=(W0.n-toSpawn)/Math.max(1,W0.n);if((fr>=eggPlan[0]||WB.rt>25+eggPlan[0]*20)&&tryLayEgg())eggPlan.shift();}
+    if(state==='play'&&!inBreak&&eggPlan.length&&!(isIncRound(wave)&&incIntro())){const n0=WB.n0||waveDef(wave).n,fr=(n0-toSpawn)/Math.max(1,n0);if((fr>=eggPlan[0]||WB.rt>25+eggPlan[0]*20)&&tryLayEgg())eggPlan.shift();} // v83: progress against what the round really sends (an Incineradora round sends 7 at most) and never while the Incineradora is arriving
     updateEggs(dt,t,fdt);
     markLast();
     if(state==='play'){
@@ -224,7 +225,7 @@ function tick(){const _qa0=performance.now();
           if(WB.calm){WB.lull-=dt;if(WB.lull<=0||skipReq){WB.calm=false;WB.gi++;WB.left=WB.groups[WB.gi]??toSpawn;spawnT=0.3;showMsg('¡OTRA TANDA!','',1.6);sfx('alert');say(Math.random()<0.5?'tanda_01':'tanda_02',2,{cd:35});
             if(wave>=5&&!WB.spit&&WB.gi>=WB.groups.length-1){WB.spit=true;WB.spitQ=wave>=9?[1.8,7.2]:[1.8];} /* round 6+: one, round 10+: two (game-time timers) */}}}
         else{WB.calm=false;spawnT-=dt*(1+nests*0.5);if(spawnT<=0&&spiders.length<W.cap){if(WB.intro2){WB.intro2=false;dropNear(spawnSpider('lurker'));}else spawnSpider();toSpawn--;WB.left--;spawnT=W.every*THREE.MathUtils.randFloat(0.6,1.4);}}}
-      else if(spiders.length===0&&EGGS.length===0&&!(WB.spitQ&&WB.spitQ.length)&&!(WB.bossT>0)&&!INCS.length&&!(WB.incT>0)){
+      else if(spiders.length===0&&EGGS.length===0&&!(WB.spitQ&&WB.spitQ.length)&&!(WB.bossT>0)&&!INCS.length&&!(WB.incT>0)&&!(WB.incSp>0)){
         if(!inBreak){inBreak=true;breakT=workLeft()?CFG.breakTime*(wave<3?0.5:wave<5?0.75:1):(wave<3?2.5:4);const sec=cargo;score+=sec;showcaseT=3.2;sfx('win');
           const rl=lostN-roundLost0;showMsg('RONDA '+(wave+1)+' SUPERADA','+'+fmtN(sec)+' puntos por la carga a bordo'+(rl?' · perdidos '+rl:'')+(isTouch?'':' · Enter para seguir'),3.8);WB.calm=false;{const L=['rnd_clear_01','rnd_clear_02','rnd_clear_03','rnd_clear_04'];say(L[Math.floor(Math.random()*L.length)],2,{queue:true});}
           if(PATCHES.some(p=>p.hp<CFG.patchHp))tutorialEvent('repairTime');}
@@ -234,11 +235,11 @@ function tick(){const _qa0=performance.now();
       $('round').textContent=inBreak?`Ronda ${wave+2} en ${Math.ceil(Math.max(0,breakT))} s · Enter`:`Ronda ${wave+1} · ${spiders.length+toSpawn} arañas`;
     }
     // ---- hull patches: visuals, sparks and slow leaks from broken holes ----
-    PETAL_PULSE.value=0.55+0.45*Math.sin(t*6);
+    PETAL_PULSE.value=0.55+0.45*Math.sin(t*6);if(state==='play')leakBrakeTick(dt); // v83: emergency brake on the leaks (08-ship-zones.js)
     for(const pa of PATCHES){const d=1-pa.hp/CFG.patchHp;pa.mesh.visible=d>0.02;const u=pa.mat.uniforms;updatePetals(pa);
       u.uLevel.value=0.25+0.75*d;u.uBroken.value=pa.hp<=0?1:0;u.uTime.value=t;
       if(pa.hp<=0&&state==='play'){pa.sparkT-=dt;if(pa.sparkT<=0){pa.sparkT=0.5+Math.random()*0.9;burst(V3.copy(pa.pos).addScaledVector(pa.n,0.2),0xff7030,3);
-        pa.leak+=1.2*leakScale();if(pa.leak>=1){const n=Math.floor(pa.leak);pa.leak-=n;leakFrom(pa,n);}}}}
+        pa.leak+=1.2*leakScale()*leakMult();if(pa.leak>=1){const n=Math.floor(pa.leak);pa.leak-=n;leakFrom(pa,n);}}}}
     // ---- repair: hold F next to a damaged patch; release inside the golden band for an instant weld ----
     let near=null,nd=CFG.repairR;
     if(state==='play')for(const pa of PATCHES){if(pa.hp>=CFG.patchHp)continue;const d=P.pos.distanceTo(pa.pos);if(d<nd){nd=d;near=pa;}}
@@ -321,4 +322,4 @@ function tick(){const _qa0=performance.now();
   tcFrame(dt);mhudFrame();mtutTick();pckFrame(dt);qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
 camera.position.set(14,4,16);camera.lookAt(0,0,0);
 requestAnimationFrame(tick);
-window.__renderer=renderer;window.__GRADE=GRADE;window.__heads={get CINE(){return CINE},spawnCloud,shipClear,BELT,DUST,get leakMult(){return leakMult()},ROCKS,rockAt,landOnRock,get ammo(){return P.ammo},EGGS,layEgg,tryLayEgg,P,spiders,CLOUDS,killSpider,spawnSpider,spawnSpitter,spitAcid,ACID,hullBlocked,stats,inp,get lost(){return lostN;},get pts(){return pts},PU,DROPS,spawnDrop,applyPU,WB,get cargo(){return cargo}};
+window.__renderer=renderer;window.__GRADE=GRADE;window.__heads={get CINE(){return CINE},spawnCloud,shipClear,BELT,DUST,get leakMult(){return leakMult()},ROCKS,rockAt,landOnRock,get ammo(){return P.ammo},EGGS,layEgg,tryLayEgg,P,spiders,CLOUDS,killSpider,spawnSpider,spawnSpitter,spitAcid,ACID,hullBlocked,stats,inp,get lost(){return lostN;},get pts(){return pts},PU,DROPS,spawnDrop,applyPU,WB,get cargo(){return cargo},giftPick,giftLoss,bossGift,GIFT,LEAKB,leakBrakeTo,INC_SPIT,isIncAll,looseCount,damagePatch,spawnLoose,get dropsRound(){return dropsRound},set dropsRound(v){dropsRound=v},get lastDrop(){return lastDrop},set lastDrop(v){lastDrop=v}};

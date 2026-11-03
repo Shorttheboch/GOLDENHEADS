@@ -68,14 +68,34 @@ function maybeDrop(p){if(wave===0&&stats.kills<3)return;
   const late=wave>=5;if(dropsRound>=dropCap()||playT-lastDrop<(late?6:8))return;
   if(late&&playT-lastDrop>15&&inTrouble()){spawnDrop(p,pickPU());return;}
   const ch=(late?Math.min(0.26,0.18+0.015*(wave-5)):0.11)+Math.min(0.12,CB.hs*0.03)+(CB.n>=3?0.12:0);if(Math.random()>ch)return;spawnDrop(p,pickPU());}
-function spawnDrop(p,k){pushOutOfShip(p,1.4,null);
+// v83 (Santi): a gift at half life. From the 3rd Escupidora on (Escupidora III and later) and every Incineradora, the first time the boss drops below 50 % it drops
+// ONE prize, REPARACIÓN TOTAL or TODO A BORDO and nothing else, whichever helps more right now (giftPick). Once per boss (b.gift); two Escupidoras, two gifts.
+// It is outside the prize caps (dropCap / the gap between drops): it neither waits for them nor uses them up. It lives 20 s (a normal prize 15 s).
+// Floating cargo: TODO A BORDO helps from 12 trichomes adrift (the round-6+ line of pickPU). Hull: a plate below 70 % (pickPU's «bad»), broken or not.
+// Both: the bigger loss wins. An open hole counts what it lets out in 20 s (it bleeds ~1.26 a second, so 25 x leakMult), a damaged plate half the cargo its damage
+// has already let out (missing hp x 0.8, x1.6 in the hold); that against the trichomes adrift. Neither: REPARACIÓN TOTAL.
+const GIFT={hp:0.5,life:20,magLc:12,hole:25};
+function giftLoss(){let h=0;for(const pa of PATCHES){if(pa.hp<=0)h+=GIFT.hole*leakMult();else if(pa.hp<CFG.patchHp*0.7)h+=0.5*(CFG.patchHp-pa.hp)*CFG.leakPerHp*(pa.zone.name==='BODEGA'?CFG.bodegaLeak:1);}return h;}
+function giftPick(){const lc=looseCount(),fix=PATCHES.some(pa=>pa.hp<CFG.patchHp*0.7),mag=lc>=GIFT.magLc;
+  if(fix&&mag)return giftLoss()>=lc?'fix':'mag';return mag?'mag':'fix';}
+// where it floats: above the boss, a little toward you (at most 8 m), out of the ship and the rocks, never out in the void
+function giftAt(b){const p=new THREE.Vector3(),n=new THREE.Vector3();
+  if(b.isInc){incCenter(b,p);n.copy(b.n);p.addScaledVector(n,1.6*INC_SC*0.5);}
+  else{if(b.state==='crawl'||b.state==='eat'||b.state==='windup'){hullPoint(b.z,b.th,p,n);p.addScaledVector(n,1.2+1.1*b.mesh.scale.x);}else p.copy(b.pos);}
+  const d=V1.subVectors(P.pos,p),L=d.length();if(L>0.5)p.addScaledVector(d,Math.min(0.45,8/L));
+  pushOutOfShip(p,1.4,null);pushOutOfRocks(p,1.2,null);if(wingAt(p))p.y+=1.2;const R=CFG.lostR-8;if(p.length()>R)p.setLength(R);return p;}
+function bossGift(b){if(b.gift)return;b.gift=1;const k=giftPick(),p=giftAt(b);spawnDrop(p,k,{gift:true,life:GIFT.life});floatText(p.clone().addScaledVector(UP,0.8),PU_DEF[k].name,'pu');}
+function bossGiftTick(){if(state!=='play')return;
+  for(const s of spiders)if(s.kind==='spitter'&&(s.gen||1)>=3&&!s.gift&&s.state!=='fall'&&s.hp<s.maxHp*GIFT.hp)bossGift(s);
+  for(const e of INCS)if(!e.gift&&e.st!=='fall'&&e.st!=='gone'&&e.hp<e.maxHp*GIFT.hp)bossGift(e);}
+function spawnDrop(p,k,o){pushOutOfShip(p,1.4,null);
   const g=new THREE.Group();g.position.copy(p);
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:PU_HALO,color:new THREE.Color(PU_DEF[k].col).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0.8}));halo.scale.setScalar(2.1);
   const icon=new THREE.Sprite(new THREE.SpriteMaterial({map:puTex(k),depthWrite:false,transparent:true}));icon.scale.setScalar(0.95);
-  g.add(halo,icon);scene.add(g);DROPS.push({k,g,icon,halo,base:p.clone(),t:0,ph:Math.random()*6});dropsRound++;lastDrop=playT;sfx('drop',p);tutorialEvent('pu');say('pu_drop',2,{cd:60});}
+  g.add(halo,icon);scene.add(g);DROPS.push({k,g,icon,halo,base:p.clone(),t:0,ph:Math.random()*6,life:o&&o.life||CFG.puLife,gift:!!(o&&o.gift)});if(!(o&&o.gift)){dropsRound++;lastDrop=playT;}sfx('drop',p);tutorialEvent('pu');say('pu_drop',2,{cd:60});}
 function removeDrop(d){scene.remove(d.g);d.halo.material.dispose();d.icon.material.dispose();DROPS.splice(DROPS.indexOf(d),1);}
 function updateDrops(dt,t){
-  for(const d of [...DROPS]){d.t+=dt;const left=CFG.puLife-d.t;
+  for(const d of [...DROPS]){d.t+=dt;const left=(d.life||CFG.puLife)-d.t;
     const dp=P.pos.distanceTo(d.g.position);if(dp<4.5&&state==='play')d.base.lerp(P.pos,Math.min(1,dt*1.2*(4.5-dp)/4.5)); // gentle pull when close
     d.g.position.copy(d.base).addScaledVector(UP,Math.sin(t*2+d.ph)*0.15);
     const pulse=1+Math.sin(t*5+d.ph)*0.08;d.icon.scale.setScalar(0.95*pulse);d.halo.scale.setScalar(2.1*pulse);d.icon.material.rotation=Math.sin(t*1.5+d.ph)*0.25;

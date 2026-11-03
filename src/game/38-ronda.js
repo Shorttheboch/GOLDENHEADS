@@ -9,7 +9,7 @@ const RONDA=(()=>{const m=/[?&](?:ronda|round)=(\d{1,3})(?![\d])/.exec(location.
 if(RONDA.n){opSeen=true;RANK.on=false;}
 function rondaStart(){const W0=RONDA.n-1; // wave index of the round to start at
   const hp=hullParam(HATCH);hullPoint(hp.z,hp.th,V1,HATCH_N); // as introStart: the normal of the hold hatch (delivery sparks)
-  let sp=0,inc=0;for(let w=5;w<W0;w++){if(isIncRound(w))inc++;else sp+=w>=9?2:1;} // one Escupidora a round from round 6, two from round 10, none in an Incineradora round
+  let sp=0,inc=0;for(let w=5;w<W0;w++){if(isIncRound(w)){inc++;if(isIncAll(w))sp++;}else sp+=w>=9?2:1;} // one Escupidora a round from round 6, two from round 10, none in an Incineradora round before round 14 and one from there on (v83)
   spitN=sp;spitFirstW=W0>5?5:-1;incN=inc;
   CINE.on=false;document.body.classList.remove('cine');P.inv=0;
   startWave(W0);}

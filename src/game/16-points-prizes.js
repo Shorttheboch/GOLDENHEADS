@@ -223,9 +223,11 @@ function updateSpider(s,dt,t){
     if(pushOutOfShip(s.pos,0.3,s.vel)&&!(s.state==='leap'&&s.t<0.6)){const hp=hullParam(s.pos);[s.z,s.th]=freeSpot(hp.z,hp.th,spPad(s));s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);}
   }else if(s.state==='perch'){ // walking out on a wing (opening scene); pounces at you once the game starts
     const q=s.perch,d=V2.set(q.dx,0,q.dz).normalize(),stp=0.75*dt;let nx=q.x+d.x*stp,nz=q.z+d.z*stp;
-    if(wingTop(nx,nz)===null||Math.abs(nx)<4.4||Math.abs(nx)>7.3){q.dx=-q.dx;q.dz=-q.dz;nx=q.x;nz=q.z;}
-    q.x=nx;q.z=nz;s.pos.set(q.x,wingTop(q.x,q.z)??0.4,q.z);orient(s.mesh,V2.set(q.dx,0,q.dz).normalize(),UP);
-    s.mesh.position.copy(s.pos).addScaledVector(UP,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=true;
+    if(wingTop(nx,nz)===null||wingTop(nx+d.x*0.3,nz+d.z*0.3)===null||Math.abs(nx)<4.4||Math.abs(nx)>7.3){q.dx=-q.dx;q.dz=-q.dz;nx=q.x;nz=q.z;} // v79: it also turns round 0.3 m before the end of the wing (the lip falls away at 20-40 deg there)
+    q.x=nx;q.z=nz;s.pos.set(q.x,wingY(q.x,q.z)??0.4,q.z);
+    const nn=q.n||(q.n=wingNormal(q.x,q.z,new THREE.Vector3()));nn.lerp(wingNormal(q.x,q.z,_wnT),Math.min(1,dt*6)).normalize(); // v79: it lies along the wing (smoothed normal), not along world up
+    const pf=V2.set(q.dx,0,q.dz).normalize();pf.addScaledVector(nn,-pf.dot(nn)).normalize();orient(s.mesh,pf,nn);
+    s.mesh.position.copy(s.pos).addScaledVector(nn,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=true;
     if(state==='play'&&!CINE.on){s.perchT-=dt;
       if((s.perchT<=0||dist<9)&&!shipBetween(s.pos,P.pos)){const lead=P.pos.clone().addScaledVector(P.vel,0.35);
         s.state='leap';s.t=0;s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed);s.leapMax=dist/CFG.leapSpeed+1.5;sfx('chitter',s.pos);sfx('leap',s.pos);}

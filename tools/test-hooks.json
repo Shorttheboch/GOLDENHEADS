@@ -60,6 +60,11 @@
   "file": "game"
  },
  {
+  "a": "function wingTop(x,z){",
+  "b": "window.__wingTop=(x,z)=>wingTop(x,z);window.__wingY=(x,z)=>wingY(x,z);function wingTop(x,z){",
+  "file": "game"
+ },
+ {
   "a": "window.__heads={get CINE",
   "b": "window.__heads={pickPU,get CINE",
   "file": "game"

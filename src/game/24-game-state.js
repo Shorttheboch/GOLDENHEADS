@@ -43,7 +43,7 @@ function introStart(){const hp=hullParam(HATCH);hullPoint(hp.z,hp.th,V1,HATCH_N)
   const e=spawnSpider('lurker');e.z=pa.z-0.45;e.th=pa.th;hullPoint(e.z,e.th,e.pos);e.patch=pa;e.state='eat';e.t=0;e.chewT=0;e.cd=9;e.mesh.position.copy(e.pos);pa.hp=CFG.patchHp*0.6;CINE.eater=e;
   // ...two hunters prowl the back and two more walk out on the wings
   for(const [z,th] of [[5.5,1.2],[0.5,1.95]]){const s=spawnSpider('hunter'),f=freeSpot(z,th,1);s.z=f[0];s.th=f[1];hullPoint(s.z,s.th,s.pos);s.state='crawl';s.cd=7.5+Math.random()*2;s.mesh.position.copy(s.pos);}
-  for(const sx of [1,-1]){const s=spawnSpider('hunter');s.perch={x:5.8*sx,z:-7,dx:-0.3*sx,dz:1};s.state='perch';s.perchT=7+Math.random()*4;s.t=0;s.pos.set(5.8*sx,wingTop(5.8*sx,-7)??0.4,-7);s.mesh.position.copy(s.pos);}
+  for(const sx of [1,-1]){const s=spawnSpider('hunter');s.perch={x:5.8*sx,z:-7,dx:-0.3*sx,dz:1};s.state='perch';s.perchT=7+Math.random()*4;s.t=0;s.pos.set(5.8*sx,wingY(5.8*sx,-7)??0.4,-7);s.mesh.position.copy(s.pos);}
   toSpawn=2;WB.groups=[5,2];WB.gi=0;WB.left=0;WB.calm=false;
   CINE.on=!window.__noCine;CINE.mode='intro';CINE.t=0;CINE.yaw=P.yaw;CINE.pitch=P.pitch;document.body.classList.toggle('cine',CINE.on);
   if(!CINE.on)startFight();}

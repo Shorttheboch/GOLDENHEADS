@@ -105,4 +105,4 @@ function reset(){TC.ap=null;if(TC.paused)tcSetPause(false);setTimeout(tcOrient,0
   pts=0;PU.dbl=0;PU.over=0;PU.weld=0;PU.pack=0;bulletMat.color.setRGB(3,2.2,0.9);for(const d of [...DROPS])removeDrop(d);lastDrop=-99;CB.n=0;CB.hs=0;CB.heads=0;CB.t=-9;MAG.on=false;EXP.n=0;dMag.fill(0);
   for(const pa of PATCHES){pa.hp=CFG.patchHp;pa.prog=0;pa.leak=0;pa.noPerf=false;}TUT.q.length=0;for(const a of ACID){scene.remove(a.m);for(const q of a.drops)scene.remove(q.d);}ACID.length=0;P.burn=0;spitN=0;incN=0;WB.incT=0;for(const e of INCS)scene.remove(e.B.g);INCS.length=0;incBeamSnd(false);for(const p of MIST){p.life=0;p.s.visible=false;}for(const Z of ZONES){Z.nest=false;Z.alarmT=0;Z.eaters=0;}
   fxLayer.innerHTML='';document.body.classList.remove('ended');
-  resetDust();startWave(0);introStart();resumeTut();rankStart();}
+  resetDust();if(RONDA.n)rondaStart();else{startWave(0);introStart();}resumeTut();rankStart();} // v80: ?ronda=N starts at round N (38-ronda.js)

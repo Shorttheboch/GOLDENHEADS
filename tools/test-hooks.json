@@ -133,5 +133,10 @@
   "a": "window.__xp={XP,xpStart,",
   "b": "window.__xpT=XPT;window.__xp={XP,xpStart,",
   "file": "game"
+ },
+ {
+  "a": "function rondaStart(){const W0=RONDA.n-1;",
+  "b": "window.__ronda={get n(){return RONDA.n},get spitN(){return spitN},get incN(){return incN},get spitFirstW(){return spitFirstW},get rankOn(){return RANK.on},get eggPlan(){return eggPlan.length},get opSeen(){return opSeen}};function rondaStart(){const W0=RONDA.n-1;",
+  "file": "game"
  }
 ]

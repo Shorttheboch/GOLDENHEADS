@@ -34,6 +34,10 @@ function jumpSurf(p,q,n){const z=THREE.MathUtils.clamp(p.z,HZ0,HZ1);if(p.z>HZ1+0
   const [a,b,c]=hullAB(z),th=Math.atan2((p.y-c)/b,p.x/a);q.set(a*Math.cos(th),c+b*Math.sin(th),z);spUp(z,th,n);
   if(z>-14.6&&z<21.6){const o=hullOff(z,th);if(o>0){_jsm.set(Math.cos(th)/a,Math.sin(th)/b,0).normalize();q.addScaledVector(_jsm,o);}}
   return _jsm.subVectors(p,q).dot(n);}
+// ¿hay algo de la nave (casco, góndolas, pilones, alas) a menos de R de p? Barato: para no mirar los puntos del cuerpo lejos de todo
+function jumpNear(p,R){if(p.z<HZ1+R&&p.z>HZ0-R){const [a,b,c]=hullAB(p.z);if((p.x/(a+R+0.6))**2+((p.y-c)/(b+R+0.6))**2<1)return true;}
+  for(const e of ENGINES){_w.subVectors(e.b,e.a);const t=THREE.MathUtils.clamp(_v.subVectors(p,e.a).dot(_w)/_w.lengthSq(),0,1);if(p.distanceTo(_w.multiplyScalar(t).add(e.a))<e.r+R)return true;}
+  return Math.abs(p.x)<WV.X0*-1+R&&p.y>WV.Y0-R&&p.y<WV.Y0+WV.NY*WV.R+R&&p.z>WV.Z0-R&&p.z<WV.Z0+WV.NZ*WV.R+R;}
 // góndolas y pilones (cápsulas) y alas (vóxeles): ¿p está a menos de m de ellas?
 function jumpSolid(p,m){for(const e of ENGINES){_w.subVectors(e.b,e.a);const t=THREE.MathUtils.clamp(_v.subVectors(p,e.a).dot(_w)/_w.lengthSq(),0,1);if(p.distanceTo(_w.multiplyScalar(t).add(e.a))<e.r+m)return true;}
   return wingAt(p);}
@@ -88,7 +92,7 @@ function jumpNeed(s,N){const g=s.mesh,sc=g.scale.x,R=g.userData.rig;let e=0;_sjX
   return Math.min(e,2.5*sc);}
 // tras mover a la araña en salto o deriva: la saca del casco real si hace falta; pasado el despegue, tocar el casco = aterrizar ahí, ya orientada al casco
 function jumpCollide(s){const g=s.mesh,sc=g.scale.x;
-  if(Math.abs(s.pos.z)>HZ1+2.5*sc||s.pos.x*s.pos.x+s.pos.y*s.pos.y>(6+2.5*sc)**2)return false;
+  if(!jumpNear(s.pos,2.5*sc))return false;
   const h=jumpSurf(s.pos,_jsq,_jsn),N=_sjN.copy(_jsn);let e=jumpNeed(s,N);
   const root=(g.userData.rig?g.userData.rig.spd.rootOff:0.28)*sc;if(h<root*0.9)e=Math.max(e,root*0.9-h); // el centro, a la altura de camino como poco
   const side=_sjX.lengthSq()>1e-8;if(side){s.pos.add(_sjX);const L=_sjX.length(),vx=s.vel.dot(_sjX)/L;if(vx<0)s.vel.addScaledVector(_sjX,-vx*1.3/L);g.position.copy(s.pos);}
@@ -111,4 +115,5 @@ function jumpReelOrient(s,SK,d,L,dt){const sc=s.mesh.scale.x,n=SK.jn;
   orient(s.mesh,f,n);_sjq1.copy(s.mesh.quaternion);if(!s.face)s.face=new THREE.Vector3();s.face.copy(f);
   const w=THREE.MathUtils.clamp(1-(L-0.4)/(JUMP_FIX.reel*sc),0,1);SK.jw=Math.max(SK.jw||0,w*w*(3-2*w)); // no vuelve atrás
   s.mesh.quaternion.copy(_sjq2).slerp(_sjq1,SK.jw);
+  if(!jumpNear(s.pos,2.5*sc))return true; // far from the ship: nothing to touch
   jumpSurf(s.pos,_jsq,_jsn);const N=_sjN.copy(_jsn),e=jumpNeed(s,N);if(e>0)s.pos.addScaledVector(N,e);if(_sjX.lengthSq()>1e-8)s.pos.add(_sjX);s.mesh.position.copy(s.pos);return true;}

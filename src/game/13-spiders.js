@@ -167,7 +167,7 @@ function makeBiped(scale=1){if(!BIPED_GLB)return null;bipedFlipClip();
 
 // rotate a bone by qm, given in its parent's rest frame (= model axes): +X pitch (head down / tail up), +Y yaw (left), +Z roll
 function sBoneRot(b,qm){const u=b.userData;b.quaternion.copy(u.pqi).multiply(qm).multiply(u.pq).multiply(u.q0);}
-function sHull(p,out){if(_rockS){_rk.subVectors(p,_rockS.c).normalize();return out.copy(_rockS.c).addScaledVector(_rk,rockR(_rockS,_rk));}if(_perch){const y=wingTop(p.x,p.z);if(y!==null){out.set(p.x,y,p.z);return out;}}const hp=hullParam(p);return hullPoint(hp.z,hp.th,out);}
+function sHull(p,out){if(_rockS){_rk.subVectors(p,_rockS.c).normalize();return out.copy(_rockS.c).addScaledVector(_rk,rockR(_rockS,_rk));}if(_perch){const y=wingY(p.x,p.z);if(y!==null){out.set(p.x,y,p.z);return out;}}const hp=hullParam(p);return hullPoint(hp.z,hp.th,out);}
 // FABRIK on the 5-segment leg; starting every frame from the rest pose keeps the knee arched upwards
 // FABRIK on the first n segments (p[0]..p[n])
 const _t4=new THREE.Vector3();
@@ -198,7 +198,7 @@ function remapCrabSkin(root){let n=0;
 const _uc=new THREE.Vector3(),_un=new THREE.Vector3();
 function unclipLeg(p,m){for(let i=1;i<=5;i++){const q=p[i];if(q.z<-14.6||q.z>21.6)continue;const hp=hullParam(q);hullPoint(hp.z,hp.th,_uc,_un);
     const d=_uc.subVectors(q,_uc).dot(_un);if(d<m)q.addScaledVector(_un,m-d);}}
-function solveLeg(R,L,T,ground){const p=L.p;solveLeg0(R,L,T,ground);if(R.sc&&!_rockS)unclipLeg(p,0.035*R.sc);}
+function solveLeg(R,L,T,ground){const p=L.p;solveLeg0(R,L,T,ground);if(R.sc&&!_rockS&&!_perch)unclipLeg(p,0.035*R.sc);} // v79: not on a wing either: the hull ellipse there is not the surface under the feet (it pulled the inner claws up to 70 cm off the wing)
 function solveLeg0(R,L,T,ground){const p=L.p;
   if(!R.crab&&!ground){sFabrik(p,L.len,T);return;} // raised / reaching legs keep the free FABRIK motion
   if(!R.crab){ // spider: knees lifted high, the claw segment hangs down onto the foothold so it never digs into the hull
@@ -241,7 +241,7 @@ function animSpider(s,dt,t){
   if(!air){let hf=0,hb=0,hl=0,hr=0,ha=0;
     for(const L of R.legs){const h=_sc.subVectors(L.f,g.position).dot(upW)/sc+R.spd.rootOff;ha+=h/8;
       if(L.pair<=2)hf+=h/4;else hb+=h/4;if(L.side<0)hl+=h/4;else hr+=h/4;}
-    tH+=THREE.MathUtils.clamp(ha*0.6,-0.12,0.12);
+    tH+=THREE.MathUtils.clamp(ha*0.6,R.crab?-0.12:0,0.12)+(R.crab||_perch?0:0.04); // v79: the body is never lowered by feet below it (the hull is convex: that sank the abdomen into it) and rides 4 cm higher; the crab keeps its own
     tP+=THREE.MathUtils.clamp(Math.atan((hb-hf)/1.4),-0.3,0.3);tR+=THREE.MathUtils.clamp(Math.atan((hr-hl)/2.2),-0.3,0.3);
     let lift=0,sway=0;for(const L of R.legs)if(L.step){const w=Math.sin(Math.PI*Math.min(1,L.st));lift+=w/4;sway+=L.side*w/4;}
     tH-=0.03*lift*mv;tY+=0.06*sway*mv;tR-=0.04*sway*mv;

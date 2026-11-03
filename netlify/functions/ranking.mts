@@ -168,7 +168,7 @@ export default async (req: Request, context: Context) => {
       const run = Number.isSafeInteger(b.run) && b.run > 0 ? b.run : null;
       const player = typeof b.player === "string" && UUID.test(b.player) ? b.player : null;
       if (!action || ((action === "hide" || action === "show") ? !run : !player)) return json({ error: "datos no válidos" }, 400);
-      const note = typeof b.note === "string" ? b.note.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, 200) || null : null;
+      const note = typeof b.note === "string" ? b.note.replace(/[\u0000-\u001f\u007f\s]+/g, " ").trim().slice(0, 200) || null : null;
       const r = await rpc(sb, "rank_moderate", { p_action: action, p_run: run, p_player: player, p_note: note });
       if (r?.error) return json({ error: r.error === "notfound" ? "no encontrado" : "acción no válida" }, r.error === "notfound" ? 404 : 400);
       return json({ ok: true });

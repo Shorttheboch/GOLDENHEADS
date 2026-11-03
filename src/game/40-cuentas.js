@@ -2,7 +2,7 @@
 // Santi's decisions: you play as a guest; the login (Google only) comes at the END of a game, on the end plate: GUARDAR MI PUNTUACIÓN · con Google.
 // The first time you choose a nickname (unique, checked by the server, cannot be changed afterwards; no 18+ box, just the line with the privacy
 // page and the ranking rules); from then on the session stays on this device and every game is saved by itself when it ends.
-// Pieces: 26-ranking.js (run token, end-plate box, RANK.pending) · this file (flow and screens) · src/cuentas/sb.js (supabase-js, its own chunk,
+// Pieces: 26-ranking.js (run token, end-plate box, RANK.pending) · this file (flow and screens) · src/cuentas/sb.js (@supabase/auth-js, its own chunk,
 // loaded only when needed through window.HEADS_AUTH, src/cuentas/loader.js) · netlify/functions/ranking.mts (the referee: /api/auth, /api/me,
 // /api/nick, /api/save, /api/forget) · markup #rankBox / #acct in index.html · look src/styles/11-cuentas.css · privacy page public/privacidad/.
 // The login is a redirect (PKCE), so the page reloads: before leaving, the run waits in localStorage (heads_pending_run: token, score, round,
@@ -10,7 +10,7 @@
 // cleaned of the login's ?code= / ?error=. redirectTo is built from location (origin + path): no domain written anywhere.
 // Without the Supabase settings (/api/auth 503) there is simply no button; the game never waits for any of this and never shows an error box.
 // Nothing here runs per frame. The game keys are ignored while #acct is open (body.acctOn, 21-input-pc.js).
-const ACC={p:null,cfgP:null,auth:null,nick:null,seq:0,busy:false,scr:'',onGo:null,onNo:null,from:''};
+const ACC={p:null,cfgP:null,auth:null,nick:null,seq:0,busy:false,scr:'',onGo:null,onNo:null};
 const ACC_K={sess:'heads-auth',pend:'heads_pending_run',go:'heads_auth_go',nick:'heads_capitan'};
 const ACC_PEND_MS=4*3600e3;   // a pending run waits 4 h at most (the server's run tokens last as long)
 const acLS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(_){}return null;};
@@ -23,7 +23,7 @@ function accPrivLinks(root){for(const a of (root||document).querySelectorAll('a[
 // ---- loading: the settings (/api/auth, cached by the browser for 5 min) and the login chunk, only when needed ----
 function accCfg(){if(!ACC.cfgP){ACC.cfgP=fetch('/api/auth').then(r=>r.ok?r.json():null).then(c=>c&&c.url&&c.key?c:null,()=>{ACC.cfgP=null;return null;});}return ACC.cfgP;}
 function accLoad(){if(!ACC.p){ACC.p=(async()=>{const c=await accCfg();if(!c)throw new Error('off');
-    const m=await window.HEADS_AUTH();const a=m.makeAuth(c.url,c.key);const r=await a.init();ACC.initErr=r&&r.error||null;ACC.auth=a;return a;})();
+    const m=await window.HEADS_AUTH();const a=m.makeAuth(c.url,c.key);await a.init();ACC.auth=a;return a;})(); // (init reads the way back from Google, if any)
     ACC.p.catch(()=>{ACC.p=null;});}
   return ACC.p;}
 const accPreload=()=>{try{window.HEADS_AUTH&&window.HEADS_AUTH().catch(()=>{});}catch(_){}}; // the chunk only (a static file), so the click is quick
@@ -203,7 +203,7 @@ async function accReturn(){acLS(ACC_K.go,null);accOpen('wait');
   if(!t)return accOpen('fail',{go:accRelogin,no:accDrop}); // cancelled at Google, or the code could not be exchanged
   return accAfterLogin();}
 {let q=null;try{q=new URLSearchParams(location.search);}catch(_){}
- const hasVer=()=>{try{return Object.keys(localStorage).some(k=>k.startsWith(ACC_K.sess+'-code-verifier')||k.startsWith(ACC_K.sess+'-pkce'));}catch(_){return false;}};
+ const hasVer=()=>{try{return Object.keys(localStorage).some(k=>k.startsWith(ACC_K.sess+'-code-verifier')||k.startsWith(ACC_K.sess+'-flow-'));}catch(_){return false;}}; // auth-js keeps the PKCE verifier here
  const back=!!q&&(q.has('code')||q.has('error')||q.has('error_description'))&&(!!acLS(ACC_K.go)||hasVer());
  // the language is known: the sentence with links is translated whole (its English links already point to privacy/), then every privacy link
  const lang=(window.LANG_READY||Promise.resolve()).then(()=>{if(window.TRH)for(const el of $('acct').querySelectorAll('[data-rich]'))el.innerHTML=TRH(el.innerHTML);accPrivLinks();});

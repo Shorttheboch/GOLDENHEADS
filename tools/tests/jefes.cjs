@@ -66,8 +66,9 @@ setTimeout(()=>{console.log('WATCHDOG: too slow, giving up');process.exit(2);},1
   p=await boot('?ronda=14');await arrive(p,'round 14 (open)');
   await p.evaluate(()=>{__late.s.crab=0; // the crab model "still downloading": the Escupidora has to wait
     window.__noSpawn=1;__T.toSpawn=0;for(const s of [...__heads.spiders])__heads.killSpider(s,false,true);const e=__heads.INCS[0];__heads.incDamage(e,99999,'body',new __THREE.Vector3(0,0,1),e.pos.clone());});
-  await p.evaluate(()=>__run(300));r=await W(p);
-  ok(!r.inBreak&&r.incSp===1&&r.inc.every(x=>/^dead/.test(x))&&r.spit.length===0,'everything dead, Escupidora pending: no break, the round is still on',r);
+  let gone=false;for(let i=0;i<40&&!gone;i++)gone=await p.evaluate(()=>{__run(30);for(const e of [...__heads.EGGS])__heads.destroyEgg(e);return __heads.INCS.length===0&&__heads.EGGS.length===0;});
+  await p.evaluate(()=>__run(90));r=await W(p);
+  ok(gone&&!r.inBreak&&r.incSp===1&&r.inc.length===0&&r.eggs===0&&r.spit.length===0,'no spiders, no eggs, the Incineradora gone, the Escupidora still to come: no break, the round is still on',r);
   await p.evaluate(()=>{__late.s.crab=1;__run(4);});r=await W(p);
   ok(r.spit.length===1&&!r.inBreak,'the crab is in: the Escupidora comes at once',r);
   await p.close();

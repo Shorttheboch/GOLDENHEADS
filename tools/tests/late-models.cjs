@@ -14,7 +14,7 @@ const NAMES=['crab','spider_biped','egg','gun2'];
 (async()=>{
  const b=await chromium.launch({args:ARGS});
  const boot=async(mode)=>{ // mode: 'hold' (gates closed until released) · 'fail' (crab aborted)
-   const pg=await b.newPage({viewport:{width:960,height:540}});pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message));
+   const pg=await b.newPage({viewport:{width:960,height:540}});pg.errs=[];pg.on('crash',()=>{console.log('PAGE CRASHED (out of memory?)');process.exit(3);});pg.on('pageerror',e=>pg.errs.push(e.message));
    const gate={},open={};for(const n of NAMES){gate[n]=new Promise(r=>{open[n]=r;});}
    pg.release=n=>open[n]();pg.requests=[];
    await pg.route(/assets\/models\/(crab|spider_biped|egg|gun2)\.glb/,async r=>{const n=r.request().url().match(/models\/(.*)\.glb/)[1];pg.requests.push(n);
@@ -31,7 +31,7 @@ const NAMES=['crab','spider_biped','egg','gun2'];
    return pg;};
  const step=async(pg,s)=>{for(let t=0;t<s;t+=1){await pg.evaluate(()=>{__heads.P.hp=100;__heads.P.inv=0.5;});await pg.evaluate(n=>__step(n),Math.round(Math.min(1,s-t)/0.05));}}; // 1 s at a time, the astronaut stays healthy
  const late=pg=>pg.evaluate(()=>JSON.stringify(__late.s)).then(JSON.parse);
- const waitLate=(pg,k,v)=>pg.waitForFunction(([k,v])=>__late.s[k]===v,[k,v],{timeout:60000});
+ const waitLate=(pg,k,v)=>pg.waitForFunction(([k,v])=>__late.s[k]===v,[k,v],{timeout:180000}); // the software GPU of the tests renders the live game slowly: a download can take a minute to be processed there
 
  console.log('1) menu does not wait for the held models');
  let p=await boot('hold');

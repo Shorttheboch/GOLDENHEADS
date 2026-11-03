@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#05050a">
+<title>HEADS · Estadísticas</title>
+<!-- v81: Santi's page for the anonymous play metrics (served at /admin, see netlify.toml). Not part of the game bundle, Spanish only, no outside libraries.
+     It asks GET /api/admin/stats (netlify/functions/metrics.mts) with the password in the x-admin-key header; the password lives in sessionStorage only.
+     Every number arrives already added up by the SQL function metrics_stats (supabase/schema.sql); test games (?ronda=N) are left out there. -->
+<style>
+@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f600.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f700.woff2) format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f900.woff2) format('woff2');font-weight:900;font-display:swap}
+@font-face{font-family:TekturE;src:url(/assets/ui/endui/font.woff2) format('woff2');font-weight:400 900;font-display:swap}
+:root{color-scheme:dark;
+  --void:#05050a;--panel:rgba(8,8,12,.88);--line:rgba(232,182,74,.55);--gold:#e8b64a;--gold-hi:#ffe39a;--ink:#f4ecd8;--ink2:#cfc4a8;--ink3:#8f8670;--track:rgba(255,255,255,.06);
+  --pc:#c08a1e;--mo:#1f9fbf;--c3:#d65a44;--c4:#8f72d6;--bad:#ff6b57;
+  --fT:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;--fB:'TitilliumH','Titillium Web','Segoe UI',system-ui,sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--void)}
+body{margin:0;min-height:100vh;color:var(--ink);font:600 14px/1.4 var(--fB);-webkit-text-size-adjust:100%;
+  background:radial-gradient(1200px 600px at 70% -10%,rgba(255,180,60,.10),transparent 60%),radial-gradient(900px 500px at 0% 110%,rgba(40,150,200,.08),transparent 60%),
+  radial-gradient(1px 1px at 12% 22%,#fff8 50%,transparent),radial-gradient(1px 1px at 78% 64%,#fff6 50%,transparent),radial-gradient(1px 1px at 41% 83%,#fff5 50%,transparent),
+  radial-gradient(1px 1px at 88% 14%,#fff7 50%,transparent),radial-gradient(1px 1px at 27% 57%,#fff4 50%,transparent),var(--void);background-attachment:fixed}
+.wrap{max-width:1180px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+.g3{font-family:var(--fT);font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(180deg,#ffe58c 0%,#ffc83c 50%,#ee9f14 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:4px 0 14px}
+header img{height:44px;width:auto;filter:drop-shadow(0 0 10px rgba(255,190,60,.35))}
+header h1{margin:0;font-size:22px;line-height:1}
+header .sub{color:var(--ink3);font-size:12px;letter-spacing:.06em}
+.box{position:relative;background:var(--panel);border:1.5px solid var(--line);border-radius:2px;box-shadow:0 0 12px rgba(255,190,60,.12),0 8px 24px rgba(0,0,0,.5)}
+.box::before,.box::after{content:'';position:absolute;width:10px;height:10px;border:2px solid var(--gold-hi);pointer-events:none}
+.box::before{left:-3px;top:-3px;border-right:0;border-bottom:0}.box::after{right:-3px;bottom:-3px;border-left:0;border-top:0}
+button,input{font:inherit;color:inherit}
+.btn{height:34px;padding:0 16px 0 18px;border:1px solid #ffd56a;border-radius:0;background:linear-gradient(180deg,#ffe07a,#d9960f);color:#1d150a;cursor:pointer;font:800 12px/1 var(--fT);letter-spacing:.16em;text-transform:uppercase}
+.btn.ghost{background:rgba(10,8,4,.6);color:#e9d9a8;border-color:rgba(232,182,74,.55)}
+.btn:hover,.btn:focus-visible{outline:none;box-shadow:0 0 10px rgba(255,200,80,.55);filter:brightness(1.1)}
+/* login */
+#login{max-width:380px;margin:12vh auto 0;padding:26px 22px 22px}
+#login h2{margin:0 0 6px;font-size:18px}
+#login p{margin:0 0 16px;color:var(--ink2);font-size:13px}
+#login label{display:block;font:800 11px/1 var(--fT);letter-spacing:.16em;color:var(--ink3);margin-bottom:6px}
+#login input{width:100%;height:42px;padding:0 12px;margin-bottom:12px;background:rgba(0,0,0,.55);border:1px solid rgba(232,182,74,.45);border-radius:0;font-size:16px}
+#login input:focus{outline:none;border-color:var(--gold-hi);box-shadow:0 0 8px rgba(255,200,80,.35)}
+#login .btn{width:100%;height:42px}
+.err{min-height:20px;margin:10px 0 0;color:var(--bad);font-size:13px}
+/* controls */
+.bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 12px;margin:0 0 16px;backdrop-filter:blur(6px)}
+.seg{display:flex;gap:2px}
+.seg button{height:32px;padding:0 11px 0 13px;border:1px solid rgba(232,182,74,.45);background:rgba(10,8,4,.6);color:#e9d9a8;cursor:pointer;font:800 11px/1 var(--fT);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.seg button[aria-pressed=true]{background:linear-gradient(180deg,#ffe07a,#d9960f);color:#1d150a;border-color:#ffd56a}
+.seg button:focus-visible{outline:2px solid var(--gold-hi);outline-offset:1px}
+.bar .sp{flex:1}
+#stamp{color:var(--ink3);font-size:12px}
+#state{margin:0 0 12px;color:var(--ink2)}
+#state.bad{color:var(--bad)}
+/* sections */
+main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+section{padding:16px 16px 18px;min-width:0}
+section.wide{grid-column:1/-1}
+section h2{margin:0 0 3px;font-size:16px}
+section .hint{margin:0 0 14px;color:var(--ink3);font-size:12px}
+h3{margin:16px 0 8px;font:800 11px/1 var(--fT);letter-spacing:.16em;text-transform:uppercase;color:var(--ink2)}
+.empty{color:var(--ink3);font-style:italic;margin:6px 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.kpi{padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(232,182,74,.22)}
+.kpi b{display:block;font:800 24px/1.1 var(--fT);color:var(--gold-hi);font-variant-numeric:tabular-nums}
+.kpi span{display:block;margin-top:4px;color:var(--ink2);font-size:12px;line-height:1.25}
+.kpi small{display:block;color:var(--ink3);font-size:11px}
+.note{margin:12px 0 0;color:var(--ink3);font-size:12px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0 0 10px;color:var(--ink2);font-size:12px}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:2px;vertical-align:-1px}
+/* rows of bars: label | track | value */
+.rows{display:grid;grid-template-columns:minmax(70px,max-content) minmax(60px,1fr) max-content;gap:6px 10px;align-items:center}
+.rows .l{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.rows .l small{color:var(--ink3);margin-left:4px}
+.rows .v{color:var(--ink2);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;font-size:13px}
+.trk{position:relative;height:12px;background:var(--track);border-radius:0 4px 4px 0}
+.trk i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--pc);min-width:2px}
+.trk i.z{display:none}
+.trk.two{height:18px;background:none}
+.trk.two i{height:8px;bottom:auto}.trk.two i.mo{top:10px}
+.trk.two::before,.trk.two::after{content:'';position:absolute;left:0;right:0;height:8px;background:var(--track);border-radius:0 4px 4px 0}
+.trk.two::before{top:0}.trk.two::after{top:10px}
+.trk.two i{z-index:1}
+i.mo{background:var(--mo)!important}
+.stack{display:flex;gap:2px;height:14px}
+.stack i{display:block;height:100%;min-width:2px}
+.stack i:last-child{border-radius:0 4px 4px 0}
+.funnel .v b{color:var(--ink);font-weight:700}
+.funnel .v .mo{color:#7fd3ea}.funnel .v .pc{color:#e6b45a}
+/* per day */
+.days{display:flex;align-items:flex-end;gap:2px;height:120px;padding-top:6px;border-bottom:1px solid rgba(255,255,255,.12)}
+.days>div{flex:1;display:flex;align-items:flex-end;gap:1px;height:100%;min-width:0}
+.days>div i{flex:1;background:var(--pc);border-radius:2px 2px 0 0;min-height:1px}
+.days>div i.g{background:var(--mo)}
+.days>div:hover i{filter:brightness(1.35)}
+.daysx{display:flex;justify-content:space-between;color:var(--ink3);font-size:11px;margin-top:4px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:6px}
+/* errors */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font:800 10px/1.2 var(--fT);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);padding:6px 8px;border-bottom:1px solid rgba(232,182,74,.3)}
+.tbl td{padding:8px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top}
+.tbl td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl code{font:12px/1.3 ui-monospace,Consolas,monospace;color:#ffd9a0;word-break:break-word}
+.tbl .at{display:block;color:var(--ink3);font-size:11px;margin-top:3px;word-break:break-all}
+.chip{display:inline-block;margin:0 4px 4px 0;padding:2px 6px;border:1px solid rgba(232,182,74,.3);font-size:11px;color:var(--ink2);white-space:nowrap}
+.two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 22px}
+@media (max-width:820px){main{grid-template-columns:minmax(0,1fr)}.two-col{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){
+  .wrap{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  header img{height:34px}header h1{font-size:18px}
+  .bar{position:static;gap:8px}.bar .sp{display:none}.seg{width:100%}.seg button{flex:1;padding:0 4px;letter-spacing:.08em}
+  #stamp{width:100%}.bar .btn{flex:1}
+  section{padding:14px 12px 16px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi b{font-size:20px}
+  .tbl .hide-s{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="/assets/ui/menuui/logo.webp" alt="HEADS Rescue"><div><h1 class="g3">Estadísticas</h1><div class="sub">Métricas anónimas del juego · solo para Santi</div></div></header>
+
+  <form id="login" class="box" hidden autocomplete="on">
+    <h2 class="g3">Acceso</h2>
+    <p>Escribe la contraseña de administración (la variable <b>ADMIN_PASSWORD</b> de Netlify).</p>
+    <label for="pw">CONTRASEÑA</label>
+    <input id="pw" type="password" autocomplete="current-password" required>
+    <button class="btn" type="submit">ENTRAR</button>
+    <p class="err" id="loginErr" role="alert"></p>
+  </form>
+
+  <div id="app" hidden>
+    <div class="bar box">
+      <div class="seg" id="range" role="group" aria-label="Periodo"><button type="button" data-v="today">Hoy</button><button type="button" data-v="7d">7 días</button><button type="button" data-v="30d">30 días</button><button type="button" data-v="all">Todo</button></div>
+      <div class="seg" id="plat" role="group" aria-label="Plataforma"><button type="button" data-v="all">Todos</button><button type="button" data-v="pc">PC</button><button type="button" data-v="touch">Móvil</button></div>
+      <span class="sp"></span><span id="stamp"></span>
+      <button class="btn ghost" type="button" id="reload">Actualizar</button><button class="btn ghost" type="button" id="logout">Salir</button>
+    </div>
+    <p id="state" role="status"></p>
+    <main id="out"></main>
+  </div>
+</div>
+<script>
+'use strict';
+const KEY='heads_admin_key',PREF='heads_admin_view',$=id=>document.getElementById(id);
+const S={range:'7d',platform:'all',data:null,busy:0};
+try{Object.assign(S,JSON.parse(sessionStorage.getItem(PREF)||'{}'));}catch(_){}
+const getKey=()=>{try{return sessionStorage.getItem(KEY)||'';}catch(_){return '';}};
+const setKey=k=>{try{k?sessionStorage.setItem(KEY,k):sessionStorage.removeItem(KEY);}catch(_){}};
+// ---- formatting ----
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const N=n=>n==null||!isFinite(n)?'—':Number(n).toLocaleString('es-ES');
+const P=(a,b)=>b>0?(a/b*100).toLocaleString('es-ES',{maximumFractionDigits:a/b<0.1?1:0})+' %':'—';
+const pct=(a,b)=>b>0?a/b*100:0;
+const dur=s=>{if(s==null||!isFinite(s))return '—';s=Math.round(s);if(s<3600)return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');return (s/3600).toLocaleString('es-ES',{maximumFractionDigits:s<36000?1:0})+' h';};
+const ms=v=>v==null?'—':(v/1000).toLocaleString('es-ES',{maximumFractionDigits:1})+' s';
+const when=t=>{try{return new Date(t).toLocaleString('es-ES',{timeZone:'Europe/Madrid',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}catch(_){return t;}};
+const day=d=>{try{return new Date(d+'T12:00:00Z').toLocaleDateString('es-ES',{day:'numeric',month:'short'});}catch(_){return d;}};
+let REG=null;try{REG=new Intl.DisplayNames(['es'],{type:'region'});}catch(_){}
+const country=c=>c==='??'||!c?'Desconocido':(REG&&(()=>{try{return REG.of(c);}catch(_){return null;}})())||c;
+const NAMES={os:{ios:'iPhone / iPad',android:'Android',windows:'Windows',mac:'Mac',linux:'Linux',other:'Otro','?':'Desconocido'},
+  br:{chrome:'Chrome',safari:'Safari',firefox:'Firefox',edge:'Edge',samsung:'Samsung Internet',opera:'Opera',other:'Otro','?':'Desconocido'},
+  scr:{phone:'Móvil',tablet:'Tableta','pc-s':'PC pequeño (< 1366 px)','pc-m':'PC (1366–1920 px)','pc-l':'PC grande (> 1920 px)','?':'Desconocido'},
+  lang:{es:'Español',en:'Inglés','?':'Desconocido'},plat:{pc:'PC',touch:'Móvil','?':'Desconocido'},
+  film:{watched:'Vista entera',skipped:'Saltada',left:'Se fue durante la película',error:'No se pudo ver',none:'Sin película'},
+  tut:{done:'Completo',skip:'Saltado',before:'Ya visto antes',none:'No salió'}};
+const nm=(k,v)=>(NAMES[k]&&NAMES[k][v])||v;
+// ---- pieces ----
+const sec=(title,hint,body,wide)=>`<section class="box${wide?' wide':''}"><h2 class="g3">${title}</h2>${hint?`<p class="hint">${hint}</p>`:''}${body}</section>`;
+const kpi=(v,l,s)=>`<div class="kpi"><b>${v}</b><span>${l}</span>${s?`<small>${s}</small>`:''}</div>`;
+const empty=t=>`<p class="empty">${t||'Sin datos en este periodo.'}</p>`;
+const legend=items=>`<div class="legend">${items.map(([c,t])=>`<span><i style="background:${c}"></i>${t}</span>`).join('')}</div>`;
+// a list of [label, value] as bars against the largest (or a given total, then the value shows its %)
+function bars(list,o={}){list=list.filter(x=>x[1]>0);if(!list.length)return empty(o.none);
+  const max=Math.max(...list.map(x=>x[1])),tot=o.total||list.reduce((a,x)=>a+x[1],0);
+  return `<div class="rows">${list.map(([l,v,sub])=>`<span class="l" title="${esc(l)}">${esc(l)}${sub?`<small>${esc(sub)}</small>`:''}</span><span class="trk" title="${esc(l)}: ${N(v)} (${P(v,tot)})"><i style="width:${pct(v,max)}%"></i></span><span class="v">${N(v)} · ${P(v,tot)}</span>`).join('')}</div>`;}
+const objBars=(o,k,opt)=>bars(Object.entries(o||{}).map(([a,v])=>[nm(k,a),v]).sort((a,b)=>b[1]-a[1]),opt);
+// ---- the sections ----
+function render(d){
+  const s=d.summary||{},pf=S.platform,both=pf==='all',out=[];
+  // Resumen
+  const daily=d.daily||[],dmax=Math.max(1,...daily.map(x=>Math.max(x.visits,x.games)));
+  out.push(sec('Resumen','Visitas = páginas abiertas. Únicos y que vuelven solo cuentan a quien aceptó las estadísticas (id anónimo en su dispositivo).',
+    `<div class="kpis">${[
+      kpi(N(s.visits),'visitas'),kpi(N(s.sessions),'jugadores (sesiones)'),kpi(N(s.players),'únicos con permiso',s.visits?P(s.consent_yes,s.visits)+' aceptan':''),
+      kpi(N(s.returning),'vuelven otro día',s.players?P(s.returning,s.players)+' de los únicos':''),kpi(N(s.games),'partidas',both?`PC ${N(s.games_pc)} · móvil ${N(s.games_touch)}`:''),
+      kpi(s.visits?(s.games/s.visits).toLocaleString('es-ES',{maximumFractionDigits:2}):'—','partidas por visita'),
+      kpi(dur(s.secs_total),'tiempo jugado total'),kpi(dur(s.secs_avg),'por partida (media)'),kpi(P(s.left_no_play,s.visits),'se va sin jugar',N(s.left_no_play)+' visitas')].join('')}</div>`+
+    (daily.length>1?`<h3>Por día</h3>${legend([['var(--pc)','Visitas'],['var(--mo)','Partidas']])}<div class="days" role="img" aria-label="Visitas y partidas por día">${daily.map(x=>`<div title="${esc(day(x.day))}: ${N(x.visits)} visitas · ${N(x.games)} partidas"><i style="height:${pct(x.visits,dmax)}%"></i><i class="g" style="height:${pct(x.games,dmax)}%"></i></div>`).join('')}</div><div class="daysx"><span>${esc(day(daily[0].day))}</span><span>máx. ${N(dmax)}</span><span>${esc(day(daily[daily.length-1].day))}</span></div>`:'')+
+    `<p class="note">Respuestas a la pregunta: sí ${N(s.consent_yes)} · no ${N(s.consent_no)} · sin responder ${N(s.consent_unset)}. Partidas de prueba (<code>?ronda=N</code>) fuera de todas las cifras: ${N(s.test_games)}.</p>`,true));
+  // Hasta dónde llegan
+  const F=d.funnel||[],f1=F[0]||{all:0,pc:0,touch:0},RS={};for(const r of d.round_secs||[])RS[r.round]=r;
+  const lr=d.last_round||{};
+  out.push(sec('Hasta dónde llegan','% de partidas que llegan a cada ronda (sobre las que empiezan la ronda 1)'+(both?', PC y móvil por separado':'')+'. A la derecha, el tiempo medio de esa ronda cuando se termina.',
+    F.length?(both?legend([['var(--pc)','PC'],['var(--mo)','Móvil']]):'')+`<div class="rows funnel">${F.map(r=>{const a=pct(r.pc,f1.pc),b=pct(r.touch,f1.touch),t=RS[r.round];
+      return `<span class="l">Ronda ${r.round}</span>`+(both?`<span class="trk two" title="Ronda ${r.round}: PC ${P(r.pc,f1.pc)} (${N(r.pc)}) · móvil ${P(r.touch,f1.touch)} (${N(r.touch)})"><i${a?'':' class="z"'} style="width:${a}%"></i><i class="mo${b?'':' z'}" style="width:${b}%"></i></span><span class="v"><span class="pc">${P(r.pc,f1.pc)}</span> · <span class="mo">${P(r.touch,f1.touch)}</span> · <b>${N(r.all)}</b>${t?' · '+dur(t.secs):''}</span>`
+        :`<span class="trk" title="Ronda ${r.round}: ${P(r.all,f1.all)} (${N(r.all)})"><i${pf==='touch'?' class="mo"':''} style="width:${pct(r.all,f1.all)}%"></i></span><span class="v"><b>${P(r.all,f1.all)}</b> · ${N(r.all)}${t?' · '+dur(t.secs):''}</span>`);}).join('')}</div>
+      <div class="tiles">${kpi(lr.all!=null?'Ronda '+lr.all:'—','última ronda más común')}${both?kpi(lr.pc!=null?'Ronda '+lr.pc:'—','… en PC')+kpi(lr.touch!=null?'Ronda '+lr.touch:'—','… en móvil'):''}</div>`:empty(),true));
+  // De qué mueren
+  const C=d.causes||[],CK=[['dead','Traje roto','var(--pc)'],['ship','Nave perdida','var(--mo)'],['cargo','Carga perdida','var(--c3)'],['quit','Se fue','var(--c4)']];
+  const ct={};for(const k of CK)ct[k[0]]=C.reduce((a,r)=>a+(r[k[0]]||0),0);const call=Object.values(ct).reduce((a,b)=>a+b,0);
+  out.push(sec('De qué mueren','Cómo acaba cada partida, por la ronda en la que acaba. «Se fue» = cerró o cambió de app a mitad de partida y no volvió.',
+    C.length?legend(CK.map(k=>[k[2],`${k[1]} ${P(ct[k[0]],call)}`]))+`<div class="rows">${C.map(r=>{const t=CK.reduce((a,k)=>a+(r[k[0]]||0),0);
+      return `<span class="l">Ronda ${r.round}</span><span class="stack" title="Ronda ${r.round}: ${CK.map(k=>k[1]+' '+N(r[k[0]]||0)).join(' · ')}">${CK.filter(k=>r[k[0]]).map(k=>`<i style="width:${pct(r[k[0]],t)}%;background:${k[2]}"></i>`).join('')}</span><span class="v">${N(t)}</span>`;}).join('')}</div>`:empty()));
+  // Abandonos
+  const Q=d.quits||[];
+  out.push(sec('Abandonos','Partidas que se quedaron a medias (cerró la página o cambió de app y no volvió), por ronda.',
+    Q.length?(both?legend([['var(--pc)','PC'],['var(--mo)','Móvil']]):'')+(()=>{const m=Math.max(...Q.map(r=>Math.max(r.pc,r.touch,both?0:r.all)));
+      return `<div class="rows">${Q.map(r=>`<span class="l">Ronda ${r.round}</span>`+(both?`<span class="trk two" title="Ronda ${r.round}: PC ${N(r.pc)} · móvil ${N(r.touch)}"><i${r.pc?'':' class="z"'} style="width:${pct(r.pc,m)}%"></i><i class="mo${r.touch?'':' z'}" style="width:${pct(r.touch,m)}%"></i></span><span class="v">${N(r.all)}</span>`
+        :`<span class="trk" title="Ronda ${r.round}: ${N(r.all)}"><i${pf==='touch'?' class="mo"':''} style="width:${pct(r.all,m)}%"></i></span><span class="v">${N(r.all)}</span>`)).join('')}</div>`;})()+`<p class="note">${N(Q.reduce((a,r)=>a+r.all,0))} de ${N(s.games)} partidas (${P(Q.reduce((a,r)=>a+r.all,0),s.games)}).</p>`:empty('Nadie ha dejado una partida a medias en este periodo.')));
+  // Desde dónde
+  out.push(sec('Desde dónde','Jugadores (sesiones) por país y ciudad, según la red (Netlify). Nunca se guarda la IP.',
+    `<div class="two-col"><div><h3>Países</h3>${bars((d.countries||[]).map(c=>[country(c.code),c.n]),{total:s.sessions})}</div><div><h3>Ciudades</h3>${bars((d.cities||[]).map(c=>[c.city,c.n,[c.region!==c.city?c.region:'',c.code].filter(Boolean).join(', ')]),{total:s.sessions})}</div></div>`,true));
+  // Con qué juegan
+  const ins=d.installed||{},fps=d.fps||{},ld=d.load||{};
+  out.push(sec('Con qué juegan','Por jugadores (sesiones); pantalla e idioma por visitas. Calidad = el nivel más bajo al que bajó la calidad automática en cada partida (0 = máxima).',
+    `<div class="tiles">${[both||pf==='touch'?kpi(P(ins.touch_yes,ins.touch_of),'instalado en el móvil',N(ins.touch_yes)+' de '+N(ins.touch_of)+' visitas'):'',
+      both||pf==='pc'?kpi(fps.pc!=null?N(fps.pc)+' fps':'—','fps medianos en PC'):'',both||pf==='touch'?kpi(fps.touch!=null?N(fps.touch)+' fps':'—','fps medianos en móvil'):'',
+      both||pf==='pc'?kpi(ms(ld.pc_p50),'carga en PC (mediana)',ld.pc_p90!=null?'el 90 % en menos de '+ms(ld.pc_p90):''):'',both||pf==='touch'?kpi(ms(ld.touch_p50),'carga en móvil (mediana)',ld.touch_p90!=null?'el 90 % en menos de '+ms(ld.touch_p90):''):''].join('')}</div>
+     <div class="two-col">${both?`<div><h3>Plataforma</h3>${objBars(d.platforms,'plat')}</div>`:''}<div><h3>Sistema</h3>${objBars(d.os,'os')}</div><div><h3>Navegador</h3>${objBars(d.browsers,'br')}</div>
+     <div><h3>Pantalla</h3>${objBars(d.screens,'scr')}</div><div><h3>Idioma del juego</h3>${objBars(d.langs,'lang')}</div>
+     <div><h3>Calidad alcanzada</h3>${bars(Object.entries(d.quality||{}).sort((a,b)=>a[0]-b[0]).map(([k,v])=>['Nivel '+k+(k==='0'?' (máxima)':''),v]))}</div></div>
+     ${ld.not_ready?`<p class="note">${N(ld.not_ready)} visitas se fueron antes de que JUGAR estuviera listo.</p>`:''}`,true));
+  // Película y tutorial
+  const fm=d.film||{},seen=(fm.watched||0)+(fm.skipped||0)+(fm.left||0),tu=d.tutorial||{},tseen=(tu.skip||0)+(tu.done||0);
+  out.push(sec('Película y tutorial','Película de apertura (antes de la primera partida) y tutorial del móvil (primera partida en el dispositivo).',
+    `<div class="tiles">${kpi(P(fm.skipped||0,seen),'saltan la película',d.film_skip_secs!=null?'a los '+N(d.film_skip_secs)+' s (mediana)':'')}${kpi(P(tu.skip||0,tseen),'saltan el tutorial',N(tu.skip||0)+' de '+N(tseen))}</div>
+     <div class="two-col"><div><h3>Película</h3>${objBars(fm,'film')}</div><div><h3>Tutorial del móvil</h3>${objBars(tu,'tut',{none:'Sin partidas en móvil con tutorial en este periodo.'})}
+     ${Object.keys(d.tutorial_step||{}).length?`<h3>Pantalla en la que lo saltan</h3>${bars(Object.entries(d.tutorial_step).sort((a,b)=>a[0]-b[0]).map(([k,v])=>['Pantalla '+k+' de 5',v]))}`:''}</div></div>`,true));
+  // Errores
+  const E=d.errors||[];
+  out.push(sec('Errores','Errores de JavaScript en los navegadores de los jugadores, agrupados por mensaje (como mucho 5 distintos por sesión).',
+    E.length?`<table class="tbl"><thead><tr><th>Error</th><th class="n">Veces</th><th class="n hide-s">Sesiones</th><th class="hide-s">Dónde</th><th>Última</th></tr></thead><tbody>${E.map(e=>`<tr><td><code>${esc(e.msg)}</code>${e.at?`<span class="at">${esc(e.at)}</span>`:''}</td><td class="n">${N(e.n)}</td><td class="n hide-s">${N(e.sessions)}</td><td class="hide-s">${(e.env||[]).map(v=>`<span class="chip">${esc(nm('os',v.os||'?'))} · ${esc(nm('br',v.browser||'?'))} · ${N(v.n)}</span>`).join('')}</td><td class="n">${esc(when(e.last))}</td></tr>`).join('')}</tbody></table>`:empty('Ningún error en este periodo.'),true));
+  $('out').innerHTML=out.join('');}
+// ---- loading ----
+function view(){for(const [id,k] of [['range','range'],['plat','platform']])for(const b of $(id).querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.v===S[k]));
+  try{sessionStorage.setItem(PREF,JSON.stringify({range:S.range,platform:S.platform}));}catch(_){}}
+function showLogin(msg){$('app').hidden=true;$('login').hidden=false;$('loginErr').textContent=msg||'';$('pw').value='';setTimeout(()=>$('pw').focus(),0);}
+async function load(){const key=getKey();if(!key)return showLogin();const n=++S.busy;view();
+  $('state').className='';$('state').textContent='Cargando…';
+  let r,j=null;
+  try{r=await fetch('/api/admin/stats?range='+encodeURIComponent(S.range)+'&platform='+encodeURIComponent(S.platform),{headers:{'x-admin-key':key},cache:'no-store'});j=await r.json().catch(()=>null);}
+  catch(_){if(n===S.busy){$('app').hidden=false;$('login').hidden=true;$('state').className='bad';$('state').textContent='No se pudo conectar con el servidor. Prueba otra vez.';}return;}
+  if(n!==S.busy)return;
+  if(r.status===401){setKey('');return showLogin('Contraseña incorrecta.');}
+  if(r.status===429){setKey('');return showLogin((j&&j.error)||'Demasiados intentos. Espera unos minutos.');}
+  $('app').hidden=false;$('login').hidden=true;
+  if(!r.ok||!j||!j.summary){$('state').className='bad';$('state').textContent=r.status===503?'Falta configurar el servidor: '+((j&&j.error)||'')+' (variables SUPABASE_URL, SUPABASE_SECRET_KEY y ADMIN_PASSWORD en Netlify).':'Error del servidor ('+r.status+'): '+((j&&j.error)||'sin respuesta')+'.';return;}
+  S.data=j;$('state').textContent='';$('stamp').textContent='Actualizado '+when(j.at||Date.now());render(j);}
+$('login').addEventListener('submit',e=>{e.preventDefault();const k=$('pw').value;if(!k)return;setKey(k);$('loginErr').textContent='';load();});
+for(const [id,k] of [['range','range'],['plat','platform']])$(id).addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(!b||S[k]===b.dataset.v)return;S[k]=b.dataset.v;load();});
+$('reload').onclick=()=>load();
+$('logout').onclick=()=>{setKey('');S.data=null;$('out').innerHTML='';showLogin();};
+if(!['today','7d','30d','all'].includes(S.range))S.range='7d';if(!['all','pc','touch'].includes(S.platform))S.platform='all';
+getKey()?load():showLogin();
+</script>
+</body>
+</html>

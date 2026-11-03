@@ -1,5 +1,5 @@
 # GOLDENHEADS · HEADS Rescate Dorado — Netlify config
-# Netlify runs `npm run build` (Vite) and publishes dist/. The ranking function lives in netlify/functions.
+# Netlify runs `npm run build` (Vite) and publishes dist/. The functions (ranking, v81 metrics) live in netlify/functions.
 [build]
   command = "npm run build"
   publish = "dist"
@@ -27,3 +27,17 @@
   [headers.values]
     Cache-Control = "no-cache"
     Content-Type = "application/manifest+json"
+
+# v81: Santi's statistics page (public/admin.html) at /admin. Never indexed, never cached; it reads /api/admin/stats (netlify/functions/metrics.mts) with a password.
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[headers]]
+  for = "/admin*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Cache-Control = "no-cache"
+    Referrer-Policy = "no-referrer"
+    X-Frame-Options = "DENY"

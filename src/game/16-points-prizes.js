@@ -128,7 +128,7 @@ function tryWindup(s,dist,W,dt,hunting){if(CINE.on)return;
 function launchLeap(s){const W=waveDef(wave);
   const lead=s.hopTo?s.hopTo.clone():P.pos.clone().addScaledVector(P.vel,0.35).add(new THREE.Vector3().randomDirection().multiplyScalar(0.4));
   s.state='leap';s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed*(0.85+W.spd*0.15));s.t=0;s.leapMax=s.pos.distanceTo(P.pos)/s.vel.length()+1.5;
-  const n0=new THREE.Vector3();hullPoint(s.z,s.th,V3,n0);s.pos.addScaledVector(n0,0.5);sfx('leap',s.pos);
+  const n0=new THREE.Vector3();hullPoint(s.z,s.th,V3,n0);if(isCrabS(s)){s.leapN=n0.clone();s.pos.addScaledVector(n0,s.mesh.userData.rig.spd.rootOff*s.mesh.scale.x);}else s.pos.addScaledVector(n0,0.5);sfx('leap',s.pos);
   const u=s.mesh.userData;if(!u.rig){u.body.position.y=0;u.body.rotation.x=0;u.mEye.color.setHex(u.S.eye);}}
 const UP=new THREE.Vector3(0,1,0),M4=new THREE.Matrix4();
 function orient(obj,fwd,up){const r=new THREE.Vector3().crossVectors(up,fwd).normalize();const u=new THREE.Vector3().crossVectors(fwd,r).normalize();
@@ -160,7 +160,7 @@ function updateSpider(s,dt,t){
       const shrink=dist>W.range*0.8?0.15:(s.kind==='hunter'?THREE.MathUtils.clamp(dist/12,0.25,1):1);
       gz=tp.z+s.slotZ*shrink;gth=tp.th+off*shrink;
       if(s.kind==='spitter'){gz=tp.z+s.slotZ*0.35;gth=tp.th+s.slotTh*0.5;}} // the spitter crawls right up under you
-    {const pad=s.mesh.scale.x>1.3?2:1;s.pathT=(s.pathT||0)-dt;
+    {const pad=spPad(s);s.pathT=(s.pathT||0)-dt;
      if(s.pathT<=0){s.pathT=0.45+Math.random()*0.2;s.wp=hullLineFree(s.z,s.th,gz,gth,pad)?null:(hullPath(s.z,s.th,gz,gth,pad)||hullPath(s.z,s.th,gz,gth,0));}
      if(s.wp){if(Math.hypot(s.wp[0]-s.z,Math.atan2(Math.sin(s.wp[1]-s.th),Math.cos(s.wp[1]-s.th))*rr)<0.3)s.pathT=0;else{gz=s.wp[0];gth=s.wp[1];}}}
     let dth=Math.atan2(Math.sin(gth-s.th),Math.cos(gth-s.th));let mz=gz-s.z,mt=dth*rr;const ml=Math.hypot(mz,mt);
@@ -173,7 +173,7 @@ function updateSpider(s,dt,t){
     // a little skitter so they never move in lockstep
     mz+=Math.sin(t*3.1+s.orbit*40)*0.15;mt+=Math.cos(t*2.3+s.slotZ*7)*0.15;
     const step=CFG.crawlSpeed*W.spd*s.spd*dt*(s.loot>0?0.6:1)*(CINE.on?0.3:1); // loaded thieves are slower
-    {const pad=s.mesh.scale.x>1.3?2:1,nz=THREE.MathUtils.clamp(s.z+mz*step,-14.5,21.5),nt=s.th+mt*step/rr;
+    {const pad=spPad(s),nz=THREE.MathUtils.clamp(s.z+mz*step,-14.5,21.5),nt=s.th+mt*step/rr;
      if(!hullBlocked(nz,nt,pad)){s.z=nz;s.th=nt;}
      else if(!hullBlocked(nz,s.th,pad))s.z=nz;
      else if(!hullBlocked(s.z,nt,pad))s.th=nt;
@@ -184,7 +184,7 @@ function updateSpider(s,dt,t){
     s.mesh.position.copy(s.pos).addScaledVector(n,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=mv.lengthSq()>0;
     // watchdog: a crawler that has not really moved for 5 s skitters a couple of metres along its path
     s.stillP=s.stillP||s.pos.clone();if(s.pos.distanceTo(s.stillP)>0.6){s.stillP.copy(s.pos);s.stillT=0;}else s.stillT=(s.stillT||0)+dt;
-    if(s.stillT>5){s.stillT=0;const pad=s.mesh.scale.x>1.3?2:1,tp=hullParam(P.pos),w=hullPath(s.z,s.th,tp.z,tp.th,pad,12)||hullPath(s.z,s.th,tp.z,tp.th,0,12)||freeSpot(s.z,s.th,pad+1);s.z=w[0];s.th=w[1];s.pathT=0;s.aggro=Math.max(s.aggro||0,4);}
+    if(s.stillT>5){s.stillT=0;const pad=spPad(s),tp=hullParam(P.pos),w=hullPath(s.z,s.th,tp.z,tp.th,pad,12)||hullPath(s.z,s.th,tp.z,tp.th,0,12)||freeSpot(s.z,s.th,pad+1);s.z=w[0];s.th=w[1];s.pathT=0;s.aggro=Math.max(s.aggro||0,4);}
     if(!hunting&&s.patch&&!s.wp&&ml<0.45&&state==='play'){s.state='eat';s.t=0;if(s.kind==='spitter'&&!s.ateMsg){s.ateMsg=1;showMsg('¡LA ESCUPIDORA MUERDE LA NAVE!','Si no vas a por ella, abre agujeros enormes',2.6);}}
     if(s.kind==='spitter')spitterAim(s,dist);else if(s.kind!=='thief')tryWindup(s,dist,W,dt,hunting);
   }else if(s.state==='eat'){
@@ -219,8 +219,8 @@ function updateSpider(s,dt,t){
     if(wingRay(s.pos,V2.copy(s.vel).multiplyScalar(dt))>=0){s.vel.multiplyScalar(-0.35);if(s.state==='leap'){s.state='drift';s.t=0;}}
     s.pos.addScaledVector(s.vel,dt);s.mesh.position.copy(s.pos);
     if(s.kind!=='spitter'){const RK=rockAt(s.pos,0.15*s.mesh.scale.x);if(RK){landOnRock(s,RK);return;}}else pushOutOfRocks(s.pos,0.6*s.mesh.scale.x,s.vel);
-    if(s.vel.lengthSq()>0.01)orient(s.mesh,V2.copy(s.vel).normalize(),UP);
-    if(pushOutOfShip(s.pos,0.3,s.vel)&&!(s.state==='leap'&&s.t<0.6)){const hp=hullParam(s.pos);[s.z,s.th]=freeSpot(hp.z,hp.th,s.mesh.scale.x>1.3?2:1);s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);}
+    if(s.vel.lengthSq()>0.01&&!crabLeapOrient(s))orient(s.mesh,V2.copy(s.vel).normalize(),UP);
+    if(pushOutOfShip(s.pos,0.3,s.vel)&&!(s.state==='leap'&&s.t<0.6)){const hp=hullParam(s.pos);[s.z,s.th]=freeSpot(hp.z,hp.th,spPad(s));s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);}
   }else if(s.state==='perch'){ // walking out on a wing (opening scene); pounces at you once the game starts
     const q=s.perch,d=V2.set(q.dx,0,q.dz).normalize(),stp=0.75*dt;let nx=q.x+d.x*stp,nz=q.z+d.z*stp;
     if(wingTop(nx,nz)===null||Math.abs(nx)<4.4||Math.abs(nx)>7.3){q.dx=-q.dx;q.dz=-q.dz;nx=q.x;nz=q.z;}
@@ -233,11 +233,11 @@ function updateSpider(s,dt,t){
   }else if(s.state==='fall'){if(!(CINE.on&&CINE.mode==='boss'&&CINE.boss===s&&CINE.t<0.35))updateFall(s,dt);
   }else if(s.state==='return'){
     // no swimming in vacuum: shoot a silk line at the nearest walkable hull spot, then reel in along it (faster and faster)
-    if(!s.silk){const hp=hullParam(s.pos);[hp.z,hp.th]=freeSpot(hp.z,hp.th,s.mesh.scale.x>1.3?2:1);s.silk={a:hullPoint(hp.z,hp.th,new THREE.Vector3()),z:hp.z,th:hp.th,v:1.5,t:0};silkOn(s);sfx('silk',s.pos);}
-    const SK=s.silk;SK.t+=dt;const d=V3.subVectors(SK.a,s.pos),L=d.length();
+    if(!s.silk){const hp=hullParam(s.pos);[hp.z,hp.th]=freeSpot(hp.z,hp.th,spPad(s));s.silk={a:hullPoint(hp.z,hp.th,new THREE.Vector3()),z:hp.z,th:hp.th,v:1.5,t:0};silkOn(s);sfx('silk',s.pos);}
+    const SK=s.silk;SK.t+=dt;const d=V3.subVectors(SK.a,s.pos);if(isCrabS(s))crabReelAim(s,SK,d);const L=d.length();
     if(L<0.4){s.z=SK.z;s.th=SK.th;s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);s.slotTh+=THREE.MathUtils.randFloatSpread(1.5);s.silk=null;}
     else{if(SK.t>0.16)SK.v=Math.min(s.kind==='spitter'?14:19,SK.v+(s.kind==='spitter'?11:17)*dt);else SK.v*=Math.exp(-3*dt);
-      s.pos.addScaledVector(d.normalize(),Math.min(L,SK.v*dt));s.mesh.position.copy(s.pos);orient(s.mesh,d,UP);
+      s.pos.addScaledVector(d.normalize(),Math.min(L,SK.v*dt));s.mesh.position.copy(s.pos);if(!crabReelOrient(s,SK,d,dt))orient(s.mesh,d,UP);
       if(s.kind!=='spitter'&&!(s.t<0.5)){const RK=rockAt(s.pos,0.15*s.mesh.scale.x);if(RK){s.silk=null;landOnRock(s,RK);}}}
   }else if(s.state==='rock'){ // clinging to an asteroid: crawls round to the side facing you, crouches and pounces again
     const RK=s.rock,want=V2.subVectors(P.pos,RK.c).normalize(),prev=V3.copy(s.rd),ang=s.rd.angleTo(want);

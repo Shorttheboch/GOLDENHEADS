@@ -5,6 +5,11 @@
   "file": "game"
  },
  {
+  "a": "const isCrabS=s=>",
+  "b": "window.__spPad=s=>spPad(s);window.__crabFix=CRAB_FIX;const isCrabS=s=>",
+  "file": "game"
+ },
+ {
   "a": "const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;",
   "b": "const rdt=window.__dt?(clock.getDelta(),window.__dt):Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;",
   "file": "game"

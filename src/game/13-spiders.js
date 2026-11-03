@@ -209,7 +209,7 @@ function remapCrabSkin(root){let n=0;
 const _uc=new THREE.Vector3(),_un=new THREE.Vector3();
 function unclipLeg(p,m){for(let i=1;i<=5;i++){const q=p[i];if(q.z<-14.6||q.z>21.6)continue;const hp=hullParam(q);hullPoint(hp.z,hp.th,_uc,_un);
     const d=_uc.subVectors(q,_uc).dot(_un);if(d<m)q.addScaledVector(_un,m-d);}}
-function solveLeg(R,L,T,ground){const p=L.p;solveLeg0(R,L,T,ground);if(R.sc&&!_rockS)unclipLeg(p,0.035*R.sc);}
+function solveLeg(R,L,T,ground){const p=L.p;if(R.crab&&!R.wasAir&&!_rockS)T=crabFoot(T,R.sc);solveLeg0(R,L,T,ground);if(R.sc&&!_rockS)unclipLeg(p,0.035*R.sc);}
 function solveLeg0(R,L,T,ground){const p=L.p;
   if(!R.crab&&!ground){sFabrik(p,L.len,T);return;} // raised / reaching legs keep the free FABRIK motion
   if(!R.crab){ // spider: knees lifted high, the claw segment hangs down onto the foothold so it never digs into the hull
@@ -257,12 +257,15 @@ function animSpider(s,dt,t){
     let lift=0,sway=0;for(const L of R.legs)if(L.step){const w=Math.sin(Math.PI*Math.min(1,L.st));lift+=w/4;sway+=L.side*w/4;}
     tH-=0.03*lift*mv;tY+=0.06*sway*mv;tR-=0.04*sway*mv;
     tP+=THREE.MathUtils.clamp(-R.al.z*0.012,-0.12,0.12);tR+=THREE.MathUtils.clamp(R.al.x*0.01-R.yaw*0.03,-0.15,0.15);}
+  if(R.crab&&!air)tH+=crabHAdj(R,g,upW,sc);
   if(s.state==='eat'){const c=t*8.5+ph;tH-=0.11;tP+=0.34+0.1*Math.sin(c);tR+=0.07*Math.sin(c*0.5);tF+=0.06+0.05*Math.sin(c);}
   else if(s.state==='windup'){tH-=0.13*k;tF-=0.15*k;tP-=0.4*k;tH+=Math.sin(t*61)*0.012*k;tR+=Math.sin(t*53)*0.03*k;}
   else if(s.state==='leap'){tP-=0.25;}
   else if(s.state==='drift'){tP+=Math.sin(t*9+ph)*0.35;tR+=Math.cos(t*7+ph)*0.4;}
   else if(s.state==='fall'){tH+=0.05;}
   else if(air){tP+=0.12+Math.sin(t*6+ph)*0.08;}
+  if(R.crab&&s.state==='windup'){tP+=0.4*k*(1-CRAB_FIX.wp);tH+=0.13*k*(1-CRAB_FIX.wh);} // v78: el cangrejo no clava la cabeza en el casco al agacharse (el resto de arañas conserva -0.4 y -0.13)
+  if(R.crab&&s.state==='eat'){tP-=0.34*(1-CRAB_FIX.ep);tH+=0.11*(1-CRAB_FIX.eh);} // v78: ni el abdomen al comer (+0.34 y -0.11 en el resto)
   if(s.idleT>0&&s.state==='windup'){const q=Math.min(1,k*1.5);tH=0.1*q+0.012*Math.sin(t*11);tP=-0.17*q+0.04*Math.sin(t*2.6);tR=0.07*Math.sin(t*1.7)*q;tY=0.2*Math.sin(t*1.25)*q;tF=-0.04*q;}
   const lam=s.state==='windup'||s.state==='leap'?18:9,bd=R.bd;
   const hPrev=bd.h;bd.h=sdamp(bd.h,tH,lam,dt);bd.hv=sdamp(bd.hv,(bd.h-hPrev)/dt,12,dt);
@@ -304,6 +307,7 @@ function animSpider(s,dt,t){
   // ---------- legs
   for(const L of R.legs)for(let i=0;i<5;i++)L.bs[i].quaternion.copy(L.q0[i]);
   g.updateMatrixWorld(true);
+  if(R.crab)crabClear(s,R,g,dt);
   const thr=(spd>0.2?0.36:0.13)*sc,lead=0.13;
   let stA=0,stB=0;for(const L of R.legs)if(L.step){if(L.A)stA++;else stB++;}
   for(const L of R.legs){

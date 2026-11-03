@@ -157,16 +157,19 @@
   </div>
 </div>
 <div class="screen" id="end" hidden>
-  <div id="endBox">
-    <div id="endHead"><div id="endT"></div><div id="endS"><span></span></div></div>
-    <div class="eLbl"><span>PUNTUACIÓN</span></div>
-    <div id="bigScore"></div>
-    <div id="endRound"></div>
-    <div id="endPanel"><div id="endStats"></div></div>
-    <div id="record"></div>
-    <div id="rankBox" hidden><!-- v82: Season 1 board (26-ranking.js) and the Google account (40-cuentas.js, look: src/styles/11-cuentas.css) -->
-      <div id="rankH">RANKING DE CAPITANES · TEMPORADA 1</div>
+  <div id="endBox"><!-- v82: two columns while the ranking is on (#endBox.rk): the run on the left, Santi's framed ranking panel on the right, REINTENTAR under both -->
+    <div id="endRun">
+      <div id="endHead"><div id="endT"></div><div id="endS"><span></span></div></div>
+      <div class="eLbl"><span>PUNTUACIÓN</span></div>
+      <div id="bigScore"></div>
+      <div id="endRound"></div>
+      <div id="endPanel"><div id="endStats"></div></div>
+      <div id="record"></div>
+    </div>
+    <div id="rankBox" hidden><!-- v82: Season 1 top 5 (26-ranking.js) and the Google account (40-cuentas.js, look: src/styles/11-cuentas.css) -->
+      <div id="rankH">RANKING DE CAPITANES</div><div id="rankS"><span>TEMPORADA 1</span></div>
       <div id="rankMsg" aria-live="polite"></div><ol id="rankList" data-noi18n></ol>
+      <button id="rankAll" type="button">VER RANKING COMPLETO</button>
       <button id="saveBtn" type="button" hidden><i class="sbL"></i><span class="sbT"><b>GUARDAR MI PUNTUACIÓN</b><small>con Google</small></span><i class="sbL r"></i></button>
       <div id="acctBar" hidden><span class="abMe" hidden><span class="abCap">CAPITÁN</span> <b id="acctNick" data-noi18n></b></span><button type="button" id="acctOut" hidden>Salir</button><button type="button" id="acctDel" hidden>Borrar mi cuenta</button><a id="acctPriv" data-priv="priv" href="privacidad/" target="_blank" rel="noopener">Privacidad</a></div></div>
     <button id="again" type="button"><b>REINTENTAR</b><small>ENTER</small></button>

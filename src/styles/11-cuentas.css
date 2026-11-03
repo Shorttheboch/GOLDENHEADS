@@ -1,15 +1,74 @@
 /* v82: Google accounts. Markup: index.html (#rankBox inside the end plate, #acct over everything) · logic: src/game/40-cuentas.js.
    Look of Santi's end plate (v44): gold 3D Tektur titles, his frame (9-slice) and his gold button, red for what cannot be undone, cyan lights. */
 
-/* ---------- on the end plate (inside #end: --u and --ef come from there) ---------- */
+/* ---------- the end plate (inside #end: --u and --ef come from there) ----------
+   While the ranking is on (#endBox.rk, 26-ranking.js), two columns: the run on the left (#endRun: title, score, stats, record) and the Season 1
+   panel on the right (#rankBox: Santi's frame, top 5 always filled, VER RANKING COMPLETO, GUARDAR MI PUNTUACIÓN, the account line);
+   REINTENTAR stays the main action, centred under both. Without the ranking (?ronda=N, ranking down) it is the one column of v44.
+   Widths: 104 + 4 + 62 = 170 units, the most a 16:9 window holds (fitEndPlate scales the rest). */
+#endBox.rk{display:grid;grid-template-columns:calc(var(--u)*104) auto;grid-template-areas:"run rank" "again again";column-gap:calc(var(--u)*4);
+  align-items:center;justify-items:center;width:auto}
+#endBox.rk>#endRun{grid-area:run;width:calc(var(--u)*104)}
+#endBox.rk>#rankBox{grid-area:rank}
+#endBox.rk>#again{grid-area:again;margin-top:calc(var(--u)*3.2)}
+#endBox.rk #endS{letter-spacing:.3em}#endBox.rk #endS span{margin-right:-.3em} /* the longest subtitle stays inside its column */
+#endBox.rk #record{margin-top:calc(var(--u)*1.5)}
+/* the panel: Santi's frame (the stats panel's art, set by 28-load.js), gold title with SEASON 1 between two lines */
+#rankBox{position:relative;box-sizing:border-box;width:calc(var(--u)*62);padding:calc(var(--u)*3.3) calc(var(--u)*4) calc(var(--u)*3.2);
+  font:600 calc(var(--u)*1.9)/1.15 var(--ef);color:#efe6d2;text-align:center}
+#rankBox[hidden]{display:none}
+#rankBox::before{content:'';position:absolute;inset:0;z-index:0;border-style:solid;border-width:calc(var(--u)*7.1) calc(var(--u)*3.95) calc(var(--u)*6.7);
+  border-image:var(--end-frame) 130 72 122 fill / calc(var(--u)*7.1) calc(var(--u)*3.95) calc(var(--u)*6.7) stretch;filter:drop-shadow(0 6px 18px rgba(0,0,0,.6))}
+#rankBox>*{position:relative;z-index:1}
+#end.go #rankBox{animation:eRise .45s 1.3s ease-out both}
+#end.go #rankBox::before{animation:eOpen .42s 1.3s cubic-bezier(.2,1,.3,1) both}
+#rankH{font:800 calc(var(--u)*2.05)/1 var(--ef);letter-spacing:.24em;margin-right:-.24em;white-space:nowrap;
+  background:linear-gradient(180deg,#fff2b8,#ffd04a 50%,#e39a14);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 6px rgba(255,180,40,.4))}
+#rankS{display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*1.2);margin:calc(var(--u)*.8) 0 calc(var(--u)*1);font:800 calc(var(--u)*1.3)/1 var(--ef);letter-spacing:.42em;color:#9fdcff;
+  text-shadow:0 0 8px rgba(80,200,255,.55);white-space:nowrap}
+#rankS span{margin-right:-.42em}
+#rankS::before,#rankS::after{content:'';width:calc(var(--u)*5);height:1px;background:linear-gradient(90deg,rgba(150,220,255,0),rgba(150,220,255,.7))}
+#rankS::after{transform:scaleX(-1)}
+#rankMsg{min-height:0;margin:0 0 calc(var(--u)*.9);font:600 calc(var(--u)*1.55)/1.25 var(--ef);letter-spacing:.08em;color:rgba(239,230,210,.78)}
+#rankMsg:empty{display:none}
 #rankMsg span{display:block}
-#rankMsg span+span{margin-top:calc(var(--u)*.5)}
+#rankMsg span+span{margin-top:calc(var(--u)*.35)}
 #rankMsg.new span:first-child{font-weight:800;letter-spacing:.24em;color:#ffd659;text-shadow:0 0 10px rgba(255,190,40,.8);animation:eGlow 1.2s ease-in-out infinite alternate}
 #rankMsg .rkRetry{margin-top:calc(var(--u)*.7);font:800 calc(var(--u)*1.5)/1 var(--ef);letter-spacing:.2em;color:#1a1206;background:linear-gradient(#ffd659,#c9932e);border:0;border-radius:0;
   padding:calc(var(--u)*.7) calc(var(--u)*1.8);cursor:pointer;touch-action:manipulation}
+/* the top 5: always five lines (empty places wait for a captain, the first says «¡Sé el primero!»); a guest's unsaved score shows where it would enter */
+#rankList,.rkList{list-style:none;margin:0;padding:0}
+#rankList li,.rkList li{display:grid;grid-template-columns:2.3em minmax(0,1fr) auto 5.6em;gap:.55em;align-items:baseline;padding:.36em .7em;text-align:left}
+#rankList li:nth-child(odd),.rkList li:nth-child(odd){background:rgba(255,255,255,.04)}
+#rankList i,#rankList em,.rkList i,.rkList em{font-style:normal;color:rgba(239,230,210,.55)}
+#rankList em,.rkList em{font-size:.82em}
+#rankList span,.rkList span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.06em}
+#rankList b,.rkList b{text-align:right;font-variant-numeric:tabular-nums;color:#fff1c8}
+#rankList i{text-align:center}
+#rankList li:nth-child(-n+3):not(.ph):not(.gap) i{color:#ffd659;font-weight:800} /* the podium */
+#rankList li.me,.rkList li.me{background:rgba(232,182,74,.2);box-shadow:inset 0 0 0 1px rgba(255,214,89,.35)}
+#rankList li.me span,#rankList li.me b,.rkList li.me span,.rkList li.me b{color:#ffd659}
+#rankList li.gap,.rkList li.gap{display:block;text-align:center;background:none;box-shadow:none;padding:0;line-height:1;color:rgba(239,230,210,.5)}
+#rankList li.ph span,#rankList li.ph b{color:rgba(239,230,210,.28)}
+#rankList li.ph i{color:rgba(239,230,210,.3)}
+#rankList li.ph.first span{color:#9fdcff;letter-spacing:.08em;text-shadow:0 0 6px rgba(80,200,255,.45);overflow:visible}
+#rankList li.load span,#rankList li.load b{animation:rkLoad 1s ease-in-out infinite alternate}
+@keyframes rkLoad{from{opacity:.35}to{opacity:1}}
+#rankList li.ghost{background:repeating-linear-gradient(135deg,rgba(255,214,89,.1) 0 6px,rgba(255,214,89,.03) 6px 12px);box-shadow:inset 0 0 0 1px rgba(255,214,89,.55);animation:rkGhost 1.4s ease-in-out infinite alternate}
+#rankList li.ghost i,#rankList li.ghost span,#rankList li.ghost b,#rankList li.ghost em{color:#ffe08a}
+#rankList li.ghost span small{margin-left:.6em;font-size:.72em;letter-spacing:.14em;color:#9fdcff}
+@keyframes rkGhost{from{box-shadow:inset 0 0 0 1px rgba(255,214,89,.35)}to{box-shadow:inset 0 0 0 1px rgba(255,214,89,.85),0 0 10px rgba(255,190,50,.25)}}
+/* VER RANKING COMPLETO */
+#rankAll{display:inline-flex;align-items:center;gap:.55em;margin:calc(var(--u)*1) auto 0;padding:calc(var(--u)*.55) calc(var(--u)*1.4);border:1px solid rgba(127,211,234,.45);border-radius:0;background:rgba(10,20,28,.45);
+  font:800 calc(var(--u)*1.35)/1 var(--ef);letter-spacing:.2em;color:#bfe9ff;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+#rankAll::after{content:'›';font-size:1.35em;line-height:.6;letter-spacing:0}
+#rankAll:hover,#rankAll:focus-visible{outline:none;color:#fff;border-color:#7fd3ea;box-shadow:0 0 10px rgba(80,200,255,.45)}
+#rankAll[hidden]{display:none}
+body.touch #rankAll{position:relative}
+body.touch #rankAll::before{content:'';position:absolute;left:-4px;right:-4px;top:50%;height:max(100%,36px);transform:translateY(-50%)} /* bigger to touch, same look */
 /* GUARDAR MI PUNTUACIÓN · con Google: a dark plate with a gold rim, cut like the REINTENTAR plate, cyan lights at the ends */
 #saveBtn{--c:calc(var(--u)*3.3);position:relative;display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*1.7);box-sizing:border-box;
-  width:calc(var(--u)*50);height:calc(var(--u)*8.6);margin:calc(var(--u)*1.3) auto calc(var(--u)*.3);padding:0 var(--c);border:0;background:none;cursor:pointer;
+  width:calc(var(--u)*52);height:calc(var(--u)*9);margin:calc(var(--u)*1.5) auto 0;padding:0 var(--c);border:0;background:none;cursor:pointer;
   font-family:var(--ef);color:#ffe08a;outline:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;animation:sbIn .45s cubic-bezier(.2,1.3,.4,1) both}
 #saveBtn[hidden]{display:none}
 #saveBtn::before,#saveBtn::after{content:'';position:absolute;clip-path:polygon(var(--c) 0,calc(100% - var(--c)) 0,100% 50%,calc(100% - var(--c)) 100%,var(--c) 100%,0 50%);transition:filter .15s}
@@ -17,7 +76,7 @@
 #saveBtn::after{inset:max(2px,calc(var(--u)*.34));background:linear-gradient(180deg,#2a1d0a 0%,#120c05 55%,#0a0704 100%);box-shadow:inset 0 0 calc(var(--u)*1.2) rgba(255,180,50,.25)}
 #saveBtn>*{position:relative;z-index:1}
 .sbT{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*.55);white-space:nowrap}
-.sbT b{font-size:calc(var(--u)*2.25);font-weight:800;letter-spacing:.14em;margin-right:-.14em;line-height:1;
+.sbT b{font-size:calc(var(--u)*2.3);font-weight:800;letter-spacing:.14em;margin-right:-.14em;line-height:1;
   background:linear-gradient(180deg,#fff6c8,#ffd34a 55%,#e9a41a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 6px rgba(255,190,50,.45))}
 .sbT small{display:flex;align-items:center;gap:calc(var(--u)*.8);font-size:calc(var(--u)*1.3);font-weight:700;letter-spacing:.34em;margin-right:-.34em;line-height:1;color:#bfe9ff;text-shadow:0 0 6px rgba(80,200,255,.6)}
 .sbT small::before,.sbT small::after{content:'';width:calc(var(--u)*2.6);height:1px;background:rgba(150,220,255,.55)}
@@ -32,9 +91,8 @@
 @keyframes sbIn{from{opacity:0;transform:translateY(calc(var(--u)*1.5)) scale(.94)}to{opacity:1;transform:none}}
 @keyframes sbGlow{from{filter:drop-shadow(0 0 3px rgba(255,190,60,.25))}to{filter:drop-shadow(0 0 12px rgba(255,200,80,.6))}}
 @keyframes sbBlink{50%{opacity:.25}}
-#rankBox:not([hidden]){padding-bottom:calc(var(--u)*2.6)} /* REINTENTAR's art reaches 3.5u above its box: keep the last line clear of it */
 /* CAPITÁN {APODO} · Salir · Borrar mi cuenta · Privacidad */
-#acctBar{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:calc(var(--u)*.4) calc(var(--u)*1.1);margin-top:calc(var(--u)*1.1);
+#acctBar{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:calc(var(--u)*.4) calc(var(--u)*1.1);margin-top:calc(var(--u)*1.2);
   font:600 calc(var(--u)*1.45)/1.2 'TitilliumH','Titillium Web',var(--ef);letter-spacing:.06em;color:rgba(239,230,210,.62)}
 #acctBar[hidden],#acctBar [hidden]{display:none}
 #acctBar>:not([hidden])~:not([hidden])::before{content:'·';margin-right:calc(var(--u)*1.1);color:rgba(232,182,74,.6);text-decoration:none;display:inline-block}
@@ -45,24 +103,8 @@
 #acctDel{color:rgba(255,140,120,.85)!important;text-decoration-color:rgba(255,90,70,.5)!important}
 body.touch #acctBar button,body.touch #acctBar a{position:relative}
 body.touch #acctBar button::after,body.touch #acctBar a::after{content:'';position:absolute;left:-6px;right:-6px;top:50%;height:max(100%,34px);transform:translateY(-50%)} /* bigger to touch, same look */
-.rkList{list-style:none;margin:0;padding:0}
-.rkList li{display:grid;grid-template-columns:2.2em 1fr auto 5.5em;gap:.6em;align-items:baseline;padding:.28em .7em}
-.rkList li:nth-child(odd){background:rgba(255,255,255,.035)}
-.rkList i,.rkList em{font-style:normal;color:rgba(239,230,210,.55)}.rkList em{font-size:.85em}
-.rkList span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.06em;text-align:left}
-.rkList b{text-align:right;font-variant-numeric:tabular-nums;color:#fff1c8}
-.rkList li.me{background:rgba(232,182,74,.18)}.rkList li.me span,.rkList li.me b{color:#ffd659}
-.rkList li.gap{display:block;text-align:center;background:none;padding:0;line-height:1;color:rgba(239,230,210,.5)}
-
-/* phones in landscape (and any short, wide window): the plate is a narrow column with empty sides, so the ranking box goes to a second column
-   on the right, a quarter bigger. Only while the box is shown (a ?ronda=N game or the ranking down keep the one column of v44). */
-@media (max-height:520px) and (min-aspect-ratio:17/10){
-  #endBox:has(>#rankBox:not([hidden])){display:grid;grid-template-columns:calc(var(--u)*120) auto;column-gap:calc(var(--u)*4);justify-items:center;align-items:start;width:auto}
-  #endBox:has(>#rankBox:not([hidden]))>*{grid-column:1}
-  #endBox>#rankBox:not([hidden]){--u:calc(min(1vh,.5625vw)*1.28);grid-column:2;grid-row:1 / span 8;align-self:center;width:calc(var(--u)*58);margin-top:0;
-    padding:calc(var(--u)*1.6) calc(var(--u)*1.4);box-sizing:content-box;  /* a soft dark glass behind it: it sits over the 3D scene, away from the plate's own shade */
-    background:radial-gradient(ellipse 75% 70% at 50% 50%,rgba(4,3,10,.62),rgba(4,3,10,.42) 70%,rgba(4,3,10,0));border-radius:calc(var(--u)*2)}
-}
+/* phones in landscape (and any short window): the panel a little bigger, so its small print stays readable (the plate has room on the sides) */
+@media (max-height:520px){#endBox.rk>#rankBox{--u:calc(min(1vh,.5625vw)*1.12)}}
 
 /* ---------- the account screens (#acct), over the menu or the end plate ---------- */
 #acct{--ef:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;--fb:'TitilliumH','Titillium Web','Segoe UI',system-ui,sans-serif;position:fixed;inset:0;z-index:55;box-sizing:border-box;

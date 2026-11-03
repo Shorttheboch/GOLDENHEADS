@@ -1,8 +1,9 @@
 // ---- online ranking, Season 1 (v82: Google accounts; server netlify/functions/ranking.mts -> Supabase, supabase/v82-cuentas.sql) ----
 // Every run gets a signed token from the server (rankStart in reset). At game over (rankShow, from endGame) the run is kept in RANK.pending and,
 // while the ranking is on, the end plate's panel gets a second framed slide: the Season 1 ranking (#rankBox), after the run's stats.
-// The whole frames swap sideways with a blur (ENDV, endSwap below): tabs «TU PARTIDA · RANKING», gold chevrons ‹ ›, ←/→ on PC, a swipe on touch, and by itself
-// 5 s after the stats table has come in (a gold line under RANKING fills; hovering or touching the stats pauses it; any manual swap cancels it).
+// The whole frames swap sideways with a blur (ENDV, endSwap below): tabs «TU PARTIDA · RANKING» (a click, or on PC the mouse resting on one),
+// gold chevrons ‹ ›, ←/→ on PC, a swipe on touch, and by itself 3.5 s after the stats table has come in (a gold line under RANKING fills; hovering
+// or touching the stats pauses it; any manual swap cancels it).
 // 40-cuentas.js fills the ranking slide (accEnd):
 //   signed in  -> the run is saved at once under the player's nickname: ¡NUEVO RÉCORD! or the season best, the place, the top 5 with my line,
 //                 VER RANKING COMPLETO and «CAPITÁN {APODO}» with Salir / Borrar mi cuenta (no full screen every game)
@@ -37,8 +38,8 @@ function rankShow(total,st){$('rankMsg').textContent='';$('saveBtn').hidden=true
   rankLoading();fitEndPlate();endAuto();
   accEnd();} // 40-cuentas.js
 /* ---------- the panel's two slides (ENDV): 0 = the run's stats, 1 = the ranking ---------- */
-const ENDV={on:false,i:0,auto:false,left:0,t0:0,raf:0,startT:0,hover:false,touchT:0,seen:false,down:null};
-const END_WAIT=5000; // the stats stay this long once their table has come in (2 s was too short to read them all)
+const ENDV={on:false,i:0,auto:false,left:0,t0:0,raf:0,startT:0,hover:false,touchT:0,seen:false,down:null,hovI:null,hovT:0};
+const END_WAIT=3500; // the stats stay this long once their table has come in (Santi: 3.5 s)
 function endTabs(on){ENDV.on=on;ENDV.seen=false;$('endBox').classList.toggle('rk',on);$('endTabs').hidden=!on;$('rankBox').hidden=!on;endStop();endSlide(0,'now');}
 // show slide i: 'auto' (the countdown), 'manual' (tabs, chevrons, keys, swipe: the countdown is off for this plate) or 'now' (no animation)
 function endSlide(i,how){if(!ENDV.on)i=0;const prev=ENDV.i;ENDV.i=i;if(i===1)ENDV.seen=true;if(how==='manual'||i===1)endStop();
@@ -88,6 +89,16 @@ function endProg(p){$('endTab1').querySelector('.prog i').style.setProperty('--p
 function endStop(){ENDV.auto=false;cancelAnimationFrame(ENDV.raf);const g=$('endTab1').querySelector('.prog');if(g)g.hidden=true;}
 $('endTab0').addEventListener('click',e=>{e.stopPropagation();endSlide(0,'manual');});
 $('endTab1').addEventListener('click',e=>{e.stopPropagation();endSlide(1,'manual');});
+// PC: the mouse resting on a tab swaps to it (no click needed) after a short hover intent, so crossing the tabs on the way to REINTENTAR does
+// nothing; the tab already shown does nothing; during a swap it waits for the swap to end (never two at once). It counts as a manual swap.
+const END_HOVER=140;
+function endHover(i){clearTimeout(ENDV.hovT);ENDV.hovT=setTimeout(function go(){
+    if(ENDV.hovI!==i||!ENDV.on||$('end').hidden||state!=='dead'||document.body.classList.contains('acctOn'))return;
+    if(ENDX.b){ENDV.hovT=setTimeout(go,60);return;}
+    if(ENDV.i!==i)endSlide(i,'manual');},END_HOVER);}
+for(const [id,i] of [['endTab0',0],['endTab1',1]]){const t=$(id);
+  t.addEventListener('pointerenter',e=>{if(e.pointerType!=='mouse')return;ENDV.hovI=i;endHover(i);});
+  t.addEventListener('pointerleave',e=>{if(e.pointerType!=='mouse')return;if(ENDV.hovI===i){ENDV.hovI=null;clearTimeout(ENDV.hovT);}});}
 $('endPrev').addEventListener('click',e=>{e.stopPropagation();endSlide(0,'manual');});
 $('endNext').addEventListener('click',e=>{e.stopPropagation();endSlide(1,'manual');});
 {const pn=$('endPanel');

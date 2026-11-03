@@ -11,8 +11,9 @@
 //    tabs and chevrons answering where they are drawn, REINTENTAR clear; the ranking slide: five lines (waiting / first / ghost as the state says),
 //    every text inside, GUARDAR MI PUNTUACIÓN and VER RANKING COMPLETO answering; phones: list letters >= 8 px, the button >= 30 px tall;
 //    ←/→ (PC) or a swipe (phone) go back and forth; VER RANKING COMPLETO opens the full list (and SEGUIR closes it)
-// 2) the swap by itself: not before the stats table is in + 5 s, the gold line under RANKING filling meanwhile, then the ranking; the mouse over the
+// 2) the swap by itself: not before the stats table is in + 3.5 s, the gold line under RANKING filling meanwhile, then the ranking; the mouse over the
 //    panel (PC) or a finger on it (phone) holds it; a manual swap cancels it for the plate; nothing at all without the ranking.
+//    PC: the mouse resting on a tab swaps to it after ~140 ms (a 50 ms pass does nothing, the tab shown does nothing, during a swap it waits for it).
 //    The swap itself: frame times during four swaps against the plate standing still; caught half way (animations paused): the stats frame on its
 //    way out left, the ranking frame coming in, both half seen, the sideways SVG blur on PC / a light CSS blur on touch, the tabs and chevrons where
 //    they were; at the end nothing left (no blur, no transform); reduced motion: a plain crossfade
@@ -75,7 +76,8 @@ const layout=(p,which)=>p.evaluate(which=>{const g=id=>document.getElementById(i
   const out={W,H,scale,tabsOn,box:R(box),pan,fr,inside:inside(R(box))&&inside(ag)&&inside(pan),centre:Math.abs((R(box).l+R(box).r)/2-W/2),
     clipped:vis.filter(e=>{const r=R(e);return r.l<tr.l-1||r.r>tr.r+1||r.t<tr.t-1||r.b>tr.b+1;}).map(e=>e.id||e.tagName+':'+e.textContent.slice(0,16)),
     textOut:vis.filter(e=>{const r=rng(e),pr=R(e.closest('li')||e);return r.r>Math.max(pr.r,tr.r)+1||r.l<Math.min(pr.l,tr.l)-1;}).map(e=>e.id||e.textContent.slice(0,16)),
-    againOver:over(ag,pan)||over(ag,R(g('record'))),againHit:hit(g('again')),panelOverRecord:over(pan,R(g('record'))),tabsOverRound:tabsOn&&over(R(g('endTabs')),R(g('endRound'))),
+    againOver:over(ag,pan)||over(ag,R(g('record'))),againHit:hit(g('again')),panelOverRecord:over(pan,R(g('record'))),tabsOverRound:tabsOn&&over(R(g('endTabs')),R(g('endRound'))),tabsOverPanel:tabsOn&&over(R(g('endTabs')),pan),
+    tabFont:parseFloat(getComputedStyle(g('endTabs')).fontSize)*scale,roundFont:parseFloat(getComputedStyle(g('endRound')).fontSize)*scale,
     chevIn:[g('endPrev'),g('endNext')].filter(e=>!e.hidden).every(e=>inside(R(e))&&hit(e)&&+getComputedStyle(e).opacity>0.9),chev:[!g('endPrev').hidden,!g('endNext').hidden],
     tabsHit:tabsOn?[hit(g('endTab0')),hit(g('endTab1'))]:null,curVis:getComputedStyle(cur).visibility==='visible'&&!cur.inert,
     other:(which===1?g('endSlide0'):g('rankBox')).inert};
@@ -115,6 +117,7 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
       if(phone)ok(A.statFont>=7.5,T+' phone: stats letters '+A.statFont.toFixed(1)+' px');
       if(shots)await p.screenshot({path:shot(`cartel_${w}x${h}_${lang}_${st}_stats.png`),timeout:240000});
       if(st==='down'){ok(!A.tabsOn&&!A.chev[0]&&!A.chev[1],T+' ranking down: v44, no tabs, no chevrons',A);continue;}
+      ok(A.tabFont>=A.roundFont*0.97&&!A.tabsOverPanel,T+' TU PARTIDA · RANKING at least as big as the RONDA line ('+A.tabFont.toFixed(1)+' / '+A.roundFont.toFixed(1)+' px), clear of the frame',A);
       ok(A.tabsOn&&A.tabsHit.every(Boolean)&&A.chev[1]&&!A.chev[0]&&A.chevIn&&A.curVis&&A.other,T+' tabs and the › chevron answering, the ranking slide asleep',A);
       await swapTo(p,1,phone,st==='full'?'click':phone?'swipe':'key');
       ok(await slide(p)===1,T+' → the ranking ('+(st==='full'?'chevron':phone?'swipe':'→')+')');
@@ -156,27 +159,45 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
     // when the table is in: 1.45 s + 55 ms a row (10 rows) + 0.35 s
     const tIn=1450+9*55+350;
     const at=async ms=>{const now=await p.evaluate(()=>performance.now());if(t0+ms>now)await p.waitForTimeout(t0+ms-now);};
-    await at(tIn+2500);let s1=await p.evaluate(()=>({i:document.getElementById('endTab1').getAttribute('aria-selected'),p:+getComputedStyle(document.querySelector('#endTab1 .prog i')).getPropertyValue('--p'),vis:!document.querySelector('#endTab1 .prog').hidden}));
-    ok(s1.i==='false'&&s1.vis&&s1.p>0.35&&s1.p<0.65,tag+': half way (table in + 2.5 s): still the stats, the gold line about half full ('+s1.p.toFixed(2)+')',s1);
+    await at(tIn+1750);let s1=await p.evaluate(()=>({i:document.getElementById('endTab1').getAttribute('aria-selected'),p:+getComputedStyle(document.querySelector('#endTab1 .prog i')).getPropertyValue('--p'),vis:!document.querySelector('#endTab1 .prog').hidden}));
+    ok(s1.i==='false'&&s1.vis&&s1.p>0.35&&s1.p<0.65,tag+': half way (table in + 1.75 s): still the stats, the gold line about half full ('+s1.p.toFixed(2)+')',s1);
     await p.screenshot({path:shot(`cartel_timing_${w}x${h}_${lang}.png`),timeout:240000});
-    await at(tIn+4500);ok(await slide(p)===0,tag+': table in + 4.5 s: still the stats');
-    await at(tIn+5700);ok(await slide(p)===1,tag+': table in + 5.7 s: the ranking came by itself');
+    await at(tIn+3100);ok(await slide(p)===0,tag+': table in + 3.1 s: still the stats');
+    await at(tIn+4200);ok(await slide(p)===1,tag+': table in + 4.2 s: the ranking came by itself (3.5 s)');
     ok(await p.evaluate(()=>document.querySelector('#endTab1 .prog').hidden),tag+': the gold line goes away');
     // hold: the mouse over the panel / a finger on it
     t0=await finish(p,4321);
-    if(phone){await at(tIn+2000);const c=await p.evaluate(()=>{const e=document.getElementById('endPanel').getBoundingClientRect();return [e.left+e.width/2,e.top+e.height/2];});
+    if(phone){await at(tIn+1000);const c=await p.evaluate(()=>{const e=document.getElementById('endPanel').getBoundingClientRect();return [e.left+e.width/2,e.top+e.height/2];});
       const cdp=await p.context().newCDPSession(p);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:c[0],y:c[1]}]});
-      await at(tIn+7000);ok(await slide(p)===0,tag+': a finger on the panel holds the swap');
+      await at(tIn+6000);ok(await slide(p)===0,tag+': a finger on the panel holds the swap');
       await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();
       await p.waitForTimeout(1500);ok(await slide(p)===0,tag+': ... and for a moment after it lifts');
-      await p.waitForTimeout(5000);ok(await slide(p)===1,tag+': then the countdown goes on and the ranking comes');}
-    else{await at(tIn+2000);await p.hover('#endStats');await at(tIn+8000);ok(await slide(p)===0,tag+': the mouse over the stats holds the swap');
-      await p.mouse.move(5,5);await p.waitForTimeout(3600);ok(await slide(p)===1,tag+': the mouse leaves: the rest of the countdown, then the ranking');}
+      await p.waitForTimeout(4000);ok(await slide(p)===1,tag+': then the countdown goes on and the ranking comes');}
+    else{await at(tIn+1000);await p.hover('#endStats');await at(tIn+6000);ok(await slide(p)===0,tag+': the mouse over the stats holds the swap');
+      await p.mouse.move(5,5);await p.waitForTimeout(3100);ok(await slide(p)===1,tag+': the mouse leaves: the rest of the countdown, then the ranking');}
     // a manual swap cancels it
     t0=await finish(p,4321);await at(tIn+1000);
     if(phone)await p.tap('#endTab1');else await p.click('#endTab1');await p.waitForTimeout(500);
     if(phone)await p.tap('#endTab0');else await p.click('#endTab0');
-    await at(tIn+8000);ok(await slide(p)===0&&await p.evaluate(()=>document.querySelector('#endTab1 .prog').hidden),tag+': after a manual swap (tabs) it stays where the player left it');
+    await at(tIn+6000);ok(await slide(p)===0&&await p.evaluate(()=>document.querySelector('#endTab1 .prog').hidden),tag+': after a manual swap (tabs) it stays where the player left it');
+    // PC: the mouse resting on a tab swaps to it (no click), after a short hover intent; a quick pass does nothing; the tab shown does nothing;
+    // during a swap it waits for the swap to end (one at a time); it cancels the swap by itself
+    if(!phone){t0=await finish(p,4321);await p.mouse.move(5,5);await at(tIn+300);
+      const anims=()=>p.evaluate(()=>document.getElementById('endSlide0').getAnimations().length+document.getElementById('rankBox').getAnimations().length);
+      await p.hover('#endTab1');await p.waitForTimeout(50);await p.mouse.move(5,5);await p.waitForTimeout(400);
+      ok(await slide(p)===0&&!(await anims()),tag+': the mouse crossing RANKING quickly (50 ms, on its way somewhere else): nothing');
+      await p.hover('#endTab0');await p.waitForTimeout(400);ok(await slide(p)===0&&!(await anims()),tag+': resting on TU PARTIDA (already shown): nothing');
+      await p.hover('#endTab1');await p.waitForTimeout(90);ok(await slide(p)===0,tag+': resting on RANKING: not yet at 90 ms (hover intent)');
+      if(w===1920){await p.waitForTimeout(250);await p.evaluate(()=>(window.__held=document.getAnimations().filter(a=>a.playState==='running')).forEach(a=>a.pause()));
+        await p.screenshot({path:shot(`cartel_hover_${w}x${h}_${lang}.png`),timeout:240000});await p.evaluate(()=>(window.__held||[]).forEach(a=>a.play()));}
+      await p.waitForTimeout(700);
+      ok(await slide(p)===1&&!(await anims())&&await p.evaluate(()=>document.querySelector('#endTab1 .prog').hidden),tag+': resting on RANKING: the swap to the ranking (no click), the countdown off');
+      await p.hover('#endTab0');await p.waitForTimeout(800);ok(await slide(p)===0,tag+': resting on TU PARTIDA: back to the stats');
+      await at(tIn+4500);ok(await slide(p)===0,tag+': ... and it stays there (a hover swap cancels the one by itself)');
+      await p.mouse.move(5,5);await p.keyboard.press('ArrowRight');await p.waitForTimeout(20);await p.hover('#endTab0');await p.waitForTimeout(280);
+      const q1=await p.evaluate(()=>document.getElementById('endTab1').getAttribute('aria-selected'));const n1=await anims();
+      await p.waitForTimeout(420);const n2=await anims();await p.waitForTimeout(700);
+      ok(q1==='true'&&n1<=2&&n2<=2&&await slide(p)===0&&!(await anims()),tag+': resting on TU PARTIDA during a swap (→): it waits for that swap to end, then swaps back; never two at once',{q1,n1,n2});}
     // the swap itself: frame times while the frames fly (four swaps) against the plate standing still; caught half way (screenshot on PC 1920)
     t0=await finish(p,4321);await at(tIn+300);
     const ft=await p.evaluate(async()=>{const tm=async(ms,act)=>{const d=[];let last=0,run=true;const f=t=>{if(last)d.push(t-last);last=t;if(run)requestAnimationFrame(f);};requestAnimationFrame(f);
@@ -238,6 +259,9 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
     // the ranking seen by hand (→ and back) → no reminder
     S=server();S.seed=SIX;p=await open(b,S,w,h,phone,lang);await finish(p,4321);await p.waitForTimeout(1500);await p.keyboard.press('ArrowRight');await p.waitForTimeout(300);await p.keyboard.press('ArrowLeft');await p.waitForTimeout(300);
     await p.keyboard.press('KeyR');await p.waitForTimeout(500);ok(!(await nagOpen(p))&&await state(p)==='play',tag+': seen by hand and back → no reminder (R retries)');await p.context().close();
+    // seen by resting the mouse on RANKING (no click) and back → no reminder
+    S=server();S.seed=SIX;p=await open(b,S,w,h,phone,lang);await finish(p,4321);await p.waitForTimeout(1500);await p.hover('#endTab1');await p.waitForTimeout(800);await p.hover('#endTab0');await p.waitForTimeout(800);
+    await p.keyboard.press('Enter');await p.waitForTimeout(500);ok(!(await nagOpen(p))&&await state(p)==='play',tag+': seen by resting the mouse on RANKING and back → no reminder');await p.context().close();
     // would not make the top 50 and no record → no reminder
     S=server();S.seed=SIXTY;p=await open(b,S,w,h,phone,lang,()=>{localStorage.setItem('heads_best_v3',JSON.stringify({score:999999,round:30}));});await finish(p,500);await p.waitForTimeout(1500);
     await p.keyboard.press('Enter');await p.waitForTimeout(500);ok(!(await nagOpen(p))&&await state(p)==='play',tag+': not in the top 50 and not a record → no reminder, no delay');await p.context().close();

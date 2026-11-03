@@ -6,7 +6,8 @@
 //          302 back to the game, the PKCE code is exchanged at /auth/v1/token (the verifier is checked against the challenge)
 // What it checks (screenshots in tools/tests/out/cuentas_*.png):
 // The end plate opens on the run's stats; the ranking is the panel's second slide (cuentas-cartel.cjs checks the swap): here the test goes to it
-// with the RANKING tab (rankBox below) before looking at the ranking, so the reminder never shows outside part 6.
+// with the RANKING tab (rankBox below; in part 1 by resting the mouse on it, PC) before looking at the ranking, so the reminder never shows
+// outside part 6.
 //   1 PC 960x540 ES  guest end plate: the top 5 and GUARDAR MI PUNTUACIÓN · con Google, where it is drawn; no login code loaded and no request to
 //                    Supabase before the end plate; the click keeps the run (heads_pending_run) and goes to Google; back: the address is cleaned,
 //                    the nickname screen (format checked here, then taken / bad word / reserved from the server), the rules line links to the
@@ -102,8 +103,9 @@ async function finish(p,S,score=4321,secs=640){for(let i=0;i<100&&!count(S,'/api
   await p.evaluate(([sc,s])=>{__T.score=Math.round(sc*0.7);__T.pts=sc-Math.round(sc*0.7);__T.playT=s;__MUS().endGame(false,'dead');},[score,secs]);
   await p.waitForFunction(()=>!document.getElementById('end').hidden,null,{timeout:30000});}
 // the ranking slide: wait for the list, then the RANKING tab (as a player would) and the slide in place
-const rankBox=async p=>{await p.waitForFunction(()=>!document.getElementById('rankBox').hidden&&!document.querySelector('#rankList li.load'),null,{timeout:30000}).catch(()=>{});
-  await p.evaluate(()=>{if(!document.getElementById('endTabs').hidden)document.getElementById('endTab1').click();});
+const rankBox=async(p,hover)=>{await p.waitForFunction(()=>!document.getElementById('rankBox').hidden&&!document.querySelector('#rankList li.load'),null,{timeout:30000}).catch(()=>{});
+  if(hover){await p.waitForTimeout(1500);await p.hover('#endTab1');} // PC: the mouse resting on RANKING is enough (after the plate's entrance)
+  else await p.evaluate(()=>{if(!document.getElementById('endTabs').hidden)document.getElementById('endTab1').click();});
   await p.waitForFunction(()=>{const b=document.getElementById('rankBox');return !b.hidden&&!b.inert&&getComputedStyle(b).opacity>0.99;},null,{timeout:30000}).catch(()=>{});await p.waitForTimeout(500);};
 const plate=p=>p.evaluate(()=>{const g=id=>document.getElementById(id),btn=g('saveBtn'),r=btn.getBoundingClientRect();
   const hit=el=>{if(!el||el.hidden)return false;const q=el.getBoundingClientRect();const x=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);return !!x&&(x===el||el.contains(x));};
@@ -136,9 +138,9 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   const ctx=p.context();
   ok(!ctx.reqs.some(r=>/\/js\/sb-[^/]*\.js/.test(r.u)||/supabase\.co/.test(r.u)),'no login code and no Supabase request while loading and playing');
   ok(count(S,'/api/auth')===0,'/api/auth not asked before the end plate');
-  await finish(p,S,4321,640);await rankBox(p);await p.waitForTimeout(600);
+  await finish(p,S,4321,640);await rankBox(p,true);await p.waitForTimeout(600);
   let P=await plate(p);
-  ok(P.box&&P.tabs&&P.onRank&&P.h==='RANKING DE CAPITANES'&&P.rows===5,'guest end plate: TU PARTIDA · RANKING, the ranking slide with five lines',P);
+  ok(P.box&&P.tabs&&P.onRank&&P.h==='RANKING DE CAPITANES'&&P.rows===5,'guest end plate: TU PARTIDA · RANKING, the mouse resting on RANKING shows the ranking slide (five lines)',P);
   ok(P.ghost===5&&P.msg[0]==='Con esta partida entrarías en el puesto #5','4.321 would enter at #5: the «TÚ» line there, and it says so',P);
   ok(P.all&&P.allHit,'VER RANKING COMPLETO, where it is drawn',P);
   ok(P.btn&&P.btnT==='GUARDAR MI PUNTUACIÓN'&&P.btnS==='con Google'&&P.btnHit,'GUARDAR MI PUNTUACIÓN · con Google, and it answers where it is drawn',P);

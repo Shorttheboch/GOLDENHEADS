@@ -168,7 +168,8 @@ function pageSP(SEEDV,GENS){
   if(!ONLY||ONLY==='dyn'){
     for(const sc of SCALES){
       await p.evaluate(sc=>SP.dynStart(sc),sc);const log=[];const nF=Math.round(SEC*60);
-      for(let f=0;f<nF;f++){const o=await p.evaluate(()=>SP.frame());log.push(o);if(o.gone)break;}
+      // the scenario is seeded, but any change in how the game draws random numbers shifts it: if no pounce happened in SEC seconds, run up to 10 s more until one does
+      let leapt=false;for(let f=0;f<nF||(!leapt&&f<nF+600);f++){const o=await p.evaluate(()=>SP.frame());log.push(o);if(o.st&&o.st.startsWith('leap'))leapt=true;if(o.gone)break;}
       res.dyn[sc]=log;
       const ms=log.filter(o=>o.m);const wt=o=>1; // every sample counts the same (they are 4 frames apart except in the fast states, which are sampled every frame: weight by frames)
       const byState={};for(let i=0;i<ms.length;i++){const k=ms[i].st.split(':')[0];const nxt=i+1<ms.length?ms[i+1].f:ms[i].f+1;const w=Math.min(nxt-ms[i].f,8);(byState[k]=byState[k]||[]).push({...ms[i],w});}

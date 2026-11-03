@@ -53,7 +53,7 @@ function endSlide(i,how){if(!ENDV.on)i=0;ENDV.i=i;if(i===1)ENDV.seen=true;if(how
 function endAuto(){endStop();if(!ENDV.on)return;const n=$('endStats').children.length/2,reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
   ENDV.auto=true;ENDV.left=END_WAIT;ENDV.startT=performance.now()+(reduce?0:1450+Math.max(0,n-1)*55+350);ENDV.t0=0;$('endTab1').querySelector('.prog').hidden=false;endProg(0);
   const tick=now=>{if(!ENDV.auto)return;ENDV.raf=requestAnimationFrame(tick);if(now<ENDV.startT||$('end').hidden)return;
-    const dt=ENDV.t0?Math.min(100,now-ENDV.t0):0;ENDV.t0=now;
+    const dt=ENDV.t0?Math.min(250,now-ENDV.t0):0;ENDV.t0=now;
     if(ENDV.hover||now<ENDV.touchT||document.body.classList.contains('acctOn')||document.visibilityState==='hidden')return;
     ENDV.left-=dt;endProg(1-ENDV.left/END_WAIT);if(ENDV.left<=0)endSlide(1,'auto');};
   ENDV.raf=requestAnimationFrame(tick);}
@@ -64,7 +64,8 @@ $('endTab1').addEventListener('click',e=>{e.stopPropagation();endSlide(1,'manual
 $('endPrev').addEventListener('click',e=>{e.stopPropagation();endSlide(0,'manual');});
 $('endNext').addEventListener('click',e=>{e.stopPropagation();endSlide(1,'manual');});
 {const pn=$('endPanel');
- pn.addEventListener('mouseenter',()=>{ENDV.hover=true;});pn.addEventListener('mouseleave',()=>{ENDV.hover=false;});
+ // the mouse over the panel pauses the countdown (pointer events: a tap also sends a mouseenter, with no mouseleave after it)
+ pn.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')ENDV.hover=true;});pn.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')ENDV.hover=false;});
  // touch: a finger on the panel pauses the countdown; a sideways swipe swaps (vertical moves are left alone)
  pn.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;ENDV.touchT=Infinity;ENDV.down={x:e.clientX,y:e.clientY,t:performance.now()};});
  const up=e=>{if(e.pointerType==='mouse'||!ENDV.down)return;const d=ENDV.down;ENDV.down=null;ENDV.touchT=performance.now()+2000;

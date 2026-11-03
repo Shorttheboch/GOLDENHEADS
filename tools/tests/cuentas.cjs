@@ -107,7 +107,7 @@ const rankBox=async p=>{await p.waitForFunction(()=>!document.getElementById('ra
   await p.waitForFunction(()=>{const b=document.getElementById('rankBox');return !b.hidden&&!b.inert&&getComputedStyle(b).opacity>0.99;},null,{timeout:30000}).catch(()=>{});await p.waitForTimeout(500);};
 const plate=p=>p.evaluate(()=>{const g=id=>document.getElementById(id),btn=g('saveBtn'),r=btn.getBoundingClientRect();
   const hit=el=>{if(!el||el.hidden)return false;const q=el.getBoundingClientRect();const x=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);return !!x&&(x===el||el.contains(x));};
-  return {box:!g('rankBox').hidden,tabs:!g('endTabs').hidden&&g('endBox').classList.contains('rk'),onRank:g('endTab1').getAttribute('aria-selected')==='true',h:g('rankH').textContent,ghost:[...g('rankList').children].findIndex(l=>l.classList.contains('ghost'))+1,
+  return {box:!g('rankBox').hidden,tabs:!g('endTabs').hidden&&g('endBox').classList.contains('rk'),onRank:g('endTab1').getAttribute('aria-selected')==='true',h:g('rankH').firstElementChild.textContent,ghost:[...g('rankList').children].findIndex(l=>l.classList.contains('ghost'))+1,
     all:!g('rankAll').hidden,allHit:hit(g('rankAll')),rec:g('record').textContent,msg:[...g('rankMsg').querySelectorAll('span')].map(s=>s.textContent),rows:g('rankList').querySelectorAll('li:not(.gap)').length,
     me:(g('rankList').querySelector('li.me span')||{}).textContent||null,btn:!btn.hidden,btnT:btn.querySelector('b').textContent,btnS:btn.querySelector('small').textContent,btnHit:hit(btn),
     btnBox:[r.left,r.top,r.width,r.height].map(Math.round),bar:!g('acctBar').hidden,nick:g('acctNick').textContent,out:!g('acctOut').hidden,del:!g('acctDel').hidden,delHit:hit(g('acctDel')),

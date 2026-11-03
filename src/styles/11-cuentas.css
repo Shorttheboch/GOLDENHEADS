@@ -91,7 +91,10 @@ body.touch #rankAll{position:relative}
 body.touch #rankAll::before{content:'';position:absolute;left:-4px;right:-4px;top:50%;height:max(100%,36px);transform:translateY(-50%)} /* bigger to touch, same look */
 /* short screens (phones in landscape): the title on one smaller line (25-end-plate.js) and a smaller score, so the panel can be a quarter bigger */
 @media (max-height:520px){#endT{font-size:calc(var(--u)*7.4)}#bigScore{font-size:calc(var(--u)*10.4)}.eLbl{margin-top:calc(var(--u)*1.6)}
-  #endBox.rk #endPanel{--u:calc(min(1vh,.5625vw)*1.27)}#endBox.rk #endTabs{font-size:calc(var(--u)*2.3);margin-top:calc(var(--u)*1.3)}}
+  #endBox.rk #endPanel{--u:calc(min(1vh,.5625vw)*1.27)}#endBox.rk #endTabs{font-size:calc(var(--u)*2.3);margin-top:calc(var(--u)*1.3)}
+  /* the ranking slide no taller than the stats (the frame takes the taller one): tighter gaps */
+  #endBox.rk #rankBox{padding:0}#endBox.rk #rankMsg{margin:calc(var(--u)*.45) 0 calc(var(--u)*.55)}#endBox.rk #rankList{font-size:1.05em}#endBox.rk #rankList li{padding:.25em .7em}
+  #endBox.rk #rankAll{margin-top:calc(var(--u)*.6)}#endBox.rk #rankBox #saveBtn{margin-top:calc(var(--u)*.8)}#endBox.rk #rankBox #acctBar{margin-top:calc(var(--u)*.6)}}
 #rankBox #saveBtn{align-self:center;width:100%;max-width:calc(var(--u)*54);height:calc(var(--u)*8.2);margin-top:calc(var(--u)*1.1)}
 #rankBox #acctBar{margin-top:calc(var(--u)*.9)}
 /* GUARDAR MI PUNTUACIÓN · con Google: a dark plate with a gold rim, cut like the REINTENTAR plate, cyan lights at the ends */

@@ -146,7 +146,7 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
   for(const [w,h,phone,lang] of [[1920,1080,false,'es'],[844,390,true,'es'],[960,540,false,'en']]){
     const S=server();S.seed=SIX;const tag=`${w}x${h} ${lang}`;
     const p=await open(b,S,w,h,phone,lang,()=>{sessionStorage.setItem('heads_save_nag','1');});
-    const t0=await finish(p,4321);
+    let t0=await finish(p,4321);
     // when the table is in: 1.45 s + 55 ms a row (10 rows) + 0.35 s
     const tIn=1450+9*55+350;
     const at=async ms=>{const now=await p.evaluate(()=>performance.now());if(t0+ms>now)await p.waitForTimeout(t0+ms-now);};
@@ -157,7 +157,7 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
     await at(tIn+5700);ok(await slide(p)===1,tag+': table in + 5.7 s: the ranking came by itself');
     ok(await p.evaluate(()=>document.querySelector('#endTab1 .prog').hidden),tag+': the gold line goes away');
     // hold: the mouse over the panel / a finger on it
-    await finish(p,4321);
+    t0=await finish(p,4321);
     if(phone){await at(tIn+2000);const c=await p.evaluate(()=>{const e=document.getElementById('endPanel').getBoundingClientRect();return [e.left+e.width/2,e.top+e.height/2];});
       const cdp=await p.context().newCDPSession(p);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:c[0],y:c[1]}]});
       await at(tIn+7000);ok(await slide(p)===0,tag+': a finger on the panel holds the swap');
@@ -167,12 +167,12 @@ const swapTo=async(p,i,phone,how)=>{if(how==='key')await p.keyboard.press(i?'Arr
     else{await at(tIn+2000);await p.hover('#endStats');await at(tIn+8000);ok(await slide(p)===0,tag+': the mouse over the stats holds the swap');
       await p.mouse.move(5,5);await p.waitForTimeout(3600);ok(await slide(p)===1,tag+': the mouse leaves: the rest of the countdown, then the ranking');}
     // a manual swap cancels it
-    await finish(p,4321);await at(tIn+1000);
+    t0=await finish(p,4321);await at(tIn+1000);
     if(phone)await p.tap('#endTab1');else await p.click('#endTab1');await p.waitForTimeout(500);
     if(phone)await p.tap('#endTab0');else await p.click('#endTab0');
     await at(tIn+8000);ok(await slide(p)===0&&await p.evaluate(()=>document.querySelector('#endTab1 .prog').hidden),tag+': after a manual swap (tabs) it stays where the player left it');
     // no ranking: nothing moves
-    S.down=true;await finish(p,4321,true);await at(tIn+7000);
+    S.down=true;t0=await finish(p,4321,true);await at(tIn+7000);
     ok(await p.evaluate(()=>document.getElementById('endTabs').hidden&&document.getElementById('rankBox').hidden&&document.getElementById('endTab0').getAttribute('aria-selected')==='true'),tag+': ranking down: no swap at all');
     S.down=false;ok(!p.errs.length,tag+': no page errors',p.errs);await p.context().close();}}
 

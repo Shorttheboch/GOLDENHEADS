@@ -67,7 +67,7 @@
 #record b{color:#ffd659;font-weight:800;text-shadow:0 0 10px rgba(255,190,40,.8)}
 #record.new b{animation:eGlow 1.2s 2.4s ease-in-out infinite alternate}
 #end.go #record{animation:eRise .4s 1.95s ease-out both}
-/* --- v82: the run (#endRun) and the Season 1 ranking panel (#rankBox) side by side: src/styles/11-cuentas.css --- */
+/* --- v82: the run (#endRun, one centred column); its panel swaps between the stats and the Season 1 ranking: src/styles/11-cuentas.css --- */
 #endRun{display:flex;flex-direction:column;align-items:center;width:calc(var(--u)*120)}
 #again{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:calc(var(--u)*51);height:calc(var(--u)*10.4);margin-top:calc(var(--u)*1.5);
   padding:0;border:0;background:none;cursor:pointer;color:#2a1803;font-family:var(--ef);outline:none;-webkit-tap-highlight-color:transparent}

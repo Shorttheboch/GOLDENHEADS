@@ -5,6 +5,8 @@
 //   real   in part 5 the real login chunk (src/cuentas/sb.js, @supabase/auth-js) runs against a fake Supabase Auth: authorize answers with a
 //          302 back to the game, the PKCE code is exchanged at /auth/v1/token (the verifier is checked against the challenge)
 // What it checks (screenshots in tools/tests/out/cuentas_*.png):
+// The end plate opens on the run's stats; the ranking is the panel's second slide (cuentas-cartel.cjs checks the swap): here the test goes to it
+// with the RANKING tab (rankBox below) before looking at the ranking, so the reminder never shows outside part 6.
 //   1 PC 960x540 ES  guest end plate: the top 5 and GUARDAR MI PUNTUACIÓN · con Google, where it is drawn; no login code loaded and no request to
 //                    Supabase before the end plate; the click keeps the run (heads_pending_run) and goes to Google; back: the address is cleaned,
 //                    the nickname screen (format checked here, then taken / bad word / reserved from the server), the rules line links to the
@@ -17,6 +19,8 @@
 //   3 phone 844x390 EN  the same flow in English with touch: button size, the nickname screen (input 16 px or more), the result, auto-save
 //   4 quick looks    PC EN and phone ES guest end plates
 //   5 real auth-js   PKCE against a fake Supabase Auth, session stored under heads-auth, address cleaned
+//   6 the reminder   «¿GUARDAMOS TU PUNTUACIÓN?» (REINTENTAR before the ranking was seen): GUARDAR in it goes to Google and saves that run the
+//                    normal way; signed in, never (auto-save does it)
 // No page errors anywhere.
 const {chromium}=require('playwright');
 const crypto=require('crypto');
@@ -97,10 +101,13 @@ async function finish(p,S,score=4321,secs=640){for(let i=0;i<100&&!count(S,'/api
   await p.waitForTimeout(400); // the run token (POST /api/run at the start of the game) is in
   await p.evaluate(([sc,s])=>{__T.score=Math.round(sc*0.7);__T.pts=sc-Math.round(sc*0.7);__T.playT=s;__MUS().endGame(false,'dead');},[score,secs]);
   await p.waitForFunction(()=>!document.getElementById('end').hidden,null,{timeout:30000});}
-const rankBox=p=>p.waitForFunction(()=>{const b=document.getElementById('rankBox');return !b.hidden&&getComputedStyle(b).opacity>0.99;},null,{timeout:30000}).catch(()=>{});
+// the ranking slide: wait for the list, then the RANKING tab (as a player would) and the slide in place
+const rankBox=async p=>{await p.waitForFunction(()=>!document.getElementById('rankBox').hidden&&!document.querySelector('#rankList li.load'),null,{timeout:30000}).catch(()=>{});
+  await p.evaluate(()=>{if(!document.getElementById('endTabs').hidden)document.getElementById('endTab1').click();});
+  await p.waitForFunction(()=>{const b=document.getElementById('rankBox');return !b.hidden&&!b.inert&&getComputedStyle(b).opacity>0.99;},null,{timeout:30000}).catch(()=>{});await p.waitForTimeout(500);};
 const plate=p=>p.evaluate(()=>{const g=id=>document.getElementById(id),btn=g('saveBtn'),r=btn.getBoundingClientRect();
   const hit=el=>{if(!el||el.hidden)return false;const q=el.getBoundingClientRect();const x=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);return !!x&&(x===el||el.contains(x));};
-  return {box:!g('rankBox').hidden,two:g('endBox').classList.contains('rk'),h:g('rankH').textContent,ghost:[...g('rankList').children].findIndex(l=>l.classList.contains('ghost'))+1,
+  return {box:!g('rankBox').hidden,tabs:!g('endTabs').hidden&&g('endBox').classList.contains('rk'),onRank:g('endTab1').getAttribute('aria-selected')==='true',h:g('rankH').textContent,ghost:[...g('rankList').children].findIndex(l=>l.classList.contains('ghost'))+1,
     all:!g('rankAll').hidden,allHit:hit(g('rankAll')),rec:g('record').textContent,msg:[...g('rankMsg').querySelectorAll('span')].map(s=>s.textContent),rows:g('rankList').querySelectorAll('li:not(.gap)').length,
     me:(g('rankList').querySelector('li.me span')||{}).textContent||null,btn:!btn.hidden,btnT:btn.querySelector('b').textContent,btnS:btn.querySelector('small').textContent,btnHit:hit(btn),
     btnBox:[r.left,r.top,r.width,r.height].map(Math.round),bar:!g('acctBar').hidden,nick:g('acctNick').textContent,out:!g('acctOut').hidden,del:!g('acctDel').hidden,delHit:hit(g('acctDel')),
@@ -131,7 +138,7 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   ok(count(S,'/api/auth')===0,'/api/auth not asked before the end plate');
   await finish(p,S,4321,640);await rankBox(p);await p.waitForTimeout(600);
   let P=await plate(p);
-  ok(P.box&&P.two&&P.h==='RANKING DE CAPITANES'&&P.rows===5,'guest end plate: two columns, the season panel with five lines',P);
+  ok(P.box&&P.tabs&&P.onRank&&P.h==='RANKING DE CAPITANES'&&P.rows===5,'guest end plate: TU PARTIDA · RANKING, the ranking slide with five lines',P);
   ok(P.ghost===5&&P.msg[0]==='Con esta partida entrarías en el puesto #5','4.321 would enter at #5: the «TÚ» line there, and it says so',P);
   ok(P.all&&P.allHit,'VER RANKING COMPLETO, where it is drawn',P);
   ok(P.btn&&P.btnT==='GUARDAR MI PUNTUACIÓN'&&P.btnS==='con Google'&&P.btnHit,'GUARDAR MI PUNTUACIÓN · con Google, and it answers where it is drawn',P);
@@ -255,7 +262,7 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   P=await plate(p);ok(P.box&&P.rows===5&&!P.btn,'/api/auth 503: the top, no button',P);ok(!p.errs.length,'no page errors',p.errs);
   await p.context().close();
   S=server();S.scoresOff=true;p=await open(b,S,{});await play(p,false);await finish(p,S,3000,500);await p.waitForTimeout(2500);
-  P=await plate(p);ok(!P.box&&!P.btn&&P.again,'/api/scores 503: no box at all, REINTENTAR fine',P);ok(!p.errs.length,'no page errors',p.errs);
+  P=await plate(p);ok(!P.box&&!P.tabs&&!P.btn&&P.again,'/api/scores 503: no ranking, no tabs (the v44 plate), REINTENTAR fine',P);ok(!p.errs.length,'no page errors',p.errs);
   await p.context().close();
 
   // ================= 3) phone, English =================
@@ -265,8 +272,8 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   P=await plate(p);
   ok(P.h==='CAPTAINS LEADERBOARD'&&P.btnT==='SAVE MY SCORE'&&P.btnS==='with Google'&&P.btnHit&&P.inside,'phone EN: SAVE MY SCORE · with Google, where it is drawn, plate on screen',P);
   ok(P.btnBox[3]>=34&&P.btnBox[2]>=200,'phone: the button is big enough to tap ('+P.btnBox[2]+'x'+P.btnBox[3]+' px)',P.btnBox);
-  const two=await p.evaluate(()=>{const r=document.getElementById('rankBox').getBoundingClientRect(),q=document.getElementById('endPanel').getBoundingClientRect();return {side:r.left>q.right,again:document.getElementById('again').getBoundingClientRect().height};});
-  ok(two.side,'phone: the ranking box is a second column, right of the stats',two);
+  const two=await p.evaluate(()=>{const r=document.getElementById('rankBox').getBoundingClientRect(),q=document.getElementById('endTrack').getBoundingClientRect();return {inside:r.left>=q.left-1&&r.right<=q.right+1&&r.top>=q.top-1&&r.bottom<=q.bottom+1,stats:document.getElementById('endSlide0').inert};});
+  ok(two.inside&&two.stats,'phone: the ranking is the panel\'s second slide (inside the frame, the stats asleep)',two);
   ok(P.priv==='privacy/','the privacy link goes to the English page',P.priv);
   await snap(p,'cuentas_end_guest_phone_en.png');
   await clickSave(p,true);
@@ -355,6 +362,31 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   ok(last(S,'/api/save').auth==='real-tok','next game saved by itself with the real session');
   await p.click('#acctOut');await p.waitForTimeout(300);
   ok(await p.evaluate(()=>!Object.keys(localStorage).some(k=>k.startsWith('heads-auth'))),'Salir removes every heads-auth key from the device');
+  ok(!p.errs.length,'no page errors',p.errs);
+  await p.context().close();
+
+  // ================= 6) the reminder =================
+  console.log('6) the reminder «¿GUARDAMOS TU PUNTUACIÓN?»: GUARDAR in it goes the normal way; never for signed-in players');
+  S=server();p=await open(b,S,{});await play(p,false);await finish(p,S,4321,640);
+  await p.waitForFunction(()=>!document.getElementById('saveBtn').hidden&&!document.querySelector('#rankList li.load'),null,{timeout:20000});await p.waitForTimeout(400);
+  ok(await p.evaluate(()=>document.getElementById('endTab0').getAttribute('aria-selected')==='true'),'the plate is still on the stats');
+  await p.click('#again');ok(await waitScr(p,'nag'),'REINTENTAR before the ranking was seen, a run that enters the top 50: the reminder');
+  A=await scr(p);
+  ok(A.t==='¿GUARDAMOS TU PUNTUACIÓN?'&&A.l1==='4.321'&&A.l2==='Entrarías en el puesto #5'&&A.go==='REINTENTAR'&&A.inside&&!A.cut&&await p.evaluate(()=>__T.state==='dead'),'the score, «Entrarías en el puesto #5», REINTENTAR; the game waits',A);
+  const nb=await p.evaluate(()=>{const b=document.getElementById('acSave');return {vis:!b.hidden,t:b.querySelector('b').textContent,s:b.querySelector('small').textContent};});
+  ok(nb.vis&&nb.t==='GUARDAR MI PUNTUACIÓN'&&nb.s==='con Google','GUARDAR MI PUNTUACIÓN · con Google in it',nb);
+  await settle(p);await snap(p,'cuentas_nag_pc_es.png');
+  const nav6=p.waitForNavigation({timeout:60000});await p.click('#acSave');await nav6;
+  ok(await waitScr(p,'nick'),'GUARDAR in the reminder: Google, back, the nickname screen (the normal way)');
+  await p.fill('#acIn','AVISO');await p.click('#acGo');ok(await waitScr(p,'saved'),'saved');
+  ok(last(S,'/api/save').body.score===4321&&count(S,'/api/save')===1,'the run of that plate is the one saved',last(S,'/api/save').body);
+  await p.click('#acGo');await p.waitForTimeout(300);
+  await p.evaluate(()=>sessionStorage.removeItem('heads_save_nag')); // (as if it had never shown)
+  await play(p,false);await finish(p,S,9999,900);await p.waitForFunction(()=>!document.getElementById('acctOut').hidden,null,{timeout:20000});
+  for(let i=0;i<100&&count(S,'/api/save')<2;i++)await p.waitForTimeout(100);
+  await p.click('#again');await p.waitForTimeout(500);
+  ok(!(await scr(p)).open&&await p.evaluate(()=>__T.state==='play'),'signed in: REINTENTAR before the ranking was seen retries at once, no reminder');
+  ok(last(S,'/api/save').body.score===9999,'(that run was saved by itself)');
   ok(!p.errs.length,'no page errors',p.errs);
   await p.context().close();
   await b.close();

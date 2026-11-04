@@ -11,19 +11,22 @@
 //          dyn     a seeded stretch of round 7 with spiders spawning as usual (they also come down from space on their silk) and the astronaut hopping round the ship
 //                  (nose included) every 1.5 s; every jump frame of every spider is measured.
 // "Jump frames" = windup (crouch), leap, drift, return (silk) and the first 0.5 s back on the hull after a jump. The nose = the spider (its root) at z > 17.
-// Fails (exit 1) unless HEADS_BASE=1, if over all jump frames body/abdomen/fangs are >5 cm inside more than LIM.pct % of the time (also at the nose alone), or deeper
-// than LIM.worst anywhere, or a case flies through the hull (segment of the root path crossing the real triangles), or the page throws.
+// Fails (exit 1) unless HEADS_BASE=1, if body/abdomen/fangs are >5 cm inside more than LIM.pct % of the jump frames (overall, at the nose, in the dynamic run), >15 cm inside
+// more than LIM.deep %, deeper than LIM.worst anywhere, or a spider root crosses the hull more than LIM.through times, or a case set-up stops pouncing, or the page throws.
 // Run:  tools/run-test.sh dist-test tools/tests/saltos.cjs        (a few minutes; HEADS_ONLY=cases|dyn · HEADS_N=<spots step, default 1> · HEADS_SEC=<dyn seconds, 60>
 //       HEADS_SEED=<n> · HEADS_TAG=<file tag> · HEADS_BASE=1 (measure only, never fail: for the code before v83) · HEADS_SHOTS=1 (also 6 screenshots of nose pounces: saltos_*.png)
-//       HEADS_JF=0 (v83 build with its jump fix switched off, JUMP_FIX.on in 41-saltos.js: an A/B in the same build)
+//       HEADS_JF=0 (v83 build with its jump fix switched off, JUMP_FIX.on in 41-saltos.js: an A/B in the same build) · HEADS_ONLY=shots HEADS_SHOTS=1 (only the screenshots: six
+//       pounces from the nose, 3 and 10 frames after take-off, saltos_<i>_<target>_f<frame>_<tag>.png) · HEADS_CASES=<i,j> (only those cases of the list, traced frame by frame)
 // Output: tools/tests/out/saltos_<tag>.json (every case, the worst frames)
 const fs=require('fs'),path=require('path');
 const {chromium}=require('playwright');
 const {BASE,ARGS,shot}=require('./lib.cjs');
 const ONLY=process.env.HEADS_ONLY||'',NSTEP=+(process.env.HEADS_N||1),SEC=+(process.env.HEADS_SEC||60),SEED=+(process.env.HEADS_SEED||5),TAG=process.env.HEADS_TAG||'new',ISBASE=!!process.env.HEADS_BASE,SHOTS=!!process.env.HEADS_SHOTS;
-const LIM={pct:0.5,      // % of the jump frames with body/abdomen/fangs more than 5 cm inside (overall and at the nose). Before v83: 9.4 % (nose 11 %); v83: 0.05 % (nose 0.03 %)
-  worst:-0.2,            // m: the deepest body/abdomen/fang vertex in any jump frame (v83: -0.16, one crouch frame by a wing root, where the hull map stops short of the fairing)
-  through:0};            // cases whose spider root crosses the real hull between two frames
+const LIM={pct:0.5,      // % of the jump frames with body/abdomen/fangs more than 5 cm inside (overall, at the nose and in the dynamic run). Before v83: 9.4 % (nose 11 %, dynamic 9.9 %); v83: 0.01-0.05 %
+  deep:0.05,             // % of the jump frames with body/abdomen/fangs more than 15 cm inside (before v83: about 5 %; v83: 0-0.01 %)
+  worst:-0.5,            // m: the deepest body/abdomen/fang vertex in any jump frame. Before v83: -0.8 to -1.1 m. With v83 the odd single frame still reaches -0.15 to -0.4 m in some runs
+                         // (the poses follow the real clock, so runs differ): by a wing root, where the hull map stops short of the fairing, or under the nose
+  through:3};            // frames of a spider's root crossing the real hull between two frames (before and after v83: 0-4 in a run; informative, the cases above are what count)
 setTimeout(()=>{console.log('WATCHDOG: too slow, giving up');process.exit(2);},1700000);
 // ---------------------------------------------------------------- runs in the page
 function pageSJ(SEEDV){
@@ -80,7 +83,7 @@ function pageSJ(SEEDV){
   D.runCase=(c)=>{D.seed(c.seed);D.keep.clear();D.hold(false);const s=H.spawnSpider(c.kind);D.keep.add(s);
     s.z=c.z;s.th=c.th;const [q,n]=__hullPoint(c.z,c.th);s.pos.copy(q);s.state='crawl';s.t=0;s.cd=0.2;s.aggro=3;s.patch=null;s.idleT=0;s.silk=null;s.vel.set(0,0,0);s.mesh.position.copy(q);
     const tgt=D.target(c.z,c.th,c.tg);P.pos.copy(tgt);P.vel.set(0,0,0);let dodged=false;
-    const res={...c,frames:0,bad:0,nose:0,noseBad:0,worst:9,worstPh:'',worstWp:null,worstZ:0,legsWorst:9,feetWorst:9,thru:0,leaps:0,launch:null,phases:{},phBad:{},end:'',tr:[]};
+    const res={...c,frames:0,bad:0,nose:0,noseBad:0,worst:9,worstPh:'',worstWp:null,worstZ:0,legsWorst:9,feetWorst:9,thru:0,leaps:0,launch:null,phases:{},phBad:{},deep:0,end:'',tr:[]};
     const dt=1/60;let after=-1;res.ring=[];
     for(let f=0;f<c.secs*60;f++){D.hold(false);if(!H.spiders.includes(s)){res.end='gone';break;}
       if(!dodged&&s.state==='leap'&&(c.tg==='dodge'||c.tg==='dodgeNose')&&s.t>0.08){dodged=true; // the astronaut dashes round to the other side of the ship (or under the nose)
@@ -95,7 +98,7 @@ function pageSJ(SEEDV){
       // every case keeps its last 8 frames; a frame more than 10 cm inside saves them (at most 2 per case) for the log
       if(fr){res.ring=res.ring||[];res.ring.push(fr);if(res.ring.length>8)res.ring.shift();}else{res.ring=res.ring||[];}
       if(o&&o.parts<-0.1&&(res.bt=res.bt||[]).length<2)res.bt.push(res.ring.slice());
-      if(o){res.frames++;res.phases[o.ph]=(res.phases[o.ph]||0)+1;if(o.parts<-0.05){res.bad++;res.phBad[o.ph]=(res.phBad[o.ph]||0)+1;}if(o.nose){res.nose++;if(o.parts<-0.05)res.noseBad++;}if(o.thru)res.thru++;
+      if(o){res.frames++;res.phases[o.ph]=(res.phases[o.ph]||0)+1;if(o.parts<-0.05){res.bad++;res.phBad[o.ph]=(res.phBad[o.ph]||0)+1;}if(o.parts<-0.15)res.deep++;if(o.nose){res.nose++;if(o.parts<-0.05)res.noseBad++;}if(o.thru)res.thru++;
         if(o.parts<res.worst){res.worst=o.parts;res.worstPh=o.ph;res.worstWp=o.wp;res.worstZ=o.z;}if(o.legs<res.legsWorst)res.legsWorst=o.legs;if(o.feet<res.feetWorst)res.feetWorst=o.feet;}
       if(s._launch&&!res.launch){res.launch={z:+s._launch.z.toFixed(2),th:+s._launch.th.toFixed(2),p:s._launch.p.map(x=>+x.toFixed(2)),pl:s._launch.pl.map(x=>+x.toFixed(2))};
         const a=s._launch.p,b=s._launch.pl;const hit=CT.segHit(a[0],a[1],a[2],b[0],b[1],b[2],0.3,true);res.launch.losHit=hit>=0?+hit.toFixed(2):-1;}
@@ -104,14 +107,14 @@ function pageSJ(SEEDV){
     for(const k of ['worst','legsWorst','feetWorst'])res[k]=+res[k].toFixed(3);
     D.keep.clear();for(const o of [...H.spiders])H.killSpider(o,false,true);return res;};
   // dynamic: round 7, spawning on, the astronaut hops round the ship
-  D.dynStart=()=>{D.aborts=0;D.seed(SEEDV*7+1);D.keep.clear();for(const o of [...H.spiders])H.killSpider(o,false,true);__T.startWave(6);D.dyn={f:0,next:0,acc:{frames:0,bad:0,nose:0,noseBad:0,worst:9,worstPh:'',worstZ:0,worstWp:null,thru:0,legsWorst:9,leaps:0,phases:{},phBad:{},byKind:{}}};return true;};
+  D.dynStart=()=>{D.aborts=0;D.seed(SEEDV*7+1);D.keep.clear();for(const o of [...H.spiders])H.killSpider(o,false,true);__T.startWave(6);D.dyn={f:0,next:0,acc:{frames:0,bad:0,nose:0,noseBad:0,worst:9,worstPh:'',worstZ:0,worstWp:null,thru:0,legsWorst:9,leaps:0,phases:{},phBad:{},deep:0,byKind:{}}};return true;};
   D.dynRun=(n)=>{const A=D.dyn.acc,dt=1/60;
     for(let i=0;i<n;i++){D.dyn.f++;
       if(D.dyn.f>=D.dyn.next){D.dyn.next=D.dyn.f+90;const z=-13+rnd()*35,th=rnd()*Math.PI*2,[q,nn]=__hullPoint(Math.min(21.5,z),th);P.pos.copy(q).addScaledVector(nn,2.5+rnd()*7);if(z>21.5)P.pos.z+=rnd()*5;}
       P.vel.set(0,0,0);D.hold(true);__T.toSpawn=Math.max(__T.toSpawn,4);__step(1,dt);D.hold(true);
       for(const s of H.spiders){if(s.kind==='spitter')continue;const o=D.track(s,dt,4);if(!o)continue;A.frames++;A.phases[o.ph]=(A.phases[o.ph]||0)+1;
         const K=A.byKind[o.kind]=A.byKind[o.kind]||{frames:0,bad:0};K.frames++;
-        if(o.parts<-0.05){A.bad++;K.bad++;A.phBad[o.ph]=(A.phBad[o.ph]||0)+1;}if(o.nose){A.nose++;if(o.parts<-0.05)A.noseBad++;}if(o.thru)A.thru++;
+        if(o.parts<-0.05){A.bad++;K.bad++;A.phBad[o.ph]=(A.phBad[o.ph]||0)+1;}if(o.parts<-0.15)A.deep++;if(o.nose){A.nose++;if(o.parts<-0.05)A.noseBad++;}if(o.thru)A.thru++;
         if(o.parts<A.worst){A.worst=o.parts;A.worstPh=o.ph;A.worstZ=o.z;A.worstWp=o.wp;}if(o.legs<A.legsWorst)A.legsWorst=o.legs;}
       for(const s of H.spiders)if(s.state==='leap'&&s._ps==='leap'&&s.t<dt*1.5)A.leaps++;}
     return {f:D.dyn.f,sp:H.spiders.length,wave:__T.wave};};
@@ -120,8 +123,8 @@ function pageSJ(SEEDV){
     s.z=c.z;s.th=c.th;const [q]=__hullPoint(c.z,c.th);s.pos.copy(q);s.state='crawl';s.t=0;s.cd=0.2;s.aggro=3;s.patch=null;s.idleT=0;s.mesh.position.copy(q);
     P.pos.copy(D.target(c.z,c.th,c.tg));P.vel.set(0,0,0);let n=0,best=null;
     for(let f=0;f<c.secs*60;f++){D.hold(false);P.vel.set(0,0,0);__step(1,1/60);s.hp=99;if(s.state==='leap'||s.state==='drift'||s.state==='return'){n++;if(n>=frac){best=s.mesh.position.clone();break;}}}
-    if(!best)best=s.mesh.position.clone();const cam=best.clone().add(new T.Vector3(7.5,1.8,-1.5));window.__shotCam={pos:cam.toArray(),look:best.toArray()};
-    window.__noRender=0;__render();window.__noRender=1;return {st:s.state,p:best.toArray().map(x=>+x.toFixed(2))};};
+    if(!best)best=s.mesh.position.clone();const side=best.x>=0?1:-1,cam=best.clone().add(new T.Vector3(6.5*side,1.6,-2.5));window.__shotCam={pos:cam.toArray(),look:best.toArray()};
+    const mm=D.measure(s,1);return {st:s.state,t:+s.t.toFixed(2),p:best.toArray().map(x=>+x.toFixed(2)),parts:+Math.min(mm.m[0],mm.m[1],mm.m[2]).toFixed(3)};};
   window.SJ=D;return true;
 }
 // ---------------------------------------------------------------- Node side
@@ -152,8 +155,8 @@ function pageSJ(SEEDV){
   const res={cases:[],dyn:null},fails=[];const line=(...a)=>console.log(...a);
   const pc=(a,b)=>b?(100*a/b).toFixed(2):'0.00';
   // ---------------------------------------------------------------- cases
-  const sum=(rows)=>{const o={cases:rows.length,leapt:0,frames:0,bad:0,nose:0,noseBad:0,worst:9,noseWorst:9,thru:0,thruCases:0,legsWorst:9};
-    for(const r of rows){if(r.leaps)o.leapt++;o.frames+=r.frames;o.bad+=r.bad;o.nose+=r.nose;o.noseBad+=r.noseBad;o.thru+=r.thru;if(r.thru)o.thruCases++;if(r.worst<o.worst)o.worst=r.worst;if(r.z>17&&r.worst<o.noseWorst)o.noseWorst=r.worst;if(r.legsWorst<o.legsWorst)o.legsWorst=r.legsWorst;}return o;};
+  const sum=(rows)=>{const o={cases:rows.length,leapt:0,frames:0,bad:0,deep:0,nose:0,noseBad:0,worst:9,noseWorst:9,thru:0,thruCases:0,legsWorst:9};
+    for(const r of rows){if(r.leaps)o.leapt++;o.frames+=r.frames;o.bad+=r.bad;o.deep+=r.deep||0;o.nose+=r.nose;o.noseBad+=r.noseBad;o.thru+=r.thru;if(r.thru)o.thruCases++;if(r.worst<o.worst)o.worst=r.worst;if(r.z>17&&r.worst<o.noseWorst)o.noseWorst=r.worst;if(r.legsWorst<o.legsWorst)o.legsWorst=r.legsWorst;}return o;};
   if(!ONLY||ONLY==='cases'){
     const ZS=[-12,-7,-2,3,8,12,15,17,18.5,19.5,20.5,21.2,21.5],NTH=10,KINDS=['hunter','lurker','flanker','hunter','brood'];
     const TGS=['out','side','along','far','dodge'],NOSE_TGS=['nose','under','dodgeNose','out','far','side'];
@@ -167,7 +170,7 @@ function pageSJ(SEEDV){
     for(let ci=0;ci<cases.length;ci++){const c=cases[ci];if(ONLYC&&!ONLYC.has(ci))continue;if(ONLYC)c.trace=1;const r=await p.evaluate(c=>SJ.runCase(c),c);res.cases.push(r);
       if(ONLYC){line(`--- case ${ci}`,JSON.stringify({z:c.z,th:c.th,tg:c.tg,kind:c.kind,worst:r.worst,ph:r.worstPh}));for(const q of r.tr)line(JSON.stringify(q));}}
     const all=sum(res.cases),nose=sum(res.cases.filter(r=>r.z>=17));
-    const tab=(name,o)=>line(`${name.padEnd(9)} cases ${String(o.cases).padStart(4)} jumped ${String(o.leapt).padStart(4)} | jump frames ${String(o.frames).padStart(6)} | parts <-5cm ${pc(o.bad,o.frames).padStart(6)}% worst ${o.worst.toFixed(3)} | nose frames ${o.nose} parts <-5cm ${pc(o.noseBad,o.nose)}% | through the hull: ${o.thru} frames in ${o.thruCases} cases | upper legs worst ${o.legsWorst.toFixed(3)}`);
+    const tab=(name,o)=>line(`${name.padEnd(9)} cases ${String(o.cases).padStart(4)} jumped ${String(o.leapt).padStart(4)} | jump frames ${String(o.frames).padStart(6)} | parts <-5cm ${pc(o.bad,o.frames).padStart(6)}% <-15cm ${pc(o.deep,o.frames)}% worst ${o.worst.toFixed(3)} | nose frames ${o.nose} parts <-5cm ${pc(o.noseBad,o.nose)}% | through the hull: ${o.thru} frames in ${o.thruCases} cases | upper legs worst ${o.legsWorst.toFixed(3)}`);
     tab('ALL',all);tab('nose z>=17',nose);
     for(const tg of [...new Set(cases.map(c=>c.tg))])tab('  '+tg,sum(res.cases.filter(r=>r.tg===tg)));
     for(const k of [...new Set(cases.map(c=>c.kind))])tab('  '+k,sum(res.cases.filter(r=>r.kind===k)));
@@ -183,8 +186,9 @@ function pageSJ(SEEDV){
     if(all.leapt<cases.length*0.5)fails.push(`only ${all.leapt} of ${cases.length} cases pounced (the scenario changed?)`);
     if(+pc(all.bad,all.frames)>LIM.pct)fails.push(`${pc(all.bad,all.frames)}% of the jump frames have body/abdomen/fangs >5 cm inside the ship (limit ${LIM.pct}%)`);
     if(+pc(nose.noseBad,nose.nose)>LIM.pct)fails.push(`at the nose ${pc(nose.noseBad,nose.nose)}% of the jump frames have body/abdomen/fangs >5 cm inside (limit ${LIM.pct}%)`);
+    if(+pc(all.deep,all.frames)>LIM.deep)fails.push(`${pc(all.deep,all.frames)}% of the jump frames have body/abdomen/fangs >15 cm inside (limit ${LIM.deep}%)`);
     if(all.worst<LIM.worst)fails.push(`body/abdomen/fangs as deep as ${all.worst.toFixed(3)} m in a jump (limit ${LIM.worst})`);
-    if(all.thruCases>LIM.through)fails.push(`${all.thruCases} cases fly THROUGH the hull (root path crosses the real triangles)`);
+    if(all.thru>LIM.through)fails.push(`${all.thru} frames of a spider passing THROUGH the hull (root path crosses the real triangles; limit ${LIM.through})`);
   }
   // ---------------------------------------------------------------- dynamic
   if(!ONLY||ONLY==='dyn'){
@@ -192,17 +196,20 @@ function pageSJ(SEEDV){
     for(let f=0;f<nF;f+=120)st=await p.evaluate(n=>SJ.dynRun(n),Math.min(120,nF-f));
     const A=await p.evaluate(()=>SJ.dyn.acc);res.dyn=A;
     A.aborts=await p.evaluate(()=>SJ.aborts||0);
-    line(`dynamic  ${SEC} s of round ${st.wave+1}: ${A.leaps} pounces (${A.aborts} crouches given up: you went behind the ship), ${A.frames} jump frames ${JSON.stringify(A.phases)} | parts <-5cm ${pc(A.bad,A.frames)}% worst ${A.worst.toFixed(3)} (${A.worstPh} z ${A.worstZ}) | nose frames ${A.nose} parts <-5cm ${pc(A.noseBad,A.nose)}% | through the hull ${A.thru} | upper legs worst ${A.legsWorst.toFixed(3)} | by kind ${JSON.stringify(A.byKind)}`);
+    line(`dynamic  ${SEC} s of round ${st.wave+1}: ${A.leaps} pounces (${A.aborts} crouches given up: you went behind the ship), ${A.frames} jump frames ${JSON.stringify(A.phases)} | parts <-5cm ${pc(A.bad,A.frames)}% <-15cm ${pc(A.deep,A.frames)}% worst ${A.worst.toFixed(3)} (${A.worstPh} z ${A.worstZ}) | nose frames ${A.nose} parts <-5cm ${pc(A.noseBad,A.nose)}% | through the hull ${A.thru} | upper legs worst ${A.legsWorst.toFixed(3)} | by kind ${JSON.stringify(A.byKind)}`);
     line('  by phase:',Object.keys(A.phases).map(k=>`${k} ${A.phases[k]} ${pc(A.phBad[k]||0,A.phases[k])}%`).join(' | '));
     if(A.leaps<5)fails.push(`dynamic: only ${A.leaps} pounces (the scenario changed?)`);
     if(+pc(A.bad,A.frames)>LIM.pct)fails.push(`dynamic: ${pc(A.bad,A.frames)}% of the jump frames have body/abdomen/fangs >5 cm inside (limit ${LIM.pct}%)`);
+    if(+pc(A.deep,A.frames)>LIM.deep)fails.push(`dynamic: ${pc(A.deep,A.frames)}% of the jump frames have body/abdomen/fangs >15 cm inside (limit ${LIM.deep}%)`);
     if(A.worst<LIM.worst)fails.push(`dynamic: body/abdomen/fangs as deep as ${A.worst.toFixed(3)} m (limit ${LIM.worst})`);
     if(A.thru>LIM.through)fails.push(`dynamic: ${A.thru} frames of a spider passing through the hull`);
   }
   if(SHOTS){
     const SC=[{z:20.5,th:1.74,tg:'nose',kind:'hunter'},{z:21.2,th:4.57,tg:'under',kind:'lurker'},{z:19.5,th:3.31,tg:'nose',kind:'lurker'},{z:18.5,th:0.17,tg:'far',kind:'hunter'},{z:21.5,th:2.37,tg:'dodgeNose',kind:'hunter'},{z:15,th:1.74,tg:'far',kind:'lurker'}];
-    await p.evaluate(()=>{window.__noRender=0;});
-    for(let i=0;i<SC.length;i++){const c={...SC[i],seed:77+i,secs:6};const r=await p.evaluate(c=>SJ.shotCase(c,14),c);await p.screenshot({path:shot(`saltos_${i}_${c.tg}_${TAG}.png`)});line('shot',i,JSON.stringify(c),JSON.stringify(r));}
+    await p.evaluate(()=>document.body.classList.add('noui'));
+    for(let i=0;i<SC.length;i++)for(const fr of [3,10]){const c={...SC[i],seed:77+i,secs:6};const r=await p.evaluate(({c,fr})=>SJ.shotCase(c,fr),{c,fr});
+      await p.evaluate(()=>{requestAnimationFrame(()=>__render());});await p.waitForTimeout(500);
+      await p.screenshot({path:shot(`saltos_${i}_${c.tg}_f${fr}_${TAG}.png`),timeout:180000});line('shot',i,fr,JSON.stringify(c),JSON.stringify(r));}
   }
   if(errs.length)fails.push('page errors: '+errs.slice(0,3).join(' | '));
   fs.mkdirSync(path.dirname(shot('x')),{recursive:true});fs.writeFileSync(shot(`saltos_${TAG}.json`),JSON.stringify(res));

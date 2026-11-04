@@ -19,7 +19,8 @@ const JUMP_FIX={on:1,
   blend:0.4,   // s: como mucho, lo que tarda el despegue en pasar de "vientre al casco" a la orientación de vuelo (antes, si ya está lejos del casco)
   rise:1.5,    // la orientación de vuelo entra del todo cuando el centro está a rise·escala m del casco
   mar:0.05,    // m que los puntos del cuerpo dejan con el casco real
-  los:0.3,     // m (·escala) que la recta del salto deja con el casco a partir de 1.5 m del despegue (antes, solo no tocarlo)
+  los:0.05,    // m que la recta del salto deja con el casco (cerca del despegue, 2 cm): solo para que no lo cruce; rozarlo lo resuelven los puntos del cuerpo en vuelo.
+               // (con 0.3·escala las arañas saltaban un tercio de las veces: la dificultad cambiaba)
   land:0.6,    // s de salto en los que tocar el casco no lo hace aterrizar (resbala): como antes
   reel:2.2,    // m (·escala): a esa distancia del anclaje la seda empieza a girar el vientre hacia el casco
   wh:0.3,wp:0.5,// (sigue abajo)
@@ -46,9 +47,9 @@ function jumpSolid(p,m){for(const e of ENGINES){_w.subVectors(e.b,e.a);const t=T
 // ---- 3. ¿la recta del salto (del despegue a b) pasa limpia del casco real, las góndolas y las alas? Cada 0.3 m; cerca del despegue basta con no tocarlo
 const _jlp=new THREE.Vector3();
 function leapClear(a,b,sc){const L=a.distanceTo(b),n=Math.max(2,Math.ceil(L/0.3));
-  for(let k=1;k<n;k++){const u=k/n,p=_jlp.lerpVectors(a,b,u),from=u*L,need=from<1.5?0.02:JUMP_FIX.los*sc;
+  for(let k=1;k<n;k++){const u=k/n,p=_jlp.lerpVectors(a,b,u),from=u*L,need=from<1.5?0.02:JUMP_FIX.los;
     if(Math.abs(p.z)<HZ1+0.5&&jumpSurf(p,_jsq,_jsn)<need)return false;
-    if(from>0.8&&jumpSolid(p,from<1.5?0:0.15*sc))return false;}
+    if(from>0.8&&jumpSolid(p,0))return false;}
   return true;}
 // el punto de despegue: la altura a la que camina, a lo largo de la normal de verdad
 function jumpFrom(s,out,n){hullPoint(s.z,s.th,out);spUp(s.z,s.th,n);return out.addScaledVector(n,s.mesh.userData.rig?s.mesh.userData.rig.spd.rootOff*s.mesh.scale.x:0.28);}

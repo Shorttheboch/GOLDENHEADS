@@ -90,7 +90,7 @@ function spawnCloud(){let best=null;for(let k=0;k<24;k++){const a=Math.random()*
   dGeo.attributes.position.needsUpdate=true;stats.clouds=(stats.clouds||0)+1;
   showMsg('¡NUBE DE TRICOMAS!','Recógela antes de que se pierda en el vacío',2.8);tutorialEvent('cloud');say('cloud',3);sfx('drop',best);return k;}
 function startWave(i){wave=i;mtRound();const W=waveDef(i);WB.bossT=0;eggPlan=[];cloudPlan=-1;if(i>=2&&cargo<CFG.cargo*0.6){cloudPlan=0.2+Math.random()*0.3;cloudLastW=i;}if(spitFirstW>=0&&i>=spitFirstW+2&&(!isIncRound(i)||isIncAll(i))&&(i===(isIncRound(spitFirstW+2)?spitFirstW+3:spitFirstW+2)||(i-eggLastW>=2&&Math.random()<(i-eggLastW>=4?0.9:0.45)))){eggPlan.push(0.3+Math.random()*0.35);eggLastW=i;if(i>=spitFirstW+6&&Math.random()<0.3)eggPlan.push(0.65+Math.random()*0.25);}toSpawn=isIncRound(i)?Math.min(W.n,7):W.n;WB.n0=toSpawn;spawnT=i===0?4:0.5;inBreak=false;breakT=0;skipReq=false;planBursts(toSpawn);if(i===5&&spitN===0){WB.bossT=2.9;WB.spit=true;spawnT=5.5;}
-  WB.incT=0;WB.rt=0;WB.incSp=isIncAll(i)?1:0;if(isIncRound(i)){WB.incT=3.2;WB.spit=true;spawnT=incN===0?7:2;} // v83: incSp = an Escupidora still to come in this round (from round 14)dropsRound=0;roundLost0=lostN;
+  WB.incT=0;WB.rt=0;WB.incSp=isIncAll(i)?1:0;if(isIncRound(i)){WB.incT=3.2;WB.spit=true;spawnT=incN===0?7:2;}dropsRound=0;roundLost0=lostN; // v83: incSp = an Escupidora still to come in this round (from round 14)
   const sub=i===0?'':i===1?'Ahora vienen a comerse la nave':isIncRound(i)?'Algo enorme se acerca…':`${W.n} arañas`;
   if(i>0){showMsg('RONDA '+(i+1),sub,2.6);sfx('alert');}
   if(i===0)say('int_03',3,{queue:true});

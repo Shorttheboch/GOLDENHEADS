@@ -78,6 +78,9 @@ setTimeout(()=>{console.log('WATCHDOG: too slow, giving up');process.exit(2);},1
   const eg=await p.evaluate(()=>{const o={};for(const w of [7,10,13,16]){let n=0;for(let k=0;k<40;k++){__ronda.eggLastW=-9;__ronda.spitFirstWv=5;__T.startWave(w);if(__ronda.eggPlan>0)n++;}o['round'+(w+1)]=n;}return o;});
   ok(eg.round8===0&&eg.round11===0,'rounds 8 and 11: never an egg planned',eg);
   ok(eg.round14>=28&&eg.round17>=28,'rounds 14 and 17: planned like any round (90 % when the last egg was 4+ rounds ago)',eg);
+  // every new round resets the prize cap (dropsRound) in every kind of round; a comment once swallowed that line
+  const dr=await p.evaluate(()=>{const o={};for(const w of [5,7,12,13]){__heads.dropsRound=5;__T.startWave(w);o['round'+(w+1)]=__heads.dropsRound;}return o;});
+  ok(Object.values(dr).every(v=>v===0),'each round starts with the prize cap reset (dropsRound 0)',dr);
   await p.close();
   p=await boot('?ronda=14');r=await W(p);
   if(r.plan>0){let laid=null,inIntro=false;for(let i=0;i<400&&!laid;i++){const q=await p.evaluate(()=>{__run(10);const H=__heads;return {eggs:H.EGGS.length,intro:H.WB.incT>0||H.INCS.some(e=>e.st==='fall'||e.st==='arrive'||e.st==='roar'),rt:H.WB.rt};});

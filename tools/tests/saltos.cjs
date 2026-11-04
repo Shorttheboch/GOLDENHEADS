@@ -80,7 +80,7 @@ function pageSJ(SEEDV){
   D.runCase=(c)=>{D.seed(c.seed);D.keep.clear();D.hold(false);const s=H.spawnSpider(c.kind);D.keep.add(s);
     s.z=c.z;s.th=c.th;const [q,n]=__hullPoint(c.z,c.th);s.pos.copy(q);s.state='crawl';s.t=0;s.cd=0.2;s.aggro=3;s.patch=null;s.idleT=0;s.silk=null;s.vel.set(0,0,0);s.mesh.position.copy(q);
     const tgt=D.target(c.z,c.th,c.tg);P.pos.copy(tgt);P.vel.set(0,0,0);let dodged=false;
-    const res={...c,frames:0,bad:0,nose:0,noseBad:0,worst:9,worstPh:'',worstWp:null,worstZ:0,legsWorst:9,feetWorst:9,thru:0,leaps:0,launch:null,phases:{},phBad:{},end:''};
+    const res={...c,frames:0,bad:0,nose:0,noseBad:0,worst:9,worstPh:'',worstWp:null,worstZ:0,legsWorst:9,feetWorst:9,thru:0,leaps:0,launch:null,phases:{},phBad:{},end:'',tr:[]};
     const dt=1/60;let after=-1;
     for(let f=0;f<c.secs*60;f++){D.hold(false);if(!H.spiders.includes(s)){res.end='gone';break;}
       if(!dodged&&s.state==='leap'&&(c.tg==='dodge'||c.tg==='dodgeNose')&&s.t>0.08){dodged=true; // the astronaut dashes round to the other side of the ship (or under the nose)
@@ -88,6 +88,9 @@ function pageSJ(SEEDV){
         else P.pos.set((rnd()-0.5)*2,-3.8,Math.min(22,c.z+3));}
       P.vel.set(0,0,0);__step(1,dt);D.hold(false);if(!H.spiders.includes(s)){res.end='gone';break;}
       s.hp=99;const o=D.track(s,dt,3);
+      if(c.trace)res.tr.push({f,st:s.state,t:+s.t.toFixed(2),z:+s.z.toFixed(2),th:+s.th.toFixed(2),pos:s.pos.toArray().map(x=>+x.toFixed(2)),mp:s.mesh.position.toArray().map(x=>+x.toFixed(2)),
+        up:new T.Vector3(0,1,0).applyQuaternion(s.mesh.quaternion).toArray().map(x=>+x.toFixed(2)),fw:new T.Vector3(0,0,1).applyQuaternion(s.mesh.quaternion).toArray().map(x=>+x.toFixed(2)),
+        lift:+((s.mesh.userData.rig&&s.mesh.userData.rig.jlift)||0).toFixed(3),jl:+(s.jl||0).toFixed(2),ph:o?o.ph:'',parts:o?+o.parts.toFixed(3):null,wp:o?o.wp:null,P:P.pos.toArray().map(x=>+x.toFixed(1))});
       if(o){res.frames++;res.phases[o.ph]=(res.phases[o.ph]||0)+1;if(o.parts<-0.05){res.bad++;res.phBad[o.ph]=(res.phBad[o.ph]||0)+1;}if(o.nose){res.nose++;if(o.parts<-0.05)res.noseBad++;}if(o.thru)res.thru++;
         if(o.parts<res.worst){res.worst=o.parts;res.worstPh=o.ph;res.worstWp=o.wp;res.worstZ=o.z;}if(o.legs<res.legsWorst)res.legsWorst=o.legs;if(o.feet<res.feetWorst)res.feetWorst=o.feet;}
       if(s._launch&&!res.launch){res.launch={z:+s._launch.z.toFixed(2),th:+s._launch.th.toFixed(2),p:s._launch.p.map(x=>+x.toFixed(2)),pl:s._launch.pl.map(x=>+x.toFixed(2))};
@@ -156,7 +159,9 @@ function pageSJ(SEEDV){
     spots.forEach(([z,th],i)=>{if(!free[i]||i%NSTEP)return;const tgs=z>=17?NOSE_TGS:TGS;
       for(let j=0;j<(z>=17?4:2);j++){const tg=tgs[(i+j*3)%tgs.length];cases.push({z,th,tg,kind:KINDS[ci%KINDS.length],seed:1000+ci,secs:6});ci++;}});
     line(`cases: ${cases.length} (${spots.filter((_,i)=>free[i]).length} walkable spots of ${spots.length})`);
-    for(const c of cases){const r=await p.evaluate(c=>SJ.runCase(c),c);res.cases.push(r);}
+    const ONLYC=process.env.HEADS_CASES?new Set(process.env.HEADS_CASES.split(',').map(Number)):null; // HEADS_CASES=215,25: only those cases (index in the full list), each traced frame by frame
+    for(let ci=0;ci<cases.length;ci++){const c=cases[ci];if(ONLYC&&!ONLYC.has(ci))continue;if(ONLYC)c.trace=1;const r=await p.evaluate(c=>SJ.runCase(c),c);res.cases.push(r);
+      if(ONLYC){line(`--- case ${ci}`,JSON.stringify({z:c.z,th:c.th,tg:c.tg,kind:c.kind,worst:r.worst,ph:r.worstPh}));for(const q of r.tr)line(JSON.stringify(q));}}
     const all=sum(res.cases),nose=sum(res.cases.filter(r=>r.z>=17));
     const tab=(name,o)=>line(`${name.padEnd(9)} cases ${String(o.cases).padStart(4)} jumped ${String(o.leapt).padStart(4)} | jump frames ${String(o.frames).padStart(6)} | parts <-5cm ${pc(o.bad,o.frames).padStart(6)}% worst ${o.worst.toFixed(3)} | nose frames ${o.nose} parts <-5cm ${pc(o.noseBad,o.nose)}% | through the hull: ${o.thru} frames in ${o.thruCases} cases | upper legs worst ${o.legsWorst.toFixed(3)}`);
     tab('ALL',all);tab('nose z>=17',nose);

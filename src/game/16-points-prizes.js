@@ -142,13 +142,13 @@ function tryWindup(s,dist,W,dt,hunting){if(CINE.on)return;
   let leaping=0;for(const o of spiders)if(o.state==='leap'||o.state==='windup')leaping++;
   s.wait=(hunting&&dist>=W.range&&s.cd<=0&&dist<45)?(s.wait||0)+dt:0; // player hovering out of reach -> launch anyway after a moment
   s.hopTo=null;if(s.wait>1.2&&s.kind!=='spitter'){for(const R of ROCKS){if(R.fade<1||R.leaving)continue;const dp=R.c.distanceTo(P.pos),ds=R.c.distanceTo(s.pos);if(dp<16&&ds<26&&dp<dist-4){_rk.subVectors(s.pos,R.c).normalize();s.hopTo=R.c.clone().addScaledVector(_rk,rockR(R,_rk)*0.9);break;}}}
-  if(state==='play'&&s.cd<=0&&leaping<W.maxLeap&&((dist<lr&&Math.random()<s.aggr*dt*6)||s.wait>2+Math.random()*2)){s.wait=0;if(shipBetween(s.pos,P.pos)||isJumpS(s)&&!leapClear(jumpFrom(s,_jw1,_jw2),P.pos,s.mesh.scale.x)){s.aggro=Math.max(s.aggro||0,2);return;} // v83: and the straight jump against the real hull (41-saltos.js)
+  if(state==='play'&&s.cd<=0&&leaping<W.maxLeap&&((dist<lr&&Math.random()<s.aggr*dt*6)||s.wait>2+Math.random()*2)){s.wait=0;if(shipBetween(s.pos,P.pos)||isJumpS(s)&&(jumpRoot(s.z,s.th)||!leapClear(jumpFrom(s,_jw1,_jw2),P.pos,s.mesh.scale.x))){s.aggro=Math.max(s.aggro||0,2);return;} // v83: and the straight jump against the real hull (41-saltos.js)
     // telegraph: crouch, eyes flare, chitter -> then leap
     s.state='windup';s.t=0;s.windT=Math.max(0.35,0.62-wave*0.03);sfx('chitter',s.pos);if(dist<30)tutorialEvent('windup');}}
 const _jw1=new THREE.Vector3(),_jw2=new THREE.Vector3();
 function launchLeap(s){const W=waveDef(wave);
   const lead=s.hopTo?s.hopTo.clone():P.pos.clone().addScaledVector(P.vel,0.35).add(new THREE.Vector3().randomDirection().multiplyScalar(0.4));
-  if(isJumpS(s)){jumpFrom(s,_jw1,_jw2);if(!leapClear(_jw1,lead,s.mesh.scale.x)){s.state='crawl';s.t=0;s.cd=0.3;s.aggro=Math.max(s.aggro||0,2);return;} // v83: you went behind the ship while it crouched: no jump
+  if(isJumpS(s)){jumpFrom(s,_jw1,_jw2);if(!leapClear(_jw1,lead,s.mesh.scale.x)){s.state='crawl';s.t=0;s.cd=0.6+Math.random()*0.6;s.aggro=Math.max(s.aggro||0,2);return;} // v83: you went behind the ship while it crouched: no jump
     s.state='leap';s.vel.subVectors(lead,_jw1).normalize().multiplyScalar(CFG.leapSpeed*(0.85+W.spd*0.15));s.t=0;s.leapMax=_jw1.distanceTo(P.pos)/s.vel.length()+1.5;
     s.pos.copy(_jw1);s.jumpN=_jw2.clone();s.jumpW=0;s.mesh.position.copy(s.pos);sfx('leap',s.pos);return;} // v83: it takes off from the height it walks at, belly to the hull (jumpOrient)
   s.state='leap';s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed*(0.85+W.spd*0.15));s.t=0;s.leapMax=s.pos.distanceTo(P.pos)/s.vel.length()+1.5;
@@ -261,7 +261,7 @@ function updateSpider(s,dt,t){
   }else if(s.state==='fall'){if(!(CINE.on&&CINE.mode==='boss'&&CINE.boss===s&&CINE.t<0.35))updateFall(s,dt);
   }else if(s.state==='return'){
     // no swimming in vacuum: shoot a silk line at the nearest walkable hull spot, then reel in along it (faster and faster)
-    if(!s.silk){const hp=hullParam(s.pos);[hp.z,hp.th]=freeSpot(hp.z,hp.th,spPad(s));s.silk={a:hullPoint(hp.z,hp.th,new THREE.Vector3()),z:hp.z,th:hp.th,v:1.5,t:0};silkOn(s);sfx('silk',s.pos);}
+    if(!s.silk){const hp=hullParam(s.pos);[hp.z,hp.th]=jumpSpot(s,hp.z,hp.th);s.silk={a:hullPoint(hp.z,hp.th,new THREE.Vector3()),z:hp.z,th:hp.th,v:1.5,t:0};silkOn(s);sfx('silk',s.pos);}
     const SK=s.silk;SK.t+=dt;const d=V3.subVectors(SK.a,s.pos);if(isCrabS(s))crabReelAim(s,SK,d);else if(isJumpS(s))jumpReelAim(s,SK,d);const L=d.length();
     if(L<0.4){s.z=SK.z;s.th=SK.th;s.state='crawl';if(isJumpS(s))s.jl=JUMP_FIX.net;const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);s.slotTh+=THREE.MathUtils.randFloatSpread(1.5);s.silk=null;}
     else{if(SK.t>0.16)SK.v=Math.min(s.kind==='spitter'?14:19,SK.v+(s.kind==='spitter'?11:17)*dt);else SK.v*=Math.exp(-3*dt);

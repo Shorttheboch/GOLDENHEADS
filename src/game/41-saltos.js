@@ -104,8 +104,13 @@ function jumpCollide(s){const g=s.mesh,sc=g.scale.x;
   if(s.state==='leap'&&s.t<JUMP_FIX.land)return false;
   if(h+e>root+0.5*sc)return false; // only the abdomen or a leg brushed it on the way past: it slides on (landing from there would be a visible jump down)
   jumpLand(s,s.pos);return true;}
+// ---- 7. las raíces de los pilones (z -9.6..0.6, a los lados): el casco real se abre en un carenado hasta 2 m fuera de la elipse y el mapa medido se queda corto
+// hasta 0.4 m en las casillas junto a las tapadas ('#'). La araña camina bien ahí (su centro está en casillas buenas), pero su cuerpo pasa por encima del carenado:
+// cerca de él (3 casillas de una tapada) no se agacha para saltar, y ni el aterrizaje ni la seda la dejan ahí (la llevan a 4 casillas)
+const jumpRoot=(z,th)=>z>-9.6&&z<0.6&&hullBlocked(z,th,3);
+function jumpSpot(s,z,th){let f=freeSpot(z,th,spPad(s));if(isJumpS(s)&&jumpRoot(f[0],f[1]))f=freeSpot(f[0],f[1],4);return f;}
 // aterriza: en la casilla libre más cercana, mirando hacia donde iba, el vientre al casco
-function jumpLand(s,p){const hp=hullParam(p);[s.z,s.th]=freeSpot(hp.z,hp.th,spPad(s));s.state='crawl';s.jumpN=null;s.jl=JUMP_FIX.net;
+function jumpLand(s,p){const hp=hullParam(p);[s.z,s.th]=jumpSpot(s,hp.z,hp.th);s.state='crawl';s.jumpN=null;s.jl=JUMP_FIX.net;
   const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);
   const n=spUp(s.z,s.th,_sjL);hullPoint(s.z,s.th,s.pos);const f=_jf.copy(s.vel.lengthSq()>0.01?s.vel:(s.face||_jf.set(0,0,1)));f.addScaledVector(n,-f.dot(n));
   if(f.lengthSq()<1e-4)f.set(-n.y,n.x,0);f.normalize();s.face=(s.face||new THREE.Vector3()).copy(f);orient(s.mesh,f,n);

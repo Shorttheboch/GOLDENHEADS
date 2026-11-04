@@ -115,7 +115,7 @@ body.touch #rankAll::before{content:'';position:absolute;left:-4px;right:-4px;to
 .sbBtn::after{inset:max(2px,calc(var(--u)*.34));background:linear-gradient(180deg,#2a1d0a 0%,#120c05 55%,#0a0704 100%);box-shadow:inset 0 0 calc(var(--u)*1.2) rgba(255,180,50,.25)}
 .sbBtn>*{position:relative;z-index:1}
 .sbT{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*.55);white-space:nowrap}
-.sbT b{font-size:calc(var(--u)*2.3);font-weight:800;letter-spacing:.14em;margin-right:-.14em;line-height:1;
+.sbT b{font-size:calc(var(--u)*2.3);font-weight:800;letter-spacing:.14em;margin-right:-.14em;line-height:1;padding:.22em 0 .08em;margin-top:-.22em;margin-bottom:-.08em; /* room for the accent of Ó: background-clip:text only paints inside the box */
   background:linear-gradient(180deg,#fff6c8,#ffd34a 55%,#e9a41a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 6px rgba(255,190,50,.45))}
 .sbT small{display:flex;align-items:center;gap:calc(var(--u)*.8);font-size:calc(var(--u)*1.3);font-weight:700;letter-spacing:.34em;margin-right:-.34em;line-height:1;color:#bfe9ff;text-shadow:0 0 6px rgba(80,200,255,.6)}
 .sbT small::before,.sbT small::after{content:'';width:calc(var(--u)*2.6);height:1px;background:rgba(150,220,255,.55)}

@@ -13,6 +13,18 @@ body.trPlay,body.trPlay *{cursor:none!important}
 /* vertical (?trailer&vertical): the canvas keeps its fixed 9:16 picture, centred and scaled to fit (its size in px comes from trResize, 02-renderer.js) */
 body.trV{background:#000}
 body.trV #c{inset:auto;left:50%;top:50%;transform:translate(-50%,-50%)}
+/* letterboxed (trLb: a window of another shape): the full-screen flashes stay on the picture, not on the black bars (--trw/--trh = the canvas, trResize) */
+body.trV.trLb :is(#flash,#burn,#zapFlash,#xpFlash,#eggFade){inset:calc(50vh - var(--trh) / 2) calc(50vw - var(--trw) / 2)}
+/* the PC HUD in a 9:16 window of exactly that size (an OBS browser source of 1080x1920): its landscape layout puts the three top panels on top of each other.
+   Portrait: TRAJE/NAVE and PUNTUACIÓN side by side at the top, the cargo plate under them, the boss bar / tutorial line / prizes under that,
+   the tank smaller at the bottom right and the subtitles lifted over the key hints and the tank. Only with ?trailer&vertical. */
+body.trV:not(.trLb){--hx:3vw;--ht:2.4vh;--scw:37vw;--trTop:calc(var(--ht) + 37vw * 250 / 460)}
+body.trV:not(.trLb) #hVit{width:54vw}
+body.trV:not(.trLb) #hTop{top:calc(var(--trTop) + 1.6vh)!important;width:80vw!important}
+body.trV:not(.trLb) #tut,body.trV:not(.trLb) #boss,body.trV:not(.trLb) #pwr{top:calc(var(--trTop) + 9.5vh)!important}
+body.trV:not(.trLb) #hTk .tkT{width:30vw}
+body.trV:not(.trLb) #hTk .tkIc{width:15vw;height:15vw}
+body.trV:not(.trLb) #sub{bottom:calc(5vh + 15vw)!important;max-width:84vw!important}
 
 /* the help panel (H) */
 body.trailer #trHelp{position:fixed;left:10px;top:50%;transform:translateY(-50%);z-index:90;max-height:96vh;overflow:hidden;pointer-events:none;

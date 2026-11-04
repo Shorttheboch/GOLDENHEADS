@@ -172,5 +172,5 @@ if(TRAILER){
   for(const ev of ['mousedown','mouseup','mousemove'])addEventListener(ev,trMouse,true);addEventListener('wheel',trWheel,{passive:true});
   musicOn=false;window.__noMenuMusic=true;try{if(window.menuMusic)window.menuMusic(false);}catch(_){} // the music starts off (M switches the game music on)
   if(!/[?&]q=[0-5]\b/.test(location.search)){QA.on=false;qaSet(0);} // full quality, never lowered on its own (the picture size must not drop while recording)
-  if(TRV&&Math.abs(innerWidth/innerHeight-TRV.w/TRV.h)>0.01)trSet('hud',false); // vertical in a window of another shape: the canvas is letterboxed and the HUD would not line up with it
+  if(TRV&&document.body.classList.contains('trLb'))trSet('hud',false); // vertical in a window of another shape: the canvas is letterboxed and the HUD would not line up with it (3 still shows it)
 }

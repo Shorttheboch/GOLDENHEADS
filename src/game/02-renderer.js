@@ -41,7 +41,8 @@ composer.addPass(GRADE);
 // the canvas is shown centred and scaled to fit (12-trailer.css), so a window of exactly that size (an OBS browser source) is filled 1:1. Quality levels never change it.
 function trResize(){const w=TRV.w,h=TRV.h,s=TRV.s;renderer.setPixelRatio(s);renderer.setSize(w,h,false);composer.setPixelRatio(s);composer.setSize(w,h);
   {const d=QA.bloomDiv[QA.lvl];if(d)bloom.setSize(w/d,h/d);}camera.aspect=w/h;camera.updateProjectionMatrix();GRADE.uniforms.uRes.value.set(w*s,h*s);
-  const k=Math.min(innerWidth/w,innerHeight/h);canvas.style.width=(w*k)+'px';canvas.style.height=(h*k)+'px';}
+  const k=Math.min(innerWidth/w,innerHeight/h),R=document.documentElement.style;canvas.style.width=(w*k)+'px';canvas.style.height=(h*k)+'px';
+  R.setProperty('--trw',(w*k)+'px');R.setProperty('--trh',(h*k)+'px');document.body.classList.toggle('trLb',Math.abs(innerWidth/innerHeight-w/h)>0.01);} // trLb: letterboxed (a window of another shape)
 function resize(){if(TRV)return trResize();const w=innerWidth,h=innerHeight;renderer.setPixelRatio(qaPR(w,h));renderer.setSize(w,h,false);composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(w,h);
   {const d=QA.bloomDiv[QA.lvl];if(d)bloom.setSize(w/d,h/d);}camera.aspect=w/h;camera.updateProjectionMatrix();GRADE.uniforms.uRes.value.set(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());}
 addEventListener('resize',resize);resize();

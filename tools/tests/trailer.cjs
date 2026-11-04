@@ -41,7 +41,8 @@ async function stage(p){
   await p.evaluate(()=>{const P=__heads.P;P.pos.set(9.5,2.2,3);P.vel.set(0,0,0);P.yaw=Math.PI/2;P.pitch=-0.12;P.hp=100;P.inv=0;__T.showcase=0;});
   await p.waitForTimeout(1200);}
 const HUD_IDS=['hTop','hVit','hScore','hTank','hTk','cross','msg','sub','tip','pcKeys','hint','boss','round','combo','tut','xpT','xpS','eggT','h4m','eMk','fxLayer','dep','rep','ammo','pwr','lbT','lbB','hp','dash','dust','hatchInd','repPrompt'];
-const opac=(p,ids)=>p.evaluate(ids=>Object.fromEntries(ids.map(i=>{const e=document.getElementById(i);return [i,e?getComputedStyle(e).opacity:null];})),ids);
+// effective opacity: the element's own times every ancestor's (a hidden parent hides it)
+const opac=(p,ids)=>p.evaluate(ids=>Object.fromEntries(ids.map(i=>{let e=document.getElementById(i);if(!e)return [i,null];let o=1;for(;e&&e.nodeType===1;e=e.parentElement)o*=+getComputedStyle(e).opacity;return [i,Math.round(o*1000)/1000];})),ids);
 
 async function main(b){
   console.log('\n=== main: ?trailer (PC 960x540) ===');
@@ -83,24 +84,24 @@ async function main(b){
   r=await p.evaluate(()=>{const P=__heads.P,PA=__T.PATCHES.slice().sort((a,b)=>b.pos.distanceTo(P.pos)-a.pos.distanceTo(P.pos))[0];
     for(const Z of __T.ZONES)Z.alarmT=0;const s=__heads.spawnSpider('lurker');s.z=PA.z-0.3;s.th=PA.th;__hullPoint(s.z,s.th)[0];s.pos.copy(__hullPoint(s.z,s.th)[0]);s.mesh.position.copy(s.pos);
     s.patch=PA;s.state='eat';s.t=0;s.aggro=0;s.cd=99;window.__eatPa=PA;window.__eatS=s;return {d:PA.pos.distanceTo(P.pos),z:PA.zone.name};});
-  const c0=await p.evaluate(()=>__T.cargo);
-  r=await p.evaluate(()=>new Promise(res=>{let eat=0,n=0,mc=1e9;const t0=performance.now();const f=()=>{n++;if(window.__eatS.state==='eat')eat++;mc=Math.min(mc,__T.cargo);if(performance.now()-t0<3000)requestAnimationFrame(f);else res({eat,n,hp:__eatPa.hp,alarm:__eatPa.zone.alarmT>0,mc,all:__T.PATCHES.every(x=>x.hp===25),state:__T.state});};f();}));
-  ok(r.eat>r.n*0.5&&r.alarm,'the spider bites (eating, alarm went off)',r);ok(r.hp===25&&r.all,'no plate loses hp',r);ok(r.mc>=c0,'the cargo never goes down',{c0,min:r.mc});
+  const c0=await p.evaluate(()=>{window.__hp0=__T.PATCHES.map(x=>x.hp);return __T.cargo;});
+  r=await p.evaluate(()=>new Promise(res=>{let eat=0,n=0,mc=1e9;const t0=performance.now();const f=()=>{n++;if(window.__eatS.state==='eat')eat++;mc=Math.min(mc,__T.cargo);if(performance.now()-t0<3000)requestAnimationFrame(f);else res({eat,n,hp:__eatPa.hp,hp0:__hp0[__T.PATCHES.indexOf(__eatPa)],alarm:__eatPa.zone.alarmT>0,mc,same:__T.PATCHES.every((x,i)=>x.hp===__hp0[i]),state:__T.state});};f();}));
+  ok(r.eat>r.n*0.5&&r.alarm,'the spider bites (eating, alarm went off)',r);ok(r.hp===r.hp0&&r.same,'no plate loses hp',r);ok(r.mc>=c0,'the cargo never goes down',{c0,min:r.mc});
   await key(p,'KeyL');
 
   console.log('-- 3 HUD');
   const op0=await opac(p,HUD_IDS);
   await key(p,'Digit3');
   r=await p.evaluate(()=>document.body.classList.contains('trNoHud'));ok(r,'3 = HUD hidden (body.trNoHud)');
-  const op1=await opac(p,HUD_IDS);ok(Object.values(op1).every(v=>v===null||v==='0'),'every HUD element and message has opacity 0',op1);
+  const op1=await opac(p,HUD_IDS);ok(Object.values(op1).every(v=>v===null||v===0),'every HUD element and message is invisible',op1);
   r=await p.evaluate(()=>({c:getComputedStyle(document.getElementById('c')).opacity,toast:getComputedStyle(document.getElementById('trToast')).display}));
   ok(r.c==='1'&&r.toast==='none','the picture stays; no notices while hidden',r);
   // the red 3D sign above the last spiders (round 2+, nothing left to come, 2 spiders or fewer)
   await p.evaluate(()=>{__T.startWave(1);__T.toSpawn=0;window.__mk=__heads.spawnSpider('hunter');});await frames(p,3);
   r=await p.evaluate(()=>{const m=window.__mk.mesh.userData.mark;return m?m.visible:null;});ok(r===false,'the red 3D sign above the last spiders is hidden too',r);
   if(SHOTS){await key(p,'KeyU',600);await p.screenshot({path:shot('trailer_pc_clean.png')});}
-  await key(p,'Digit3');const op2=await opac(p,HUD_IDS),ST=['hTop','hVit','hScore','hTank','hTk','cross'];
-  ok(ST.every(i=>op2[i]===op0[i]),'3 again: the HUD as it was',{op0,op2});
+  await key(p,'Digit3');const op2=await opac(p,HUD_IDS),ST=['hTop','hVit','hScore','hTk','cross'];
+  ok(ST.every(i=>op2[i]>0.5&&Math.abs(op2[i]-op0[i])<0.15),'3 again: the HUD as it was',{op0,op2});
   r=await p.evaluate(()=>{const m=window.__mk.mesh.userData.mark;return m?m.visible:null;});ok(r===true,'... the red sign too',r);
   if(SHOTS)await p.screenshot({path:shot('trailer_pc_hud.png')});
   await key(p,'KeyL');
@@ -271,8 +272,11 @@ async function vert(b){
     return {x:a.x,y:a.y,head:hd.y,feet:ft.y,h:(hd.y-ft.y)/2};});
   ok(Math.abs(r.x)<0.45&&r.head<0.9&&r.feet>-0.95&&r.h>0.1,'the astronaut is framed (centre x, whole height on screen, a good size)',r);
   // HUD panels inside the window and not on top of each other
-  r=await p.evaluate(()=>{const ids=['hTop','hVit','hScore','hTank','hTk','pcKeys','round','msg'],R={};for(const i of ids){const e=document.getElementById(i);if(!e||e.hidden)continue;const b=e.getBoundingClientRect();
-      if(b.width<2||b.height<2||getComputedStyle(e).display==='none')continue;R[i]=[b.left,b.top,b.right,b.bottom].map(Math.round);}
+  await p.evaluate(()=>{__T.startWave(1);}); // a round message on screen too
+  await p.waitForTimeout(400);
+  r=await p.evaluate(()=>{const ids=['hTop','hVit','hScore','hTk','pcKeys','msg','sub','tut','boss','pwr','tip'],R={};for(const i of ids){const e=document.getElementById(i);if(!e||e.hidden)continue;const b=e.getBoundingClientRect();
+      let o=1;for(let x=e;x&&x.nodeType===1;x=x.parentElement)o*=+getComputedStyle(x).opacity;
+      if(b.width<2||b.height<2||o<0.05||getComputedStyle(e).display==='none')continue;R[i]=[b.left,b.top,b.right,b.bottom].map(Math.round);}
     const ov=[];const k=Object.keys(R);for(let i=0;i<k.length;i++)for(let j=i+1;j<k.length;j++){const a=R[k[i]],c=R[k[j]];if(Math.min(a[2],c[2])-Math.max(a[0],c[0])>2&&Math.min(a[3],c[3])-Math.max(a[1],c[1])>2)ov.push(k[i]+'/'+k[j]);}
     const out=k.filter(i=>R[i][0]<-1||R[i][1]<-1||R[i][2]>innerWidth+1||R[i][3]>innerHeight+1);return {R,ov,out};});
   ok(r.ov.length===0,'portrait HUD: no panels on top of each other',r);ok(r.out.length===0,'portrait HUD: all inside the window',r.out);

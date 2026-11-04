@@ -81,22 +81,26 @@ function pageSJ(SEEDV){
     s.z=c.z;s.th=c.th;const [q,n]=__hullPoint(c.z,c.th);s.pos.copy(q);s.state='crawl';s.t=0;s.cd=0.2;s.aggro=3;s.patch=null;s.idleT=0;s.silk=null;s.vel.set(0,0,0);s.mesh.position.copy(q);
     const tgt=D.target(c.z,c.th,c.tg);P.pos.copy(tgt);P.vel.set(0,0,0);let dodged=false;
     const res={...c,frames:0,bad:0,nose:0,noseBad:0,worst:9,worstPh:'',worstWp:null,worstZ:0,legsWorst:9,feetWorst:9,thru:0,leaps:0,launch:null,phases:{},phBad:{},end:'',tr:[]};
-    const dt=1/60;let after=-1;
+    const dt=1/60;let after=-1;res.ring=[];
     for(let f=0;f<c.secs*60;f++){D.hold(false);if(!H.spiders.includes(s)){res.end='gone';break;}
       if(!dodged&&s.state==='leap'&&(c.tg==='dodge'||c.tg==='dodgeNose')&&s.t>0.08){dodged=true; // the astronaut dashes round to the other side of the ship (or under the nose)
         if(c.tg==='dodge'){const [q2,n2]=__hullPoint(c.z+(rnd()-0.5)*3,c.th+Math.PI*(0.75+rnd()*0.5));P.pos.copy(q2).addScaledVector(n2,3.5);}
         else P.pos.set((rnd()-0.5)*2,-3.8,Math.min(22,c.z+3));}
       P.vel.set(0,0,0);__step(1,dt);D.hold(false);if(!H.spiders.includes(s)){res.end='gone';break;}
       s.hp=99;const o=D.track(s,dt,3);
-      if(c.trace)res.tr.push({f,st:s.state,t:+s.t.toFixed(2),z:+s.z.toFixed(2),th:+s.th.toFixed(2),pos:s.pos.toArray().map(x=>+x.toFixed(2)),mp:s.mesh.position.toArray().map(x=>+x.toFixed(2)),
+      const fr=(c.trace||o&&o.parts<-0.1||res.ring)?{f,st:s.state,t:+s.t.toFixed(2),z:+s.z.toFixed(2),th:+s.th.toFixed(2),pos:s.pos.toArray().map(x=>+x.toFixed(2)),mp:s.mesh.position.toArray().map(x=>+x.toFixed(2)),
         up:new T.Vector3(0,1,0).applyQuaternion(s.mesh.quaternion).toArray().map(x=>+x.toFixed(2)),fw:new T.Vector3(0,0,1).applyQuaternion(s.mesh.quaternion).toArray().map(x=>+x.toFixed(2)),
-        lift:+((s.mesh.userData.rig&&s.mesh.userData.rig.jlift)||0).toFixed(3),jl:+(s.jl||0).toFixed(2),ph:o?o.ph:'',parts:o?+o.parts.toFixed(3):null,wp:o?o.wp:null,P:P.pos.toArray().map(x=>+x.toFixed(1))});
+        lift:+((s.mesh.userData.rig&&s.mesh.userData.rig.jlift)||0).toFixed(3),jl:+(s.jl||0).toFixed(2),ph:o?o.ph:'',parts:o?+o.parts.toFixed(3):null,wp:o?o.wp:null,P:P.pos.toArray().map(x=>+x.toFixed(1))}:null;
+      if(c.trace)res.tr.push(fr);
+      // every case keeps its last 8 frames; a frame more than 10 cm inside saves them (at most 2 per case) for the log
+      if(fr){res.ring=res.ring||[];res.ring.push(fr);if(res.ring.length>8)res.ring.shift();}else{res.ring=res.ring||[];}
+      if(o&&o.parts<-0.1&&(res.bt=res.bt||[]).length<2)res.bt.push(res.ring.slice());
       if(o){res.frames++;res.phases[o.ph]=(res.phases[o.ph]||0)+1;if(o.parts<-0.05){res.bad++;res.phBad[o.ph]=(res.phBad[o.ph]||0)+1;}if(o.nose){res.nose++;if(o.parts<-0.05)res.noseBad++;}if(o.thru)res.thru++;
         if(o.parts<res.worst){res.worst=o.parts;res.worstPh=o.ph;res.worstWp=o.wp;res.worstZ=o.z;}if(o.legs<res.legsWorst)res.legsWorst=o.legs;if(o.feet<res.feetWorst)res.feetWorst=o.feet;}
       if(s._launch&&!res.launch){res.launch={z:+s._launch.z.toFixed(2),th:+s._launch.th.toFixed(2),p:s._launch.p.map(x=>+x.toFixed(2)),pl:s._launch.pl.map(x=>+x.toFixed(2))};
         const a=s._launch.p,b=s._launch.pl;const hit=CT.segHit(a[0],a[1],a[2],b[0],b[1],b[2],0.3,true);res.launch.losHit=hit>=0?+hit.toFixed(2):-1;}
       if(s._leaps&&s._landT!=null&&s._landT>0.6){res.end='landed';break;}}
-    res.leaps=s._leaps||0;if(!res.end)res.end=res.leaps?'timeout':'noleap';res.state=s.state;
+    res.leaps=s._leaps||0;if(!res.end)res.end=res.leaps?'timeout':'noleap';res.state=s.state;delete res.ring;
     for(const k of ['worst','legsWorst','feetWorst'])res[k]=+res[k].toFixed(3);
     D.keep.clear();for(const o of [...H.spiders])H.killSpider(o,false,true);return res;};
   // dynamic: round 7, spawning on, the astronaut hops round the ship
@@ -173,6 +177,7 @@ function pageSJ(SEEDV){
      const nc=res.cases.filter(r=>r.z>=17),phn={},pbn={};for(const r of nc){for(const [k,n] of Object.entries(r.phases))phn[k]=(phn[k]||0)+n;for(const [k,n] of Object.entries(r.phBad||{}))pbn[k]=(pbn[k]||0)+n;}
      line('  by phase, cases from the nose:',Object.keys(phn).map(k=>`${k} ${phn[k]} ${pc(pbn[k]||0,phn[k])}%`).join(' | '));}
     const worst=[...res.cases].sort((a,b)=>a.worst-b.worst).slice(0,12);
+    for(const r of res.cases)if(r.bt)for(const w of r.bt){line(`  frames before a frame >10 cm inside (case z ${r.z} th ${r.th} ${r.kind} -> ${r.tg}):`);for(const q of w)line('   ',JSON.stringify(q));}
     line('  worst cases:');for(const r of worst)line(`    ${r.worst.toFixed(3)} ${r.worstPh.padEnd(7)} at z ${r.worstZ} | from z ${r.z} th ${r.th} ${r.kind} -> ${r.tg} | launch ${r.launch?`z ${r.launch.z} los-hit ${r.launch.losHit}`:'-'} | bad ${r.bad}/${r.frames} thru ${r.thru} end ${r.end} | vertex ${JSON.stringify(r.worstWp)}`);
     res.sumCases={all,nose};
     if(all.leapt<cases.length*0.5)fails.push(`only ${all.leapt} of ${cases.length} cases pounced (the scenario changed?)`);

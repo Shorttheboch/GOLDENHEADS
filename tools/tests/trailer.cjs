@@ -140,6 +140,11 @@ async function main(b){
   ok(dist(a0.pos,a1.pos)<0.05&&a1.yaw===a0.yaw&&a1.pitch===a0.pitch&&a1.shots===a0.shots&&a1.vel<0.2,'the astronaut stays: no move, no turn, no dash (Shift), no shot (click)',{a0,a1});
   await key(p,'Digit6');await p.waitForTimeout(300);
   r=await p.evaluate(()=>({d:__camera.position.distanceTo(__heads.P.pos),fov:__camera.fov}));ok(r.d>2&&r.d<5&&Math.abs(r.fov-62)<4,'back to the follow camera',r);
+  // the mouse is not captured here (as in an OBS browser source): middle button held + mouse turns the astronaut, and shoots nothing
+  const m0=await p.evaluate(()=>({yaw:__heads.P.yaw,shots:__heads.stats.shots,locked:document.pointerLockElement!==null}));
+  await p.mouse.move(480,270);await p.mouse.down({button:'middle'});await p.mouse.move(420,250,{steps:6});await p.mouse.up({button:'middle'});await p.waitForTimeout(100);
+  const m1=await p.evaluate(()=>({yaw:__heads.P.yaw,shots:__heads.stats.shots}));
+  ok(!m0.locked&&m1.yaw>m0.yaw+0.05&&m1.shots===m0.shots,'middle button + mouse turns the astronaut without the mouse captured',{m0,m1});
 
   console.log('-- spawns in front, on the hull');
   await lateReady(p);await key(p,'KeyL');await stage(p);
@@ -234,8 +239,8 @@ async function neg(b){
       cine:H.CINE.on,shots:H.stats.shots,mus:__MUS().on,help:!!document.getElementById('trHelp'),op:['hTop','cross','msg','tip'].map(i=>getComputedStyle(document.getElementById(i)).opacity)});});
   const s0=await snap();
   for(const k of ['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','KeyU','KeyI','KeyO','KeyP','KeyJ','KeyK','KeyL','KeyT','KeyH','KeyZ','Comma','Period'])await p.keyboard.press(k);
-  await p.mouse.wheel(0,-120);await p.waitForTimeout(300);
-  const s1=await snap();ok(s0===s1,'every trailer key (and the wheel) changes nothing: positions, hp, spawns, cargo, plates, camera, HUD, classes',s0===s1?undefined:{s0:s0.slice(0,300),s1:s1.slice(0,300)});
+  await p.mouse.wheel(0,-120);await p.mouse.move(480,270);await p.mouse.down({button:'middle'});await p.mouse.move(420,250,{steps:6});await p.mouse.up({button:'middle'});await p.waitForTimeout(300);
+  const s1=await snap();ok(s0===s1,'every trailer key (and the wheel, and a middle-button drag) changes nothing: positions, hp, spawns, cargo, plates, camera, HUD, classes',s0===s1?undefined:{s0:s0.slice(0,300),s1:s1.slice(0,300)});
   // a few frames later still nothing of the trailer (no queued spawn, no time scale, normal camera)
   const n0=await p.evaluate(()=>__heads.spiders.length);
   await p.evaluate(()=>{__step(30);});

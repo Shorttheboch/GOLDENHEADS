@@ -143,8 +143,12 @@ function trKey(e){if(e.target&&e.target.tagName==='INPUT'||document.body.classLi
     case 'KeyL':trClear();break;
     case 'KeyT':trSet('cine',!TRA.cine);trToast('CON CINEMÁTICA',TRA.cine?'ON':'OFF');break;}}
 function trKeyUp(e){FC.k[e.code]=false;}
-// mouse while the free camera is on: it looks (pointer locked, or dragging with a button held when the lock is not there: OBS); it never shoots
-function trMouse(e){if(!(TRA.fc&&state==='play'))return;
+// mouse while the free camera is on: it looks (pointer locked, or dragging with a button held when the lock is not there: OBS); it never shoots.
+// Without the free camera and without the mouse captured (an OBS browser source may not give the lock), the middle button held + the mouse turns the astronaut
+function trMouse(e){if(state!=='play')return;
+  if(!TRA.fc){if(locked||!(e.button===1||e.buttons&4))return;
+    if(e.type==='mousedown')e.preventDefault();else if(e.type==='mousemove'){P.yaw-=e.movementX*0.0022;P.pitch-=e.movementY*0.0022;lookInput=performance.now();} // (preventDefault: no autoscroll)
+    return;}
   if(e.type==='mousedown'){e.stopImmediatePropagation();if(document.pointerLockElement!==canvas&&canvas.requestPointerLock){FC.drag=true;try{const r=canvas.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(_){}}return;}
   if(e.type==='mouseup'){FC.drag=false;return;}
   e.stopImmediatePropagation();
@@ -160,7 +164,7 @@ function trBuild(){
   const H=document.createElement('div');H.id='trHelp';H.hidden=true;
   const row=(k,l,s)=>`<div class="trR"><b>${k}</b><span>${l}</span>${s?`<i data-s="${s}"></i>`:''}</div>`;
   H.innerHTML='<div class="trH">MODO TRÁILER</div>'+TRK.slice(0,10).map(x=>row(x[1],x[2],x[3])).join('')+
-    '<div class="trH">ENEMIGOS DELANTE, EN EL CASCO</div>'+TRK.slice(10).map(x=>row(x[1],x[2],x[3])).join('')+row('M','MÚSICA','')+row('V','VOCES','')+
+    '<div class="trH">ENEMIGOS DELANTE, EN EL CASCO</div>'+TRK.slice(10).map(x=>row(x[1],x[2],x[3])).join('')+row('M','MÚSICA','')+row('V','VOCES','')+row('CLIC CENTRAL','MIRAR SIN CAPTURA','')+
     '<div class="trH">CÁMARA LIBRE</div>'+TRK_FC.map(x=>row(x[0],x[1],'')).join('');
   const T=document.createElement('div');T.id='trToast';T.innerHTML='<span></span><b></b>';
   document.body.append(H,T);TRUI.help=H;TRUI.toast=T;trPanel();}

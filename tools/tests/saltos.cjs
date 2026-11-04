@@ -198,6 +198,6 @@ function pageSJ(SEEDV){
   console.log(`done in ${((Date.now()-t0)/1000).toFixed(0)} s`);
   await b.close();
   if(fails.length&&!ISBASE){console.log('FAIL');for(const f of fails)console.log(' -',f);process.exit(1);}
-  if(fails.length)console.log('(HEADS_BASE: would fail)\n - '+fails.join('\n - '));
-  console.log('OK: the spiders jump without going into the ship');
+  if(fails.length){console.log('(HEADS_BASE: would fail)\n - '+fails.join('\n - '));process.exit(0);}
+  console.log('OK: the spiders jump without going into the ship');process.exit(0); // (the watchdog timer would keep node alive)
 })();

@@ -26,9 +26,9 @@ const TRUI={help:null,toast:null,toastEnd:0,play:false};
 const FC_KEYS=new Set(['KeyW','KeyA','KeyS','KeyD','Space','KeyC','ShiftLeft','ShiftRight','KeyZ','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Comma','Period']);
 const FC_PASS=new Set(['KeyM','KeyV','Enter','NumpadEnter','Escape']); // free camera on: these still reach the game; any other game key is kept from it (the astronaut stands still)
 
-// ---- world time: the loop's clock returns the scaled time (1 / 0.5 / 0.25, or ~0 frozen: 1e-4 a frame, like the egg scene) and keeps its elapsed time on it ----
+// ---- world time: the loop's clock returns the scaled time (1 / 0.5 / 0.25, or ~0 frozen: 1e-6 a frame, never exactly 0 because a few things divide by dt) and keeps its elapsed time on it ----
 if(TRAILER){const gd=clock.getDelta.bind(clock);
-  clock.getDelta=function(){const d=gd();const w=TRA.pause?Math.min(d,1e-4):d*TRA.slow;this.elapsedTime+=w-d;return w;};}
+  clock.getDelta=function(){const d=gd();const w=TRA.pause?Math.min(d,1e-6):d*TRA.slow;this.elapsedTime+=w-d;return w;};}
 
 // ---- the hull spot in front of you: where the view meets the hull, or else the hull under a point 6 m ahead of the astronaut ----
 function trSpot(){const o=camera.position,d=_tr1.set(0,0,-1).applyQuaternion(camera.quaternion);let hit=null;
@@ -99,9 +99,11 @@ function trPre(){
   if(state==='play'){
     if(TRA.god){P.hp=CFG.hpMax;P.burn=0;} // the laser and the burns take a little every frame: never enough to matter
     if(TRA.ship){if(cargo<TRA.c0)cargo=TRA.c0;else TRA.c0=cargo;} // leaks still fly out of a broken plate, the cargo on board does not go down
+    if(TRA.pause)shakeAmp=0; // frozen: the camera shake would never die out (it fades with world time)
     for(let i=TRQ.length-1;i>=0;i--)if(lateOk(TRQ[i][0])){const fn=TRQ[i][1];TRQ.splice(i,1);fn();}}
   else if(TRQ.length)TRQ.length=0;}
 function trFrame(){const B=document.body,play=state==='play';
+  if(TRA.ship&&play&&cargo<TRA.c0)cargo=TRA.c0;
   if(TRA.fc){if(play)camera.position.copy(FC.p);else trSet('fc',false);}
   if(play!==TRUI.play){TRUI.play=play;B.classList.toggle('trPlay',play); // the cursor hides while playing
     if(!play&&(TRA.pause||TRA.slow!==1)){TRA.pause=false;TRA.slow=1;trPanel();}} // the game is over: the world runs at its own pace again

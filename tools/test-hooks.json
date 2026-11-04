@@ -148,5 +148,10 @@
   "a": "const RANK={on:",
   "b": "const RANK={on:window.__rankOn===1||",
   "file": "game"
+ },
+ {
+  "a": "function trFrame(){",
+  "b": "if(TRAILER)window.__trailer={TRA,TRV,FC,TRQ,TRUI,trSpot:()=>trSpot(),get musicOn(){return musicOn},get QA(){return QA},get CB(){return CB_},looseCount:()=>looseCount(),shipHp:()=>shipHp(),get MT(){return MT}};function trFrame(){",
+  "file": "game"
  }
 ]

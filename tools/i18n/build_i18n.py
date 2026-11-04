@@ -177,7 +177,22 @@ EN.update({'PROTEGE LA NAVE. SALVA LOS TRICOMAS.':'PROTECT THE SHIP. SAVE THE TR
  'Mantén y desliza':'Hold and slide','para apuntar.':'to aim.',
  'A tope → afloja → a tope':'Full → ease off → full','Mismo lado · menos de 0,3 s':'Same side · under 0.3 s'})
 EN.update({'Mantén':'Hold'})
-# (DISPARAR, IMPULSO, JUGAR and CARGANDO already exist above)
+# ---- v75: add to home screen (phones): the PANTALLA COMPLETA buttons and Santi's guide (index.html #instOv, src/game/35-instalar.js) ----
+EN.update({'PANTALLA COMPLETA':'FULL SCREEN','JUEGA A PANTALLA COMPLETA':'PLAY FULL SCREEN','Cerrar':'Close','ENTENDIDO':'GOT IT',
+ 'Añade HEADS a tu pantalla de inicio: se abre sin barras, como una app.':'Add HEADS to your Home Screen: it opens without bars, like an app.',
+ 'Instala HEADS en tu móvil: se abre a pantalla completa y en horizontal, como una app.':'Install HEADS on your phone: it opens full screen and in landscape, like an app.',
+ '1 · COMPARTIR':'1 · SHARE','2 · AÑADIR':'2 · ADD','3 · JUGAR':'3 · PLAY','1 · MENÚ':'1 · MENU','2 · INSTALAR':'2 · INSTALL',
+ 'Copiar':'Copy','Añadir a pantalla de inicio':'Add to Home Screen','Añadir a favoritos':'Add to Favorites',
+ 'Nueva pestaña':'New tab','Instalar aplicación':'Install app','Compartir…':'Share…',
+ 'La app guarda sus datos aparte de Safari: la primera vez te pedirá el idioma.':'The app keeps its data apart from Safari: the first time it will ask for your language.',
+ 'Esta guía solo sale si tu navegador no deja instalar directamente desde el botón.':"This guide only shows if your browser can't install straight from the button."})
+# sentences with coloured words (<b class="k"> gold, <b class="c"> cyan): translated whole, exactly as they are written in index.html
+H.update({
+ 'Toca <b class="k">Compartir</b> en Safari. En iOS 26, primero toca <b class="c">···</b>':'Tap <b class="k">Share</b> in Safari. On iOS 26, tap <b class="c">···</b> first',
+ 'Baja en la lista y elige <b class="k">«Añadir a pantalla de inicio»</b>.':'Scroll down and choose <b class="k">“Add to Home Screen”</b>.',
+ 'Abre HEADS desde su icono: se juega a <b class="c">pantalla completa</b>.':'Open HEADS from its icon: it plays <b class="c">full screen</b>.',
+ 'Toca el menú <b class="k">⋮</b> del navegador, arriba a la derecha.':"Tap the browser's <b class=\"k\">⋮</b> menu, top right.",
+ 'Elige <b class="k">«Instalar aplicación»</b> o «Añadir a pantalla de inicio».':'Choose <b class="k">“Install app”</b> or “Add to Home screen”.'})
 # ---- v62: phone HUD (Santi's design, src/hud/hud.js) ----
 EN.update({'ENEMIGO':'ENEMY','ENEMIGOS':'ENEMIES','s · RESPIRO':'s · BREATHER','s · CALMA':'s · CALM'})
 # ---- v63: phones, shorter messages (no Shift on a phone) ----
@@ -186,9 +201,55 @@ EN.update({'Mátala antes de que destroce la nave':'Kill it before it wrecks the
  'Viene a por ti · su núcleo del pecho es el punto débil':"It's coming for you · the core in its chest is the weak spot"})
 # ---- v68: PC key hints at the bottom left (#pcKeys; SOLDAR, MANTÉN, ASPIRAR and ROTURA already exist above) ----
 EN.update({'IMPULSO':'BOOST','CLIC DERECHO':'RIGHT CLICK','VE A DEJAR LOS TRICOMAS':'DROP OFF THE TRICHOMES','EN LA BODEGA':'IN THE HOLD'})
+# ---- v77: title of the first EXTRA POWER (EXTRA POWER stays as it is; the line under it carries the seconds of plasma) ----
+P.append([r'^Plasma (\d+) s · atraviesa arañas$','Plasma $1 s · pierces spiders'])
+# ---- v81: the anonymous-stats question on the start menu (index.html #mtAsk, src/game/39-metricas.js) ----
+EN.update({'¿Nos ayudas con estadísticas anónimas?':'Will you help us with anonymous stats?',
+ 'Para mejorar el juego: rondas, dispositivo y país. Sin nombre ni cuenta.':'To improve the game: rounds, device and country. No name, no account.','SÍ':'YES'})
+# ---- v82: Google accounts and the Season 1 ranking (index.html #rankBox / #acct, src/game/26-ranking.js, src/game/40-cuentas.js) ----
+EN.update({'RANKING DE CAPITANES':'CAPTAINS LEADERBOARD','TEMPORADA 1':'SEASON 1','VER RANKING COMPLETO':'VIEW FULL LEADERBOARD','¡Sé el primero!':'Be the first!',
+ 'TÚ':'YOU','sin guardar':'not saved','TU PARTIDA':'YOUR RUN','RANKING':'LEADERBOARD','Ver tu partida':'See your run','Ver el ranking':'See the leaderboard',
+ '¿GUARDAMOS TU PUNTUACIÓN?':'SHALL WE SAVE YOUR SCORE?','Guárdala con tu apodo en el ranking de capitanes.':'Save it under your nickname on the captains leaderboard.',"¡Es tu nuevo récord!":"It's your new record!",'¡Guárdala y serás el primero del ranking!':'Save it and be the first on the leaderboard!','Cargando…':'Loading…','Temporada 1 · 1 capitán':'Season 1 · 1 captain',
+ 'GUARDAR MI PUNTUACIÓN':'SAVE MY SCORE','con Google':'with Google',
+ 'CAPITÁN':'CAPTAIN','APODO':'NICKNAME','Salir':'Sign out','Borrar mi cuenta':'Delete my account','Privacidad':'Privacy','Apodo':'Nickname',
+ 'De 3 a 12 letras o números (también . _ -). Sin espacios.':'3 to 12 letters or digits (also . _ -). No spaces.',
+ 'Guardando tu partida…':'Saving your run…','Partida guardada · en revisión':'Run saved · under review',
+ 'Elige tu apodo para guardar la partida':'Choose your nickname to save this run','Esta cuenta está fuera del ranking.':'This account is off the leaderboard.',
+ 'Esta partida ya estaba guardada.':'This run was already saved.','La partida ha caducado.':'This run has expired.',
+ 'El servidor no ha aceptado esta partida.':'The server did not accept this run.','No se pudo guardar ahora.':'Could not save it right now.',
+ 'Guarda tu puntuación con tu apodo de capitán':'Save your score under your captain nickname','Aún no hay nadie en el ranking: ¡sé el primero!':'Nobody on the leaderboard yet: be the first!',
+ 'ABRIENDO GOOGLE…':'OPENING GOOGLE…','Google no está disponible ahora mismo. Inténtalo más tarde.':'Google is not available right now. Try again later.',
+ 'Sesión cerrada.':'Signed out.','Cuenta borrada.':'Account deleted.',
+ 'CONECTANDO…':'CONNECTING…','Volviendo de Google…':'Coming back from Google…','GUARDANDO…':'SAVING…','Guardando tu partida en el ranking…':'Saving your run to the leaderboard…',
+ 'ELIGE TU APODO':'CHOOSE YOUR NICKNAME','Así te verán en el ranking de capitanes. Es único y no se puede cambiar después.':"This is how you'll show on the captains leaderboard. It's unique and can't be changed later.",
+ 'GUARDAR':'SAVE','AHORA NO':'NOT NOW','SEGUIR':'CONTINUE','¡PUNTUACIÓN GUARDADA!':'SCORE SAVED!',
+ 'PARTIDA EN REVISIÓN':'RUN UNDER REVIEW','La hemos guardado, pero saldrá en el ranking cuando la revisemos.':"It's saved, and it will show on the leaderboard once we've reviewed it.",
+ 'YA ESTABA GUARDADA':'ALREADY SAVED','Esta partida ya está en el ranking.':'This run is already on the leaderboard.',
+ 'LA PARTIDA HA CADUCADO':'THIS RUN HAS EXPIRED','Han pasado más de 4 horas. Juega otra: ahora se guardará sola.':'More than 4 hours have passed. Play another one: now it will save itself.',
+ 'NO SE PUDO GUARDAR':'COULD NOT SAVE','SESIÓN INICIADA':'SIGNED IN','Desde ahora tus partidas se guardan solas al terminar.':'From now on your runs save themselves when they end.',
+ 'NO SE HA INICIADO SESIÓN':'NOT SIGNED IN','Google no ha confirmado el acceso. Tu partida sigue guardada en este dispositivo unas horas.':"Google didn't confirm the sign-in. Your run stays on this device for a few hours.",
+ 'Google no ha confirmado el acceso.':"Google didn't confirm the sign-in.",'PROBAR OTRA VEZ':'TRY AGAIN',
+ 'RANKING NO DISPONIBLE':'LEADERBOARD UNAVAILABLE','No podemos conectar con el ranking ahora mismo. Inténtalo más tarde.':"We can't reach the leaderboard right now. Try again later.",'CERRAR':'CLOSE',
+ 'SIN CONEXIÓN':'NO CONNECTION','No se pudo hablar con el ranking. Comprueba la conexión.':"Couldn't reach the leaderboard. Check your connection.",
+ 'CUENTA FUERA DEL RANKING':'ACCOUNT OFF THE LEADERBOARD','Esta cuenta no puede guardar partidas. Si crees que es un error, escribe a headsrescueadmin@gmail.com.':"This account can't save runs. If you think it's a mistake, write to headsrescueadmin@gmail.com.",
+ '¿BORRAR TU CUENTA?':'DELETE YOUR ACCOUNT?','Se borrarán tu apodo, todas tus partidas del ranking y tu acceso con Google. No se puede deshacer.':"Your nickname, all your leaderboard runs and your Google sign-in will be deleted. This can't be undone.",
+ 'BORRAR':'DELETE','CANCELAR':'CANCEL','CUENTA BORRADA':'ACCOUNT DELETED','Hemos borrado tu apodo, tus partidas y tu acceso con Google.':'We deleted your nickname, your runs and your Google sign-in.',
+ 'Hemos borrado tu apodo y tus partidas. Para borrar también el acceso con Google, escribe a headsrescueadmin@gmail.com.':'We deleted your nickname and your runs. To delete the Google sign-in too, write to headsrescueadmin@gmail.com.',
+ 'Usa de 3 a 12 letras o números (también . _ -), sin espacios.':'Use 3 to 12 letters or digits (also . _ -), no spaces.','Necesita al menos 3 letras o números.':'It needs at least 3 letters or digits.',
+ 'Ese apodo ya es de otro capitán. Prueba otro.':'That nickname belongs to another captain. Try another one.','Ese apodo no está permitido.':"That nickname isn't allowed.",
+ 'Ese apodo está reservado.':'That nickname is reserved.','Demasiados intentos. Espera unos minutos.':'Too many tries. Wait a few minutes.',
+ 'No se pudo guardar el apodo. Inténtalo otra vez.':"Couldn't save the nickname. Try again.",'No se pudo borrar ahora. Inténtalo otra vez.':"Couldn't delete it right now. Try again.",
+ 'Tu sesión ha caducado: vuelve a entrar con Google para borrar la cuenta, o escríbenos a headsrescueadmin@gmail.com.':'Your session has expired: sign in with Google again to delete the account, or write to headsrescueadmin@gmail.com.'})
+P.extend([[r'^Tu mejor de la temporada: ([\d.,]+) · ronda (\d+)$','Your season best: $1 · round $2'],[r'^Puesto #(\d+) de ([\d.,]+) capitanes$','Rank #$1 of $2 captains'],
+ [r'^Puesto #(\d+) de 1 capitán$','Rank #$1 of 1 captain'],[r'^Temporada 1 · ([\d.,]+) capitanes$','Season 1 · $1 captains'],
+ [r'^Con esta partida entrarías en el puesto #(\d+)$',"With this run you'd be #$1"],[r'^Entrarías en el puesto #(\d+)$',"You'd be #$1"]])
+H.update({'Al guardar aceptas la <a data-priv="priv" href="privacidad/" target="_blank" rel="noopener">privacidad</a> y las <a data-priv="normas" href="privacidad/#normas" target="_blank" rel="noopener">normas del ranking</a>.':
+  'By saving you accept the <a data-priv="priv" href="privacy/" target="_blank" rel="noopener">privacy policy</a> and the <a data-priv="normas" href="privacy/#rules" target="_blank" rel="noopener">leaderboard rules</a>.'})
 # sanity: every tutorial line must exist verbatim in the game code
 for k in H:
     if k not in b: print('TUT NOT FOUND:',k[:60])
+# ---- v76: the first-egg cinematic (title in #eggT, index.html) ----
+EN.update({'¡LAS ARAÑAS ESTÁN PONIENDO HUEVOS!':'THE SPIDERS ARE LAYING EGGS!','Destrúyelos antes de que eclosionen':'Destroy them before they hatch'})
 MENU_EN={'mov':'MOVEMENT','ver':'VERTICAL','rat':'MOUSE','acc':'ACTIONS','uti':'UTILITIES','prop':'THRUSTERS',
   'up':'UP','down':'DOWN','lc':['*LEFT','*CLICK','SHOOT'],'rc':['*RIGHT','*CLICK','VACUUM','TRICHOMES','(OR E)'],'aim':'LOOK AND AIM',
   'weld':['*WELD','*THE HULL','(HOLD)'],'rel':['*RELOAD','THE PISTOL'],'dash':['BOOST','TO DODGE'],

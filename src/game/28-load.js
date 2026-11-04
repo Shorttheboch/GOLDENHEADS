@@ -9,6 +9,7 @@ const SHIP_URL=isTouch?'assets/ship_mobile.glb':'assets/ship.glb';
       const rs=document.documentElement.style;rs.setProperty('--mira',`url(${H['mira']})`);rs.setProperty('--fill-en',`url(${H['energia-relleno']})`);rs.setProperty('--ico-en',`url(${H['icono-energia']})`);
       HUD4.art=H;}).catch(e=>console.warn('hud4 art',e));
     loadMod('assets/endui.js').then(m=>{const E=m.default;$('endPanel').style.setProperty('--end-frame',`url(${E.frame})`);$('again').style.setProperty('--end-btn',`url(${E.button})`);
+      $('acBox').style.setProperty('--end-frame',`url(${E.frame})`);$('rankBox').style.setProperty('--end-frame',`url(${E.frame})`);$('acBox').classList.add('fr');$('acGo').style.setProperty('--end-btn',`url(${E.button})`);if(E.buttonRed)$('acGo').style.setProperty('--end-btn-red',`url(${E.buttonRed})`); // (red: BORRAR, tools/ui/make_red_button.py) // v82: the account screens wear the same frame and button
       try{new FontFace('TekturE',`url(${E.font})`,{weight:'400 900'}).load().then(f=>document.fonts.add(f)).catch(e=>console.warn('end font',e));}catch(e){}}).catch(e=>console.warn('end ui',e));
     // v74: only what round 1 needs gates the menu (ship, astronaut, spider, pistol); crab, egg, EXTRA POWER pistol and Incineradora come later (lateStart below)
     const [ship,astro,spi,gun]=await Promise.all([

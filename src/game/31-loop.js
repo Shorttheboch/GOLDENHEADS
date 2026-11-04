@@ -23,7 +23,7 @@ function qaMed(a){a.sort((x,y)=>x-y);return a[a.length>>1];}
 function qaFrame(t0){const now=performance.now(),fd=now-QA.last,js=now-t0;QA.last=now;
   if(!QA.on||window.__manual||fd>3000||document.hidden||state!=='play'||CINE.on)return; // only real play time counts (a gap over 3 s = the page was suspended)
   QA.wT+=fd;QA.wF.push(fd);QA.wJ.push(js);if(QA.wT<1000)return;
-  const ft=qaMed(QA.wF),jt=qaMed(QA.wJ);QA.wT=0;QA.wF=[];QA.wJ=[];QA.fps=1000/ft;qaDecide(ft,jt);qaHud();}
+  const ft=qaMed(QA.wF),jt=qaMed(QA.wJ);QA.wT=0;QA.wF=[];QA.wJ=[];QA.fps=1000/ft;qaDecide(ft,jt);qaHud();mtFps();} // v81: mtFps = median fps and quality level for the metrics (39-metricas.js)
 // add ?fps to the address to see frame rate, level, rendered megapixels and GPU; ?q=0..5 fixes the level (no automatic changes)
 const QA_HUD=/[?&]fps\b/.test(location.search)?(()=>{const d=document.createElement('div');d.style.cssText='position:fixed;left:50%;bottom:4px;transform:translateX(-50%);z-index:60;font:600 12px/1.2 monospace;color:#ffd27a;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:4px;pointer-events:none;white-space:nowrap';document.body.appendChild(d);return d;})():null;
 function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.textContent=Math.round(QA.fps)+' fps · Q'+QA.lvl+' · '+(innerWidth*innerHeight*pr*pr/1e6).toFixed(1)+' MP · '+QA.gpu.replace(/^ANGLE \(/,'').replace(/^[^,(]*, /,'').replace(/ (Direct3D|vs_|OpenGL).*$/,'').slice(0,48);}
@@ -34,7 +34,9 @@ function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.text
 qaHud();
 function tick(){const _qa0=performance.now();
   if((TC.paused||MTUT.on)&&state==='play'){clock.getDelta();tcOrientTick();if(MTUT.on)mtutFrame();if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);return;} // touch pause · v66 phone tutorial
-  const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;let dt=rdt;if(hitStop>0){hitStop-=rdt;dt=rdt*0.12;} // tiny freeze on kills
+  const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;let dt=rdt;if(hitStop>0){hitStop-=rdt;dt=rdt*0.12;}dt*=xpClock(rdt); // tiny freeze on kills · v77: the EXTRA POWER pose runs in real time and slows the world (0.4x) for a moment
+  // v76: while the first egg is shown (CINE.mode 'egg') the world stands still: dt is ~0 for everything; fdt (real time) only drives the sparks, the camera shake and the egg itself
+  const eggC=CINE.on&&CINE.mode==='egg',fdt=eggC?rdt:dt;if(eggC)dt=1e-4;
   FLOW.dz=(state==='play'||state==='menu')?CFG.worldV*dt:0;
   for(const [o,sp] of ROTORS)o.rotation.z+=sp*dt;
   for(const s of shards){s.rotation.x+=s.userData.spin.x*dt;s.rotation.y+=s.userData.spin.y*dt;}
@@ -76,13 +78,13 @@ function tick(){const _qa0=performance.now();
     const w=THREE.MathUtils.clamp(camOrbit/2.6,0,1),cyaw=camYaw+camOrbit,cpit=camPitch*(1-w)+0.15*w,ccp=Math.cos(cpit);
     const fc=new THREE.Vector3(-Math.sin(cyaw)*ccp,Math.sin(cpit),-Math.cos(cyaw)*ccp);
     const rightC=new THREE.Vector3(Math.cos(camYaw),0,-Math.sin(camYaw));
-    const pivot=P.pos.clone().addScaledVector(UP,0.5-0.2*w).addScaledVector(rightC,(isTouch?0.8:0.98)*(1-w));
-    const want=pivot.clone().addScaledVector(fc,-((isTouch?2.55:3.3)-0.5*w)); // v56: closer on phones so the astronaut reads bigger
+    const pivot=P.pos.clone().addScaledVector(UP,0.5-0.2*w+0.45*XP.push).addScaledVector(rightC,(isTouch?0.8:0.98)*(1-w));
+    const want=pivot.clone().addScaledVector(fc,-((isTouch?2.55:3.3)-0.5*w-XP.push)); // v77: XP.push = the push-in during the EXTRA POWER pose · v56: closer on phones so the astronaut reads bigger
     // v72: camPos is the smoothed wish; the camera itself comes in along the arm when the ship or a rock is in the way (camArm, 05-rocks.js)
     camPos.lerp(want,1-Math.exp(-12*dt));camera.position.copy(camArm(CAM.head.copy(P.pos).addScaledVector(UP,0.5-0.2*w),pivot,camPos,dt));camera.lookAt(pivot.clone().addScaledVector(fc,20*(1-w)+0.01));
-    if(CINE.on){if(CINE.mode==='boss')bossCam(dt);else{CINE.nPos.copy(camera.position);CINE.nLook.copy(pivot).addScaledVector(fc,20);cineCam(dt);}}
+    if(CINE.on){if(CINE.mode==='boss')bossCam(dt);else{CINE.nPos.copy(camera.position);CINE.nLook.copy(pivot).addScaledVector(fc,20);if(CINE.mode==='egg')eggCam(rdt);else cineCam(dt);}}
     // lens feel: a short zoom kick on the dash, and a slow, tiny hand-held drift
-    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=CINE.on&&CINE.fov?CINE.fov:62+fovK; /* v67: a cinematic can set its own lens */if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
+    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=CINE.on&&CINE.fov?CINE.fov:62+fovK-XP.fovD; /* v67: a cinematic can set its own lens */if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
     if(!window.__camOv){camera.rotateX(Math.sin(t*0.83)*0.0015+Math.sin(t*2.1)*0.0005);camera.rotateY(Math.sin(t*0.61+1.3)*0.0017+Math.sin(t*1.7)*0.0005);}
     $('cross').style.visibility=w>0.3?'hidden':'';camFill.intensity=0.6+1.3*w;
     if(window.__camOv){camera.position.copy(P.pos).add(window.__camOv);camera.lookAt(P.pos.clone().add(window.__camLook||new THREE.Vector3()));}
@@ -105,7 +107,7 @@ function tick(){const _qa0=performance.now();
     poseArms(aimDir,sucking||welding,dt,welding?R.pa.pos.clone().sub(childPos('LeftArm')).normalize():tcDust&&P.carry<CFG.tankCap?tcDust.clone().sub(childPos('LeftArm')).normalize():null,t);
     // pistol in right hand
     
-    {const gw=P.gripW||childPos('RightHand'),z=aimTarget.clone().sub(gw).normalize(),y=(P.gripHole||UP).clone();y.addScaledVector(z,-y.dot(z)).normalize();
+    {const gw=P.gripW||childPos('RightHand'),z=xpAimDir(aimTarget.clone().sub(gw).normalize()),y=(P.gripHole||UP).clone();y.addScaledVector(z,-y.dot(z)).normalize();
      PM4.makeBasis(new THREE.Vector3().crossVectors(y,z),y,z);pistol.quaternion.setFromRotationMatrix(PM4);pistol.position.copy(gw).sub(PGRIP.clone().applyQuaternion(pistol.quaternion));}
     xpUpdate(dt,t);
     // recoil kick + muzzle flash
@@ -205,11 +207,12 @@ function tick(){const _qa0=performance.now();
     if(state==='play'&&!inBreak&&WB.bossT>0&&lateOk('crab')){WB.bossT-=dt;if(WB.bossT<=0){WB.bossT=0;spawnSpitter(true);}}
     if(state==='play'&&!inBreak&&WB.incT>0&&lateOk('bip')){WB.incT-=dt;if(WB.incT<=0){WB.incT=0;spawnInc(incN===0);}}
     if(state==='play'&&!inBreak&&WB.spitQ&&WB.spitQ.length&&lateOk('crab')){WB.spitQ[0]-=dt;if(WB.spitQ[0]<=0){WB.spitQ.shift();spawnSpitter();}}
+    incSpitTick();bossGiftTick(); // v83: the Escupidora of the Incineradora rounds from round 14 (below) · the gift at half life (16-points-prizes.js)
     if(state==='play'&&!inBreak&&cloudPlan<0&&cloudLastW!==wave&&wave>=2&&cargo<CFG.cargo*0.6){const W0=waveDef(wave);cloudPlan=Math.min(0.9,(W0.n-toSpawn)/Math.max(1,W0.n)+0.1);cloudLastW=wave;} // dropped below 60 % mid-round
     if(state==='play'&&!inBreak&&cloudPlan>=0){const W0=waveDef(wave);if((W0.n-toSpawn)/Math.max(1,W0.n)>=cloudPlan){cloudPlan=-1;spawnCloud();}}
     WB.rt=(WB.rt||0)+dt;
-    if(state==='play'&&!inBreak&&eggPlan.length){const W0=waveDef(wave),fr=(W0.n-toSpawn)/Math.max(1,W0.n);if((fr>=eggPlan[0]||WB.rt>25+eggPlan[0]*20)&&tryLayEgg())eggPlan.shift();}
-    updateEggs(dt,t);
+    if(state==='play'&&!inBreak&&eggPlan.length&&!(isIncRound(wave)&&incIntro())){const n0=WB.n0||waveDef(wave).n,fr=(n0-toSpawn)/Math.max(1,n0);if((fr>=eggPlan[0]||WB.rt>25+eggPlan[0]*20)&&tryLayEgg())eggPlan.shift();} // v83: progress against what the round really sends (an Incineradora round sends 7 at most) and never while the Incineradora is arriving
+    updateEggs(dt,t,fdt);
     markLast();
     if(state==='play'){
       playT+=dt;
@@ -222,7 +225,7 @@ function tick(){const _qa0=performance.now();
           if(WB.calm){WB.lull-=dt;if(WB.lull<=0||skipReq){WB.calm=false;WB.gi++;WB.left=WB.groups[WB.gi]??toSpawn;spawnT=0.3;showMsg('¡OTRA TANDA!','',1.6);sfx('alert');say(Math.random()<0.5?'tanda_01':'tanda_02',2,{cd:35});
             if(wave>=5&&!WB.spit&&WB.gi>=WB.groups.length-1){WB.spit=true;WB.spitQ=wave>=9?[1.8,7.2]:[1.8];} /* round 6+: one, round 10+: two (game-time timers) */}}}
         else{WB.calm=false;spawnT-=dt*(1+nests*0.5);if(spawnT<=0&&spiders.length<W.cap){if(WB.intro2){WB.intro2=false;dropNear(spawnSpider('lurker'));}else spawnSpider();toSpawn--;WB.left--;spawnT=W.every*THREE.MathUtils.randFloat(0.6,1.4);}}}
-      else if(spiders.length===0&&EGGS.length===0&&!(WB.spitQ&&WB.spitQ.length)&&!(WB.bossT>0)&&!INCS.length&&!(WB.incT>0)){
+      else if(spiders.length===0&&EGGS.length===0&&!(WB.spitQ&&WB.spitQ.length)&&!(WB.bossT>0)&&!INCS.length&&!(WB.incT>0)&&!(WB.incSp>0)){
         if(!inBreak){inBreak=true;breakT=workLeft()?CFG.breakTime*(wave<3?0.5:wave<5?0.75:1):(wave<3?2.5:4);const sec=cargo;score+=sec;showcaseT=3.2;sfx('win');
           const rl=lostN-roundLost0;showMsg('RONDA '+(wave+1)+' SUPERADA','+'+fmtN(sec)+' puntos por la carga a bordo'+(rl?' · perdidos '+rl:'')+(isTouch?'':' · Enter para seguir'),3.8);WB.calm=false;{const L=['rnd_clear_01','rnd_clear_02','rnd_clear_03','rnd_clear_04'];say(L[Math.floor(Math.random()*L.length)],2,{queue:true});}
           if(PATCHES.some(p=>p.hp<CFG.patchHp))tutorialEvent('repairTime');}
@@ -232,11 +235,11 @@ function tick(){const _qa0=performance.now();
       $('round').textContent=inBreak?`Ronda ${wave+2} en ${Math.ceil(Math.max(0,breakT))} s · Enter`:`Ronda ${wave+1} · ${spiders.length+toSpawn} arañas`;
     }
     // ---- hull patches: visuals, sparks and slow leaks from broken holes ----
-    PETAL_PULSE.value=0.55+0.45*Math.sin(t*6);
+    PETAL_PULSE.value=0.55+0.45*Math.sin(t*6);if(state==='play')leakBrakeTick(dt); // v83: emergency brake on the leaks (08-ship-zones.js)
     for(const pa of PATCHES){const d=1-pa.hp/CFG.patchHp;pa.mesh.visible=d>0.02;const u=pa.mat.uniforms;updatePetals(pa);
       u.uLevel.value=0.25+0.75*d;u.uBroken.value=pa.hp<=0?1:0;u.uTime.value=t;
       if(pa.hp<=0&&state==='play'){pa.sparkT-=dt;if(pa.sparkT<=0){pa.sparkT=0.5+Math.random()*0.9;burst(V3.copy(pa.pos).addScaledVector(pa.n,0.2),0xff7030,3);
-        pa.leak+=1.2*leakScale();if(pa.leak>=1){const n=Math.floor(pa.leak);pa.leak-=n;leakFrom(pa,n);}}}}
+        pa.leak+=1.2*leakScale()*leakMult();if(pa.leak>=1){const n=Math.floor(pa.leak);pa.leak-=n;leakFrom(pa,n);}}}}
     // ---- repair: hold F next to a damaged patch; release inside the golden band for an instant weld ----
     let near=null,nd=CFG.repairR;
     if(state==='play')for(const pa of PATCHES){if(pa.hp>=CFG.patchHp)continue;const d=P.pos.distanceTo(pa.pos);if(d<nd){nd=d;near=pa;}}
@@ -291,7 +294,7 @@ function tick(){const _qa0=performance.now();
             el.firstChild.style.transform=`rotate(${Math.atan2(x,y)*180/Math.PI}deg)`;el.lastChild.textContent=Z.name;}}
         el.hidden=!show;}
     }
-    updateFX(dt);updateFallFX(dt);updateDrops(dt,t);updateZaps(dt);updatePU(dt);updateAcid(dt);updateBoss();updateBurn(dt);
+    updateFX(dt,fdt);updateFallFX(dt);updateDrops(dt,t);updateZaps(dt);updatePU(dt);updateAcid(dt);updateBoss();updateBurn(dt);
     // HUD
     {const el=$('cargoBar'),k=Math.max(0,cargo/CFG.cargo);el.querySelector('i').style.width=Math.min(100,k*100)+'%';$('cargoPct').textContent=Math.round(k*100)+'%';
      if(CB_.last===undefined)CB_.last=cargo;if(cargo<CB_.last)CB_.leakT=1.2;else if(cargo>CB_.last)CB_.gainT=0.8;CB_.last=cargo;CB_.leakT-=dt;CB_.gainT-=dt;
@@ -315,8 +318,8 @@ function tick(){const _qa0=performance.now();
   camFill.target.position.copy(P.pos);camFill.position.copy(camera.position).addScaledVector(UP,2.5);
   updateMusic();
   // camera shake on top of the follow camera (re-copied from camPos every frame, so it never accumulates)
-  if(shakeAmp>0.002){camera.position.x+=(Math.random()-0.5)*shakeAmp;camera.position.y+=(Math.random()-0.5)*shakeAmp;camera.position.z+=(Math.random()-0.5)*shakeAmp;shakeAmp*=Math.exp(-dt*10);}
+  if(shakeAmp>0.002){camera.position.x+=(Math.random()-0.5)*shakeAmp;camera.position.y+=(Math.random()-0.5)*shakeAmp;camera.position.z+=(Math.random()-0.5)*shakeAmp;shakeAmp*=Math.exp(-fdt*10);}
   tcFrame(dt);mhudFrame();mtutTick();pckFrame(dt);qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
 camera.position.set(14,4,16);camera.lookAt(0,0,0);
 requestAnimationFrame(tick);
-window.__renderer=renderer;window.__GRADE=GRADE;window.__heads={get CINE(){return CINE},spawnCloud,shipClear,BELT,DUST,get leakMult(){return leakMult()},ROCKS,rockAt,landOnRock,get ammo(){return P.ammo},EGGS,layEgg,tryLayEgg,P,spiders,CLOUDS,killSpider,spawnSpider,spawnSpitter,spitAcid,ACID,hullBlocked,stats,inp,get lost(){return lostN;},get pts(){return pts},PU,DROPS,spawnDrop,applyPU,WB,get cargo(){return cargo}};
+window.__renderer=renderer;window.__GRADE=GRADE;window.__heads={get CINE(){return CINE},spawnCloud,shipClear,BELT,DUST,get leakMult(){return leakMult()},ROCKS,rockAt,landOnRock,get ammo(){return P.ammo},EGGS,layEgg,tryLayEgg,P,spiders,CLOUDS,killSpider,spawnSpider,spawnSpitter,spitAcid,ACID,hullBlocked,stats,inp,get lost(){return lostN;},get pts(){return pts},PU,DROPS,spawnDrop,applyPU,WB,get cargo(){return cargo},giftPick,giftLoss,bossGift,GIFT,LEAKB,leakBrakeTo,INC_SPIT,isIncAll,looseCount,damagePatch,spawnLoose,get dropsRound(){return dropsRound},set dropsRound(v){dropsRound=v},get lastDrop(){return lastDrop},set lastDrop(v){lastDrop=v},get JUMP_FIX(){return JUMP_FIX}};

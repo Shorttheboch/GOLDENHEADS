@@ -1,0 +1,27 @@
+/* v76: the first-egg cinematic (title in the middle of the frozen game) and the egg markers (HUD v4 look: dark disc, countdown ring, red egg, gold rim). */
+#eggT{position:fixed;left:0;right:0;top:38%;z-index:25;text-align:center;pointer-events:none;padding:0 5vw;opacity:0;transform:translateY(-50%) scale(1.07);
+  transition:opacity .3s ease,transform .55s cubic-bezier(.2,.8,.2,1)}
+#eggT.on{opacity:1;transform:translateY(-50%) scale(1)}
+#eggT b{display:block;font-size:clamp(22px,4.1vw,60px);font-weight:800;letter-spacing:.15em;line-height:1.16;text-wrap:balance;color:var(--gold-hi);
+  text-shadow:0 2px 2px #000,0 0 22px rgba(0,0,0,.95),0 0 54px rgba(255,50,24,.5)}
+#eggT i{display:block;height:3px;width:min(52vw,640px);margin:.55em auto .6em;background:linear-gradient(90deg,transparent,#ff3b2f 22%,#ffcf4a 50%,#ff3b2f 78%,transparent);
+  transform:scaleX(0);transition:transform .7s .12s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 6px rgba(255,60,30,.7))}
+#eggT.on i{transform:scaleX(1)}
+#eggT small{display:block;font-size:clamp(13px,1.9vw,28px);font-weight:600;letter-spacing:.2em;color:var(--ink);text-shadow:0 1px 2px #000,0 0 14px rgba(0,0,0,.95)}
+body.touch #eggT{top:36%}body.touch #eggT b{font-size:clamp(18px,3.5vw,32px);letter-spacing:.12em}body.touch #eggT small{font-size:clamp(11px,1.9vw,17px);letter-spacing:.16em}
+/* a quick dip to black when the way back to the astronaut would cross the ship */
+#eggFade{position:fixed;inset:0;z-index:24;background:#000;opacity:0;pointer-events:none;transition:opacity .3s ease}
+#eggFade.on{opacity:1;transition-duration:.12s}
+/* markers: not tappable (.mk has no pointer events); sizes follow the other markers (PC: tall screens a bit bigger, phone: compact) */
+.mk.egg{padding:7px}
+.mk.egg .eg{display:block;width:clamp(38px,4.8vh,56px);height:auto;overflow:visible;filter:drop-shadow(0 0 6px rgba(255,64,30,.7)) drop-shadow(0 1px 2px #000)}
+body.touch .mk.egg .eg{width:34px}
+.mk.egg .bg{fill:rgba(14,6,5,.72)}
+.mk.egg .trk{fill:none;stroke:rgba(255,150,70,.3);stroke-width:3.4}
+.mk.egg .arc{fill:none;stroke:#ff4a2c;stroke-width:4.4;stroke-linecap:round;stroke-dasharray:100 100}
+.mk.egg .rim{fill:none;stroke:#e8b64a;stroke-opacity:.8;stroke-width:1.3}
+.mk.egg .ei{transform-box:fill-box;transform-origin:50% 60%}
+.mk.egg .ar{top:50%;width:14px;margin:-10px 0 0 -7px;filter:hue-rotate(-38deg) saturate(1.7) brightness(1.02) drop-shadow(0 0 5px rgba(255,60,30,.65))}
+.mk.egg.urg .arc{stroke:#ffd24a;animation:ablink .3s steps(2) infinite}
+.mk.egg.urg .eg{filter:drop-shadow(0 0 11px rgba(255,200,60,.95)) drop-shadow(0 1px 2px #000)}
+@media (prefers-reduced-motion:reduce){#eggT,#eggT i,#eggFade{transition:none}.mk.egg.urg .arc{animation:none}}

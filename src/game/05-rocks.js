@@ -34,7 +34,12 @@ function wingTop(x,z){const ix=Math.floor((x-WV.X0)/WV.R),iz=Math.floor((z-WV.Z0
 const HPF={blk:{},q:new Int32Array(145*128),prev:new Int32Array(145*128)};
 const NB8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 function hpfMask(pad){if(HPF.blk[pad])return HPF.blk[pad];const N=HM.NZ*HM.NT,m=new Uint8Array(N);
-  for(let iz=0;iz<HM.NZ;iz++)for(let it=0;it<HM.NT;it++)m[iz*HM.NT+it]=hullBlockedRaw(-14.5+iz*0.25,it/HM.NT*Math.PI*2,pad)?1:0;
+  // v78: the same mask as asking hullBlockedRaw(z,th,pad) for every cell ((2r+1)² cells each: ~1 s for the Escupidora's margins of 9-11 on a loaded machine), done as
+  // two passes of a box dilation of the '#' cells (along z with the window clamped to the map, then along theta wrapping): identical cell by cell, ~50x cheaper
+  {const r=Math.ceil(pad),NZ=HM.NZ,NT=HM.NT,a=new Uint8Array(N),o=new Uint8Array(N);
+   for(let i=0;i<N;i++)a[i]=HM.d.charCodeAt(i)===35?1:0;
+   for(let iz=0;iz<NZ;iz++){const z0=Math.max(0,iz-r),z1=Math.min(NZ-1,iz+r);for(let it=0;it<NT;it++){let v=0;for(let k=z0;k<=z1&&!v;k++)v=a[k*NT+it];o[iz*NT+it]=v;}}
+   for(let iz=0;iz<NZ;iz++)for(let it=0;it<NT;it++){let v=0;for(let c=-r;c<=r&&!v;c++)v=o[iz*NT+(((it+c)%NT)+NT)%NT];m[iz*NT+it]=v;}}
   // keep only the biggest connected walkable region; small sealed pockets count as blocked
   const lab=new Int32Array(N).fill(-1),q=new Int32Array(N);let best=-1,bestN=0,id=0;
   for(let s0=0;s0<N;s0++){if(m[s0]||lab[s0]>=0)continue;let h=0,t=0;q[t++]=s0;lab[s0]=id;

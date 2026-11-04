@@ -197,7 +197,10 @@ function poseArms(aimDir,sucking,dt,leftDir,t=0){
   // aiming up: push the arm further out and a little to the side so the pistol stays clear of the helmet
   const upA=Math.max(0,aimDir.dot(bU));
   const rT=SR.clone().addScaledVector(bU,HG.gU).addScaledVector(bR,HG.gR+0.14*AS*upA).addScaledVector(aimDir,HG.gA+(0.3*upA-0.06*(P.recoil||0))*AS).add(AN.lag);
-  ik2('RightArm','RightForeArm','RightHand',rT,SR.clone().addScaledVector(bU,-1).addScaledVector(bF,-0.6).addScaledVector(bR,0.6));
+  const rPole=SR.clone().addScaledVector(bU,-1).addScaledVector(bF,-0.6).addScaledVector(bR,0.6);
+  // v77 (EXTRA POWER): while the arm is out the hand goes to the side of the shoulder and the elbow bends 90 degrees (forearm and gun straight up); XP.k blends it in and out
+  let xg=null;if(XP.k>0){xg=xpPoseGeom(SR);rT.lerp(xg.H,XP.k);rPole.lerp(xg.E,XP.k);}
+  ik2('RightArm','RightForeArm','RightHand',rT,rPole);
   {if(!P.rg){ // fist frame in RightHand space: hole axis (little finger -> index), hand axis (wrist -> knuckles), hole centre
      B.RightHand.updateMatrixWorld(true);const loc=n=>B.RightHand.worldToLocal(childPos(n));
      const hand=loc('RightHand_end').normalize(),hole=loc('RightHandIndex1').sub(loc('RightHandPinky1'));hole.addScaledVector(hand,-hole.dot(hand)).normalize();
@@ -205,6 +208,7 @@ function poseArms(aimDir,sucking,dt,leftDir,t=0){
      P.rg={hand,hole,side:new THREE.Vector3().crossVectors(hand,hole),c,m:new THREE.Matrix4(),w:new THREE.Matrix4()};}
    const G=P.rg,fa=childPos('RightHand').sub(childPos('RightForeArm')).normalize();
    const hole=bU.clone().addScaledVector(aimDir,-bU.dot(aimDir)).normalize().addScaledVector(aimDir,HG.gRake).normalize(); // grip raked like a real pistol
+   if(xg)hole.lerp(_xpH.copy(xg.u1).addScaledVector(xg.f,HG.gRake).normalize(),XP.k).normalize(); // v77: with the arm out the top of the gun looks away from the head
    const hand=fa.addScaledVector(hole,-fa.dot(hole)).normalize(),side=new THREE.Vector3().crossVectors(hand,hole); // knuckles continue the forearm
    G.m.makeBasis(G.hand,G.hole,G.side).invert();G.w.makeBasis(hand,hole,side).multiply(G.m);
    const q=new THREE.Quaternion().setFromRotationMatrix(G.w),pq=B.RightHand.parent.getWorldQuaternion(new THREE.Quaternion()).invert();

@@ -4,6 +4,11 @@
 // Shot from the front again and again it covers up with its four arms; while it charges/fires, the glowing chest core takes triple damage.
 const INC_SC=3.0,INCS=[];let incN=0;
 const isIncRound=i=>i>=7&&(i-7)%3===0;
+// v83 (Santi): from round 14 (the 3rd Incineradora, wave index 13) an Incineradora round brings everything together: one Escupidora arrives mid-round
+// (incSpitTick in 31-loop.js) and eggs are allowed under the usual rules. Rounds 8 and 11 stay as they were.
+const isIncAll=i=>isIncRound(i)&&i>=13;
+// the Incineradora is still on its way in (timer running, falling, landing, roaring): nothing else arrives on top of that
+const incIntro=()=>WB.incT>0||INCS.some(e=>e.st==='fall'||e.st==='arrive'||e.st==='roar');
 const INC_SND={},INC_FX={beamOn:0,aimOn:0,aimO:new THREE.Vector3(),aimD:new THREE.Vector3()};
 const _jq1=new THREE.Quaternion(),_jq2=new THREE.Quaternion(),_j1=new THREE.Vector3(),_j2=new THREE.Vector3(),_j3=new THREE.Vector3(),_j4=new THREE.Vector3(),_j5=new THREE.Vector3(),_j6=new THREE.Vector3(),_jm=new THREE.Matrix4();
 {const g=new THREE.CylinderGeometry(1,1,1,18,1,true);g.translate(0,0.5,0);g.rotateX(Math.PI/2); // unit beam along +Z
@@ -34,7 +39,7 @@ function spawnInc(cine){const B=makeBiped(INC_SC);if(!B)return null;incN++;const
   e.hp=e.maxHp=Math.round(50*(1+0.2*k)); // v67: 95 -> 50 (+20 % each time, was +25 %): Santi found it far too strong
   e.bHead=incBone(B,'head');e.bChest=incBone(B,'chest');
   e.bBody=['pelvis','spine','chest','hump','abdomen.02','abdomen.03','abdomen.04','thigh.L','thigh.R'].map(n=>incBone(B,n));e.rBody=[0.15,0.14,0.15,0.12,0.2,0.18,0.16,0.1,0.1];
-  $('boss').firstChild.textContent='INCINERADORA'+(incN>1?' '+['','II','III','IV','V','VI'][Math.min(5,k)]:'');
+  $('boss').firstChild.textContent=e.bossName='INCINERADORA'+(incN>1?' '+['','II','III','IV','V','VI'][Math.min(5,k)]:'');updateBoss.who=null;
   const hp=hullParam(P.pos);e.z=THREE.MathUtils.clamp(hp.z+(Math.random()<0.5?-9:9),-12,19);e.th=hp.th+THREE.MathUtils.randFloatSpread(0.4);
   if(cine){e.th=Math.PI/2+0.5;e.z=3.6;}
   [e.z,e.th]=freeSpot(e.z,e.th,2);hullPoint(e.z,e.th,e.pos,e.n);
@@ -550,7 +555,15 @@ function updateBurn(dt){if(!(P.burn>0)||state!=='play'){if($('burn').style.opaci
   P.burnSnd=(P.burnSnd||0)-dt;if(P.burnSnd<=0){P.burnSnd=0.5;sfx('sizzle');}
   if(P.hp<=0)endGame(false,'dead');}
 function mistAcid(p){const q=MIST[mistI++%MIST.length];q.s.position.copy(p);q.vel.set(0,0,0);q.life=q.max=0.45;q.s0=0.25;q.a=0.5;q.s.visible=true;q.s.material.color.setRGB(1,0.55,0.25);q.acid=true;}
-function updateBoss(){const s=spiders.find(o=>o.kind==='spitter')||INCS.find(e=>e.st!=='fall'&&e.st!=='dead'),el=$('boss');el.hidden=!s||state!=='play';if(s)el.lastChild.firstChild.style.width=Math.max(0,s.hp/s.maxHp*100)+'%';}
+function updateBoss(){const s=spiders.find(o=>o.kind==='spitter')||INCS.find(e=>e.st!=='fall'&&e.st!=='dead'),el=$('boss');el.hidden=!s||state!=='play';if(s)el.lastChild.firstChild.style.width=Math.max(0,s.hp/s.maxHp*100)+'%';
+  if(s&&updateBoss.who!==s){updateBoss.who=s;if(s.bossName)el.firstChild.textContent=s.bossName;}} // v83: the name follows the boss the bar shows (an Escupidora and the Incineradora can share a round)
+// v83: the Escupidora of the Incineradora rounds from round 14 (isIncAll): it comes down once the Incineradora has arrived (never during its entrance or a cinematic)
+// and has either dropped below 60 % or been at it 35 s into the round, whichever comes first, with the usual «¡CUIDADO ARRIBA!» fall. Until then the round stays open
+// (WB.incSp, checked where the round ends in 31-loop.js); like the other Escupidoras it waits for the crab model (lateOk). No Incineradora (gone, or it never came): at once.
+const INC_SPIT={hp:0.6,t:35};
+function incSpitTick(){if(!(WB.incSp>0)||state!=='play'||inBreak||CINE.on||incIntro()||!lateOk('crab'))return;
+  const e=INCS.find(o=>o.st!=='gone');if(e&&e.hp>e.maxHp*INC_SPIT.hp&&WB.rt<INC_SPIT.t)return;
+  WB.incSp=0;spawnSpitter();}
 function makeSpiderOld(kind){
   const S=SKIN[kind];const g=new THREE.Group();const body=new THREE.Group();g.add(body);
   const mBody=new THREE.MeshStandardMaterial({color:S.body,metalness:0.45,roughness:0.38,flatShading:true,emissive:0x2a0000});
@@ -612,6 +625,7 @@ function killSpider(s,crit=false,quiet=false){s.silk=null;burst(s.pos,0xff3020,2
   scene.remove(s.mesh);spiders.splice(spiders.indexOf(s),1);stats.kills++;sfx('kill',s.pos);
   shake(Math.max(0.06,0.3-s.pos.distanceTo(P.pos)*0.012));crossKill();tutorialEvent('kill');
   if(!quiet)onKill(s,crit);
-  if(s.kind==='spitter'){stats.spitters++;addPts(500);comboBanner('¡ESCUPIDORA ABATIDA!','+'+ptsVal(500));say('sp_dead',3);shake(0.45);
+  if(s.kind==='spitter'){if((s.gen||1)>=3&&!s.gift&&!quiet&&state==='play')bossGift(s); // v83: killed from above half in one go: the gift still comes
+    stats.spitters++;addPts(500);comboBanner('¡ESCUPIDORA ABATIDA!','+'+ptsVal(500));say('sp_dead',3);shake(0.45);
     for(let i=0;i<3;i++)burst(s.pos,0xff7a30,20);spawnDrop(s.pos.clone(),pickPU());}}
 const HEADL=new THREE.Vector3();

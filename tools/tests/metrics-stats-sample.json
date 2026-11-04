@@ -1,0 +1,732 @@
+{
+ "os": {
+  "ios": 141,
+  "mac": 57,
+  "android": 184,
+  "windows": 218
+ },
+ "fps": {
+  "n": 579,
+  "pc": 96,
+  "touch": 41
+ },
+ "film": {
+  "skipped": 256,
+  "watched": 194
+ },
+ "load": {
+  "pc_p50": 5799,
+  "pc_p90": 8221,
+  "not_ready": 0,
+  "touch_p50": 9559,
+  "touch_p90": 14068
+ },
+ "daily": [
+  {
+   "day": "2026-10-04",
+   "games": 5,
+   "visits": 5
+  },
+  {
+   "day": "2026-10-05",
+   "games": 23,
+   "visits": 18
+  },
+  {
+   "day": "2026-10-06",
+   "games": 22,
+   "visits": 20
+  },
+  {
+   "day": "2026-10-07",
+   "games": 24,
+   "visits": 21
+  },
+  {
+   "day": "2026-10-08",
+   "games": 30,
+   "visits": 27
+  },
+  {
+   "day": "2026-10-09",
+   "games": 16,
+   "visits": 16
+  },
+  {
+   "day": "2026-10-10",
+   "games": 28,
+   "visits": 24
+  },
+  {
+   "day": "2026-10-11",
+   "games": 19,
+   "visits": 13
+  },
+  {
+   "day": "2026-10-12",
+   "games": 26,
+   "visits": 21
+  },
+  {
+   "day": "2026-10-13",
+   "games": 14,
+   "visits": 14
+  },
+  {
+   "day": "2026-10-14",
+   "games": 28,
+   "visits": 27
+  },
+  {
+   "day": "2026-10-15",
+   "games": 16,
+   "visits": 18
+  },
+  {
+   "day": "2026-10-16",
+   "games": 21,
+   "visits": 20
+  },
+  {
+   "day": "2026-10-17",
+   "games": 24,
+   "visits": 28
+  },
+  {
+   "day": "2026-10-18",
+   "games": 14,
+   "visits": 11
+  },
+  {
+   "day": "2026-10-19",
+   "games": 25,
+   "visits": 18
+  },
+  {
+   "day": "2026-10-20",
+   "games": 22,
+   "visits": 18
+  },
+  {
+   "day": "2026-10-21",
+   "games": 22,
+   "visits": 21
+  },
+  {
+   "day": "2026-10-22",
+   "games": 17,
+   "visits": 17
+  },
+  {
+   "day": "2026-10-23",
+   "games": 18,
+   "visits": 17
+  },
+  {
+   "day": "2026-10-24",
+   "games": 31,
+   "visits": 25
+  },
+  {
+   "day": "2026-10-25",
+   "games": 20,
+   "visits": 16
+  },
+  {
+   "day": "2026-10-26",
+   "games": 22,
+   "visits": 19
+  },
+  {
+   "day": "2026-10-27",
+   "games": 15,
+   "visits": 16
+  },
+  {
+   "day": "2026-10-28",
+   "games": 29,
+   "visits": 28
+  },
+  {
+   "day": "2026-10-29",
+   "games": 18,
+   "visits": 17
+  },
+  {
+   "day": "2026-10-30",
+   "games": 22,
+   "visits": 22
+  },
+  {
+   "day": "2026-10-31",
+   "games": 15,
+   "visits": 13
+  },
+  {
+   "day": "2026-11-01",
+   "games": 32,
+   "visits": 29
+  },
+  {
+   "day": "2026-11-02",
+   "games": 34,
+   "visits": 27
+  },
+  {
+   "day": "2026-11-03",
+   "games": 9,
+   "visits": 14
+  }
+ ],
+ "langs": {
+  "en": 115,
+  "es": 485
+ },
+ "quits": [
+  {
+   "pc": 11,
+   "all": 30,
+   "round": 1,
+   "touch": 19
+  },
+  {
+   "pc": 6,
+   "all": 14,
+   "round": 2,
+   "touch": 8
+  },
+  {
+   "pc": 8,
+   "all": 21,
+   "round": 3,
+   "touch": 13
+  },
+  {
+   "pc": 1,
+   "all": 3,
+   "round": 4,
+   "touch": 2
+  },
+  {
+   "pc": 1,
+   "all": 3,
+   "round": 5,
+   "touch": 2
+  },
+  {
+   "pc": 3,
+   "all": 8,
+   "round": 6,
+   "touch": 5
+  },
+  {
+   "pc": 2,
+   "all": 2,
+   "round": 7,
+   "touch": 0
+  },
+  {
+   "pc": 1,
+   "all": 1,
+   "round": 10,
+   "touch": 0
+  }
+ ],
+ "causes": [
+  {
+   "dead": 87,
+   "quit": 30,
+   "ship": 49,
+   "cargo": 39,
+   "round": 1
+  },
+  {
+   "dead": 51,
+   "quit": 14,
+   "ship": 33,
+   "cargo": 26,
+   "round": 2
+  },
+  {
+   "dead": 48,
+   "quit": 21,
+   "ship": 29,
+   "cargo": 20,
+   "round": 3
+  },
+  {
+   "dead": 17,
+   "quit": 3,
+   "ship": 33,
+   "cargo": 19,
+   "round": 4
+  },
+  {
+   "dead": 11,
+   "quit": 3,
+   "ship": 17,
+   "cargo": 18,
+   "round": 5
+  },
+  {
+   "dead": 8,
+   "quit": 8,
+   "ship": 17,
+   "cargo": 12,
+   "round": 6
+  },
+  {
+   "dead": 6,
+   "quit": 2,
+   "ship": 4,
+   "cargo": 4,
+   "round": 7
+  },
+  {
+   "dead": 3,
+   "quit": 0,
+   "ship": 4,
+   "cargo": 6,
+   "round": 8
+  },
+  {
+   "dead": 3,
+   "quit": 0,
+   "ship": 2,
+   "cargo": 1,
+   "round": 9
+  },
+  {
+   "dead": 2,
+   "quit": 1,
+   "ship": 3,
+   "cargo": 0,
+   "round": 10
+  },
+  {
+   "dead": 1,
+   "quit": 0,
+   "ship": 1,
+   "cargo": 0,
+   "round": 11
+  },
+  {
+   "dead": 1,
+   "quit": 0,
+   "ship": 0,
+   "cargo": 1,
+   "round": 12
+  },
+  {
+   "dead": 0,
+   "quit": 0,
+   "ship": 2,
+   "cargo": 0,
+   "round": 13
+  },
+  {
+   "dead": 0,
+   "quit": 0,
+   "ship": 1,
+   "cargo": 0,
+   "round": 14
+  }
+ ],
+ "cities": [
+  {
+   "n": 167,
+   "city": "Valencia",
+   "code": "ES",
+   "region": "Valencia"
+  },
+  {
+   "n": 120,
+   "city": "Madrid",
+   "code": "ES",
+   "region": "Madrid"
+  },
+  {
+   "n": 96,
+   "city": "Barcelona",
+   "code": "ES",
+   "region": "Cataluña"
+  },
+  {
+   "n": 58,
+   "city": "Buenos Aires",
+   "code": "AR",
+   "region": "Buenos Aires"
+  },
+  {
+   "n": 45,
+   "city": "Sevilla",
+   "code": "ES",
+   "region": "Andalucía"
+  },
+  {
+   "n": 37,
+   "city": "Ciudad de México",
+   "code": "MX",
+   "region": "Ciudad de México"
+  },
+  {
+   "n": 24,
+   "city": "Los Angeles",
+   "code": "US",
+   "region": "California"
+  },
+  {
+   "n": 24,
+   "city": "Santiago",
+   "code": "CL",
+   "region": "Santiago"
+  },
+  {
+   "n": 18,
+   "city": "Berlin",
+   "code": "DE",
+   "region": "Berlin"
+  },
+  {
+   "n": 11,
+   "city": "Paris",
+   "code": "FR",
+   "region": "Île-de-France"
+  }
+ ],
+ "errors": [
+  {
+   "n": 15,
+   "at": "index-BqVoEnlT.js:1:669734",
+   "env": [
+    {
+     "n": 4,
+     "os": "android",
+     "browser": "samsung"
+    },
+    {
+     "n": 3,
+     "os": "mac",
+     "browser": "chrome"
+    },
+    {
+     "n": 3,
+     "os": "ios",
+     "browser": "safari"
+    },
+    {
+     "n": 3,
+     "os": "windows",
+     "browser": "edge"
+    },
+    {
+     "n": 2,
+     "os": "android",
+     "browser": "chrome"
+    }
+   ],
+   "msg": "TypeError: Cannot read properties of undefined (reading 'position')",
+   "last": "2026-10-30T20:41:47.792+01:00",
+   "sessions": 7
+  },
+  {
+   "n": 10,
+   "at": "index-BqVoEnlT.js:1:470376",
+   "env": [
+    {
+     "n": 4,
+     "os": "ios",
+     "browser": "safari"
+    },
+    {
+     "n": 3,
+     "os": "android",
+     "browser": "chrome"
+    },
+    {
+     "n": 2,
+     "os": "android",
+     "browser": "edge"
+    },
+    {
+     "n": 1,
+     "os": "windows",
+     "browser": "chrome"
+    }
+   ],
+   "msg": "RangeError: Maximum call stack size exceeded",
+   "last": "2026-10-25T21:15:49.939+01:00",
+   "sessions": 5
+  },
+  {
+   "n": 6,
+   "at": "index-BqVoEnlT.js:1:667834",
+   "env": [
+    {
+     "n": 3,
+     "os": "android",
+     "browser": "chrome"
+    },
+    {
+     "n": 2,
+     "os": "windows",
+     "browser": "edge"
+    },
+    {
+     "n": 1,
+     "os": "android",
+     "browser": "firefox"
+    }
+   ],
+   "msg": "(promesa) AbortError: The play() request was interrupted",
+   "last": "2026-11-01T05:52:15.572+01:00",
+   "sessions": 4
+  }
+ ],
+ "funnel": [
+  {
+   "pc": 296,
+   "all": 661,
+   "round": 1,
+   "touch": 365
+  },
+  {
+   "pc": 213,
+   "all": 456,
+   "round": 2,
+   "touch": 243
+  },
+  {
+   "pc": 163,
+   "all": 332,
+   "round": 3,
+   "touch": 169
+  },
+  {
+   "pc": 111,
+   "all": 214,
+   "round": 4,
+   "touch": 103
+  },
+  {
+   "pc": 84,
+   "all": 142,
+   "round": 5,
+   "touch": 58
+  },
+  {
+   "pc": 54,
+   "all": 93,
+   "round": 6,
+   "touch": 39
+  },
+  {
+   "pc": 30,
+   "all": 48,
+   "round": 7,
+   "touch": 18
+  },
+  {
+   "pc": 19,
+   "all": 32,
+   "round": 8,
+   "touch": 13
+  },
+  {
+   "pc": 14,
+   "all": 19,
+   "round": 9,
+   "touch": 5
+  },
+  {
+   "pc": 10,
+   "all": 13,
+   "round": 10,
+   "touch": 3
+  },
+  {
+   "pc": 7,
+   "all": 7,
+   "round": 11,
+   "touch": 0
+  },
+  {
+   "pc": 5,
+   "all": 5,
+   "round": 12,
+   "touch": 0
+  },
+  {
+   "pc": 3,
+   "all": 3,
+   "round": 13,
+   "touch": 0
+  },
+  {
+   "pc": 1,
+   "all": 1,
+   "round": 14,
+   "touch": 0
+  }
+ ],
+ "quality": {
+  "0": 266,
+  "1": 160,
+  "2": 78,
+  "3": 75
+ },
+ "screens": {
+  "pc-l": 74,
+  "pc-m": 142,
+  "pc-s": 59,
+  "phone": 278,
+  "tablet": 47
+ },
+ "summary": {
+  "games": 661,
+  "visits": 600,
+  "players": 167,
+  "games_pc": 296,
+  "secs_avg": 276,
+  "sessions": 600,
+  "returning": 50,
+  "consent_no": 176,
+  "secs_total": 182724,
+  "test_games": 6,
+  "consent_yes": 245,
+  "games_touch": 365,
+  "left_no_play": 150,
+  "consent_unset": 179
+ },
+ "browsers": {
+  "edge": 78,
+  "chrome": 248,
+  "safari": 169,
+  "firefox": 69,
+  "samsung": 36
+ },
+ "tutorial": {
+  "done": 68,
+  "skip": 85,
+  "before": 66
+ },
+ "countries": [
+  {
+   "n": 428,
+   "code": "ES"
+  },
+  {
+   "n": 58,
+   "code": "AR"
+  },
+  {
+   "n": 37,
+   "code": "MX"
+  },
+  {
+   "n": 24,
+   "code": "CL"
+  },
+  {
+   "n": 24,
+   "code": "US"
+  },
+  {
+   "n": 18,
+   "code": "DE"
+  },
+  {
+   "n": 11,
+   "code": "FR"
+  }
+ ],
+ "installed": {
+  "of": 600,
+  "yes": 38,
+  "touch_of": 325,
+  "touch_yes": 38
+ },
+ "platforms": {
+  "pc": 275,
+  "touch": 325
+ },
+ "last_round": {
+  "pc": 1,
+  "all": 1,
+  "touch": 1
+ },
+ "round_secs": [
+  {
+   "n": 404,
+   "secs": 91,
+   "round": 1
+  },
+  {
+   "n": 294,
+   "secs": 89,
+   "round": 2
+  },
+  {
+   "n": 197,
+   "secs": 90,
+   "round": 3
+  },
+  {
+   "n": 128,
+   "secs": 89,
+   "round": 4
+  },
+  {
+   "n": 82,
+   "secs": 95,
+   "round": 5
+  },
+  {
+   "n": 45,
+   "secs": 87,
+   "round": 6
+  },
+  {
+   "n": 31,
+   "secs": 95,
+   "round": 7
+  },
+  {
+   "n": 18,
+   "secs": 97,
+   "round": 8
+  },
+  {
+   "n": 12,
+   "secs": 82,
+   "round": 9
+  },
+  {
+   "n": 7,
+   "secs": 98,
+   "round": 10
+  },
+  {
+   "n": 5,
+   "secs": 96,
+   "round": 11
+  },
+  {
+   "n": 3,
+   "secs": 70,
+   "round": 12
+  },
+  {
+   "n": 1,
+   "secs": 76,
+   "round": 13
+  }
+ ],
+ "tutorial_step": {
+  "1": 27,
+  "2": 18,
+  "3": 14,
+  "4": 26
+ },
+ "film_skip_secs": 10
+}

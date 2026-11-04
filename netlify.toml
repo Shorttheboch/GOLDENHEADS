@@ -1,5 +1,5 @@
 # GOLDENHEADS · HEADS Rescate Dorado — Netlify config
-# Netlify runs `npm run build` (Vite) and publishes dist/. The ranking function lives in netlify/functions.
+# Netlify runs `npm run build` (Vite) and publishes dist/. The functions (v82 accounts + ranking, v81 metrics) live in netlify/functions.
 [build]
   command = "npm run build"
   publish = "dist"
@@ -15,3 +15,41 @@
   for = "/js/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# v75: the service worker and the manifest must never be kept for long, or a new version would not reach the phones.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Content-Type = "application/manifest+json"
+
+# v81: Santi's statistics page (public/admin.html) at /admin. Never indexed, never cached; it reads /api/admin/stats (netlify/functions/metrics.mts) with a password.
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[headers]]
+  for = "/admin*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Cache-Control = "no-cache"
+    Referrer-Policy = "no-referrer"
+    X-Frame-Options = "DENY"
+
+# v82: the privacy page and the ranking rules (public/privacidad/index.html, English public/privacy/index.html). Public, no login: Google needs it to
+# publish the login. Served at /privacidad and /privacy (with or without the final slash); every link inside is relative, no domain.
+[[redirects]]
+  from = "/privacidad"
+  to = "/privacidad/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy/index.html"
+  status = 200

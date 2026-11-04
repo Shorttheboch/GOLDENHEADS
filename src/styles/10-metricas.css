@@ -1,0 +1,47 @@
+/* v81: the anonymous-stats question on the start menu (markup: index.html #mtAsk · logic: src/game/39-metricas.js).
+   Looks like the menu's own small boxes (ES/EN, PANTALLA COMPLETA): near-black glass, a thin gold line, gold title, a gold plate for SÍ and a dark one for NO.
+   It lives inside #menu, so it is never on screen during play; it comes in once the menu intro is done (#menu.mgo, or .now if the menu art failed).
+   Where: PC top left (mirrors ES/EN at the top right, clear of the logo at any window shape) · phone: the empty strip at the top between the logo and ES/EN.
+   It never covers JUGAR, ES/EN or PANTALLA COMPLETA (checked by tools/tests/metrics.cjs). */
+#mtAsk{position:absolute;z-index:3;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;margin:0;padding:9px 11px 10px;
+  border:1.5px solid #e8b13a;border-radius:2px;background:rgba(4,5,10,.86);box-shadow:0 0 10px rgba(255,190,60,.22),0 6px 18px rgba(0,0,0,.55);
+  font-family:'TitilliumH','Titillium Web','Oxanium','Segoe UI',system-ui,sans-serif;color:#f4ecd6;text-align:left;
+  visibility:hidden;opacity:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#menu.mgo #mtAsk,#mtAsk.now{animation:mtAskIn .35s 2.8s ease-out both}
+#mtAsk.now{animation-delay:0s}
+#mtAsk.out{animation:mtAskOut .3s ease-in both}
+@keyframes mtAskIn{0%{visibility:hidden;opacity:0;translate:0 -6px}1%{visibility:visible;opacity:0}100%{visibility:visible;opacity:1;translate:0 0}}
+@keyframes mtAskOut{from{visibility:visible;opacity:1}to{visibility:hidden;opacity:0;translate:0 -6px}}
+@media (prefers-reduced-motion:reduce){#menu.mgo #mtAsk{animation-duration:.01s}}
+#mtAsk p{margin:0}
+#mtAskQ{font-weight:700;font-size:13px;line-height:1.2;letter-spacing:.01em;
+  background:linear-gradient(180deg,#ffe58c 0%,#ffc83c 50%,#ee9f14 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mtAskS{margin-top:3px!important;font-size:11px;font-weight:600;line-height:1.3;color:#d9cfb6}
+.mtAskB{display:flex;gap:8px;flex:none}
+.mtAskB button{position:relative;box-sizing:border-box;min-width:60px;height:25px;margin:0;padding:0 12px 0 14px;border:1px solid rgba(232,182,74,.55);border-radius:0;
+  background:rgba(10,8,4,.6);color:#e9d9a8;cursor:pointer;font:800 11px/1 'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;letter-spacing:.16em;touch-action:manipulation}
+.mtAskB button.y{background:linear-gradient(180deg,#ffe07a,#d9960f);color:#1d150a;border-color:#ffd56a}
+.mtAskB button:hover,.mtAskB button:focus-visible{outline:none;box-shadow:0 0 10px rgba(255,200,80,.55);filter:brightness(1.12)}
+.mtAskB button:active{filter:brightness(.9)}
+/* PC: top left, as wide as its text, never reaching the logo (#menuArt is min(96vw, 97vh x 1.2284) wide and centred; the logo starts at 30 % of it) */
+body:not(.touch) #mtAsk{--aw:min(96vw,calc(97vh * 1.2284));left:clamp(12px,2vw,28px);top:clamp(12px,2vh,24px);width:max-content;
+  max-width:min(300px,calc((100vw - var(--aw)) / 2 + var(--aw) * .3 - clamp(12px,2vw,28px) - 16px))}
+/* phone: between the logo (#mmLogo ends at 1007.5 of the 1764-unit stage, 0.0711 of its width right of the centre) and ES/EN (~92 px wide at the top right),
+   right-aligned next to ES/EN; text beside the buttons, the buttons one above the other when the strip is narrow (iPhone SE size) */
+body.touch #mtAsk{--sw:min(calc(100vw - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)),calc(100vh * 2.03695));
+  top:clamp(6px,1.6vh,20px);left:calc(50% + (env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)) / 2 + var(--sw) * .0711 + 10px);right:calc(clamp(12px,2vw,28px) + 102px);
+  max-width:380px;margin-left:auto;flex-direction:row;align-items:center;gap:10px;padding:6px 7px 6px 10px;container-type:inline-size}
+@supports (height:100dvh){body.touch #mtAsk{--sw:min(calc(100vw - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)),calc(100dvh * 2.03695))}}
+body.touch #mtAskQ{font-size:11.5px;line-height:1.15}
+body.touch .mtAskT{flex:1 1 auto;min-width:0}
+body.touch .mtAskS{display:none}
+body.touch .mtAskB{gap:6px}
+body.touch .mtAskB button{min-width:40px;height:26px;padding:0 8px 0 10px;font-size:11px;letter-spacing:.14em}
+body.touch .mtAskB button::before{content:'';position:absolute;left:-3px;right:-3px;top:50%;height:max(100%,40px);transform:translateY(-50%)} /* a bigger place to touch, same look */
+@container (max-width:240px){body.touch #mtAskQ{font-size:11px}}
+@container (max-width:185px){body.touch .mtAskB{flex-direction:column;gap:4px}body.touch .mtAskB button{height:22px}body.touch .mtAskB button::before{height:100%}}
+@container (min-width:360px){body.touch .mtAskS{display:block;font-size:10.5px}}
+/* v82: a small link to the privacy page under the text (PC) / the question (phone) */
+.mtAskP{display:inline-block;margin-top:4px;font:600 10.5px/1.1 'TitilliumH','Titillium Web',system-ui,sans-serif;letter-spacing:.04em;color:#d9b45a;text-decoration:underline;text-decoration-color:rgba(232,182,74,.45);text-underline-offset:.18em}
+.mtAskP:hover,.mtAskP:focus-visible{color:#ffe08a;outline:none}
+body.touch .mtAskP{display:block;width:max-content;margin-top:1px;font-size:9px;line-height:1} /* phone: one short line (the stacked SÍ / NO are about as tall) */

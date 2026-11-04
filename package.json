@@ -4,13 +4,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node --check public/i18n.js && node --check public/menusfx.js && vite build",
-    "build:test": "node --check public/i18n.js && node --check public/menusfx.js && vite build --mode test",
+    "build": "node --check public/i18n.js && node --check public/menusfx.js && node --check public/sw.js && vite build",
+    "build:test": "node --check public/i18n.js && node --check public/menusfx.js && node --check public/sw.js && vite build --mode test",
     "preview": "vite preview"
   },
   "dependencies": {
     "@fontsource/saira-condensed": "^5.3.0",
     "@netlify/blobs": "^11.1.7",
+    "@supabase/auth-js": "2.118.0",
+    "@supabase/supabase-js": "2.118.0",
     "three": "0.170.0"
   },
   "devDependencies": {

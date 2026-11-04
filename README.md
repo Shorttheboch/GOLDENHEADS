@@ -9,6 +9,8 @@ Juego web de Santi (astronauta dorado contra arañas rojas). Usa el nombre y el 
 - `public/i18n.js` — idioma (español / inglés) y menú de inicio de PC; se carga antes que el juego.
 - `public/assets/` — archivos reales: `models/` (.glb), `sfx/` y `vo/es`, `vo/en` (.mp3), `ui/` (imágenes .webp y fuentes) y `opening.mp4`. Los `.js` de esa carpeta son solo listas de qué archivo es cada cosa.
 - `netlify/functions/ranking.mts` — ranking online (`/api/run`, `/api/scores`).
+- `netlify/functions/metrics.mts` — métricas anónimas (`/api/m`) y los totales de la página de estadísticas (`/api/admin/stats`); la base de datos está en Supabase (`supabase/schema.sql`).
+- `public/admin.html` — la página de estadísticas, en `/admin` (con contraseña).
 - `tools/` — traducciones (`tools/i18n/build_i18n.py`) y pruebas automáticas (`tools/tests/`).
 
 ## Trabajar en local
@@ -25,4 +27,4 @@ npm run build      # versión final en dist/ (lo mismo que hace Netlify)
 - Volver a una versión anterior: desde la lista de despliegues de Netlify.
 
 ## Secretos
-- `RANK_SECRET` vive en las variables de entorno de Netlify. Ninguna clave va en este repositorio.
+- `RANK_SECRET`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` y `ADMIN_PASSWORD` viven en las variables de entorno de Netlify. Ninguna clave va en este repositorio.

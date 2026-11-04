@@ -1,6 +1,6 @@
 /* ================= INPUT ================= */
 const keys={};const inp={mx:0,my:0,up:0,fire:false,suck:false,boost:false};
-addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return; // typing a name for the ranking
+addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT'||document.body.classList.contains('acctOn'))return; // typing a nickname · v82: the account screens (40-cuentas.js) are open
   keys[e.code]=true;if(e.code==='Space')e.preventDefault();
   if(e.code==='KeyM'&&!e.repeat){musicOn=!musicOn;showMsg(musicOn?'MÚSICA ON':'MÚSICA OFF','',0.9);}
   if(e.code==='KeyV'&&!e.repeat){voOn=!voOn;if(!voOn&&voSrc){try{voSrc.stop();}catch(_){}$('sub').classList.remove('show');}showMsg(voOn?'VOCES ON':'VOCES OFF','',0.9);}

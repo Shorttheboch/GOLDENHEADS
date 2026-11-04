@@ -68,14 +68,34 @@ function maybeDrop(p){if(wave===0&&stats.kills<3)return;
   const late=wave>=5;if(dropsRound>=dropCap()||playT-lastDrop<(late?6:8))return;
   if(late&&playT-lastDrop>15&&inTrouble()){spawnDrop(p,pickPU());return;}
   const ch=(late?Math.min(0.26,0.18+0.015*(wave-5)):0.11)+Math.min(0.12,CB.hs*0.03)+(CB.n>=3?0.12:0);if(Math.random()>ch)return;spawnDrop(p,pickPU());}
-function spawnDrop(p,k){pushOutOfShip(p,1.4,null);
+// v83 (Santi): a gift at half life. From the 3rd Escupidora on (Escupidora III and later) and every Incineradora, the first time the boss drops below 50 % it drops
+// ONE prize, REPARACIÓN TOTAL or TODO A BORDO and nothing else, whichever helps more right now (giftPick). Once per boss (b.gift); two Escupidoras, two gifts.
+// It is outside the prize caps (dropCap / the gap between drops): it neither waits for them nor uses them up. It lives 20 s (a normal prize 15 s).
+// Floating cargo: TODO A BORDO helps from 12 trichomes adrift (the round-6+ line of pickPU). Hull: a plate below 70 % (pickPU's «bad»), broken or not.
+// Both: the bigger loss wins. An open hole counts what it lets out in 20 s (it bleeds ~1.26 a second, so 25 x leakMult), a damaged plate half the cargo its damage
+// has already let out (missing hp x 0.8, x1.6 in the hold); that against the trichomes adrift. Neither: REPARACIÓN TOTAL.
+const GIFT={hp:0.5,life:20,magLc:12,hole:25};
+function giftLoss(){let h=0;for(const pa of PATCHES){if(pa.hp<=0)h+=GIFT.hole*leakMult();else if(pa.hp<CFG.patchHp*0.7)h+=0.5*(CFG.patchHp-pa.hp)*CFG.leakPerHp*(pa.zone.name==='BODEGA'?CFG.bodegaLeak:1);}return h;}
+function giftPick(){const lc=looseCount(),fix=PATCHES.some(pa=>pa.hp<CFG.patchHp*0.7),mag=lc>=GIFT.magLc;
+  if(fix&&mag)return giftLoss()>=lc?'fix':'mag';return mag?'mag':'fix';}
+// where it floats: above the boss, a little toward you (at most 8 m), out of the ship and the rocks, never out in the void
+function giftAt(b){const p=new THREE.Vector3(),n=new THREE.Vector3();
+  if(b.isInc){incCenter(b,p);n.copy(b.n);p.addScaledVector(n,1.6*INC_SC*0.5);}
+  else{if(b.state==='crawl'||b.state==='eat'||b.state==='windup'){hullPoint(b.z,b.th,p,n);p.addScaledVector(n,1.2+1.1*b.mesh.scale.x);}else p.copy(b.pos);}
+  const d=V1.subVectors(P.pos,p),L=d.length();if(L>0.5)p.addScaledVector(d,Math.min(0.45,8/L));
+  pushOutOfShip(p,1.4,null);pushOutOfRocks(p,1.2,null);if(wingAt(p))p.y+=1.2;const R=CFG.lostR-8;if(p.length()>R)p.setLength(R);return p;}
+function bossGift(b){if(b.gift)return;b.gift=1;const k=giftPick(),p=giftAt(b);spawnDrop(p,k,{gift:true,life:GIFT.life});floatText(p.clone().addScaledVector(UP,0.8),PU_DEF[k].name,'pu');}
+function bossGiftTick(){if(state!=='play')return;
+  for(const s of spiders)if(s.kind==='spitter'&&(s.gen||1)>=3&&!s.gift&&s.state!=='fall'&&s.hp<s.maxHp*GIFT.hp)bossGift(s);
+  for(const e of INCS)if(!e.gift&&e.st!=='fall'&&e.st!=='gone'&&e.hp<e.maxHp*GIFT.hp)bossGift(e);}
+function spawnDrop(p,k,o){pushOutOfShip(p,1.4,null);
   const g=new THREE.Group();g.position.copy(p);
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:PU_HALO,color:new THREE.Color(PU_DEF[k].col).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0.8}));halo.scale.setScalar(2.1);
   const icon=new THREE.Sprite(new THREE.SpriteMaterial({map:puTex(k),depthWrite:false,transparent:true}));icon.scale.setScalar(0.95);
-  g.add(halo,icon);scene.add(g);DROPS.push({k,g,icon,halo,base:p.clone(),t:0,ph:Math.random()*6});dropsRound++;lastDrop=playT;sfx('drop',p);tutorialEvent('pu');say('pu_drop',2,{cd:60});}
+  g.add(halo,icon);scene.add(g);DROPS.push({k,g,icon,halo,base:p.clone(),t:0,ph:Math.random()*6,life:o&&o.life||CFG.puLife,gift:!!(o&&o.gift)});if(!(o&&o.gift)){dropsRound++;lastDrop=playT;}sfx('drop',p);tutorialEvent('pu');say('pu_drop',2,{cd:60});}
 function removeDrop(d){scene.remove(d.g);d.halo.material.dispose();d.icon.material.dispose();DROPS.splice(DROPS.indexOf(d),1);}
 function updateDrops(dt,t){
-  for(const d of [...DROPS]){d.t+=dt;const left=CFG.puLife-d.t;
+  for(const d of [...DROPS]){d.t+=dt;const left=(d.life||CFG.puLife)-d.t;
     const dp=P.pos.distanceTo(d.g.position);if(dp<4.5&&state==='play')d.base.lerp(P.pos,Math.min(1,dt*1.2*(4.5-dp)/4.5)); // gentle pull when close
     d.g.position.copy(d.base).addScaledVector(UP,Math.sin(t*2+d.ph)*0.15);
     const pulse=1+Math.sin(t*5+d.ph)*0.08;d.icon.scale.setScalar(0.95*pulse);d.halo.scale.setScalar(2.1*pulse);d.icon.material.rotation=Math.sin(t*1.5+d.ph)*0.25;
@@ -122,13 +142,17 @@ function tryWindup(s,dist,W,dt,hunting){if(CINE.on)return;
   let leaping=0;for(const o of spiders)if(o.state==='leap'||o.state==='windup')leaping++;
   s.wait=(hunting&&dist>=W.range&&s.cd<=0&&dist<45)?(s.wait||0)+dt:0; // player hovering out of reach -> launch anyway after a moment
   s.hopTo=null;if(s.wait>1.2&&s.kind!=='spitter'){for(const R of ROCKS){if(R.fade<1||R.leaving)continue;const dp=R.c.distanceTo(P.pos),ds=R.c.distanceTo(s.pos);if(dp<16&&ds<26&&dp<dist-4){_rk.subVectors(s.pos,R.c).normalize();s.hopTo=R.c.clone().addScaledVector(_rk,rockR(R,_rk)*0.9);break;}}}
-  if(state==='play'&&s.cd<=0&&leaping<W.maxLeap&&((dist<lr&&Math.random()<s.aggr*dt*6)||s.wait>2+Math.random()*2)){s.wait=0;if(shipBetween(s.pos,P.pos)){s.aggro=Math.max(s.aggro||0,2);return;}
+  if(state==='play'&&s.cd<=0&&leaping<W.maxLeap&&((dist<lr&&Math.random()<s.aggr*dt*6)||s.wait>2+Math.random()*2)){s.wait=0;if(shipBetween(s.pos,P.pos)||isJumpS(s)&&(jumpRoot(s.z,s.th)||!leapClear(jumpFrom(s,_jw1,_jw2),P.pos,s.mesh.scale.x))){s.aggro=Math.max(s.aggro||0,2);return;} // v83: and the straight jump against the real hull (41-saltos.js)
     // telegraph: crouch, eyes flare, chitter -> then leap
     s.state='windup';s.t=0;s.windT=Math.max(0.35,0.62-wave*0.03);sfx('chitter',s.pos);if(dist<30)tutorialEvent('windup');}}
+const _jw1=new THREE.Vector3(),_jw2=new THREE.Vector3();
 function launchLeap(s){const W=waveDef(wave);
   const lead=s.hopTo?s.hopTo.clone():P.pos.clone().addScaledVector(P.vel,0.35).add(new THREE.Vector3().randomDirection().multiplyScalar(0.4));
+  if(isJumpS(s)){jumpFrom(s,_jw1,_jw2);if(!leapClear(_jw1,lead,s.mesh.scale.x)){s.state='crawl';s.t=0;s.cd=0.6+Math.random()*0.6;s.aggro=Math.max(s.aggro||0,2);return;} // v83: you went behind the ship while it crouched: no jump
+    s.state='leap';s.vel.subVectors(lead,_jw1).normalize().multiplyScalar(CFG.leapSpeed*(0.85+W.spd*0.15));s.t=0;s.leapMax=_jw1.distanceTo(P.pos)/s.vel.length()+1.5;
+    s.pos.copy(_jw1);s.jumpN=_jw2.clone();s.jumpW=0;s.mesh.position.copy(s.pos);sfx('leap',s.pos);return;} // v83: it takes off from the height it walks at, belly to the hull (jumpOrient)
   s.state='leap';s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed*(0.85+W.spd*0.15));s.t=0;s.leapMax=s.pos.distanceTo(P.pos)/s.vel.length()+1.5;
-  const n0=new THREE.Vector3();hullPoint(s.z,s.th,V3,n0);s.pos.addScaledVector(n0,0.5);sfx('leap',s.pos);
+  const n0=new THREE.Vector3();hullPoint(s.z,s.th,V3,n0);if(isCrabS(s)){s.leapN=n0.clone();s.pos.addScaledVector(n0,s.mesh.userData.rig.spd.rootOff*s.mesh.scale.x);}else s.pos.addScaledVector(n0,0.5);sfx('leap',s.pos);
   const u=s.mesh.userData;if(!u.rig){u.body.position.y=0;u.body.rotation.x=0;u.mEye.color.setHex(u.S.eye);}}
 const UP=new THREE.Vector3(0,1,0),M4=new THREE.Matrix4();
 function orient(obj,fwd,up){const r=new THREE.Vector3().crossVectors(up,fwd).normalize();const u=new THREE.Vector3().crossVectors(fwd,r).normalize();
@@ -160,7 +184,7 @@ function updateSpider(s,dt,t){
       const shrink=dist>W.range*0.8?0.15:(s.kind==='hunter'?THREE.MathUtils.clamp(dist/12,0.25,1):1);
       gz=tp.z+s.slotZ*shrink;gth=tp.th+off*shrink;
       if(s.kind==='spitter'){gz=tp.z+s.slotZ*0.35;gth=tp.th+s.slotTh*0.5;}} // the spitter crawls right up under you
-    {const pad=s.mesh.scale.x>1.3?2:1;s.pathT=(s.pathT||0)-dt;
+    {const pad=spPad(s);s.pathT=(s.pathT||0)-dt;
      if(s.pathT<=0){s.pathT=0.45+Math.random()*0.2;s.wp=hullLineFree(s.z,s.th,gz,gth,pad)?null:(hullPath(s.z,s.th,gz,gth,pad)||hullPath(s.z,s.th,gz,gth,0));}
      if(s.wp){if(Math.hypot(s.wp[0]-s.z,Math.atan2(Math.sin(s.wp[1]-s.th),Math.cos(s.wp[1]-s.th))*rr)<0.3)s.pathT=0;else{gz=s.wp[0];gth=s.wp[1];}}}
     let dth=Math.atan2(Math.sin(gth-s.th),Math.cos(gth-s.th));let mz=gz-s.z,mt=dth*rr;const ml=Math.hypot(mz,mt);
@@ -173,24 +197,24 @@ function updateSpider(s,dt,t){
     // a little skitter so they never move in lockstep
     mz+=Math.sin(t*3.1+s.orbit*40)*0.15;mt+=Math.cos(t*2.3+s.slotZ*7)*0.15;
     const step=CFG.crawlSpeed*W.spd*s.spd*dt*(s.loot>0?0.6:1)*(CINE.on?0.3:1); // loaded thieves are slower
-    {const pad=s.mesh.scale.x>1.3?2:1,nz=THREE.MathUtils.clamp(s.z+mz*step,-14.5,21.5),nt=s.th+mt*step/rr;
+    {const pad=spPad(s),nz=THREE.MathUtils.clamp(s.z+mz*step,-14.5,21.5),nt=s.th+mt*step/rr;
      if(!hullBlocked(nz,nt,pad)){s.z=nz;s.th=nt;}
      else if(!hullBlocked(nz,s.th,pad))s.z=nz;
      else if(!hullBlocked(s.z,nt,pad))s.th=nt;
      else{const f=freeSpot(s.z,s.th,pad);s.z=f[0];s.th=f[1];}
      if(hullBlocked(nz,nt,pad)){s.slotTh=-s.slotTh;s.orbit=-s.orbit;}}
-    const n=new THREE.Vector3();const prev=s.pos.clone();hullPoint(s.z,s.th,s.pos,n);
+    const n=new THREE.Vector3();const prev=s.pos.clone();hullPoint(s.z,s.th,s.pos,n);if(isJumpS(s))spUp(s.z,s.th,n); // v83: up = the real normal (the nose and the tail slope)
     const mv=s.pos.clone().sub(prev);if(mv.lengthSq()>1e-8){mv.normalize();s.face=(s.face||mv.clone()).lerp(mv,Math.min(1,dt*8)).normalize();orient(s.mesh,s.face,n);}
     s.mesh.position.copy(s.pos).addScaledVector(n,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=mv.lengthSq()>0;
     // watchdog: a crawler that has not really moved for 5 s skitters a couple of metres along its path
     s.stillP=s.stillP||s.pos.clone();if(s.pos.distanceTo(s.stillP)>0.6){s.stillP.copy(s.pos);s.stillT=0;}else s.stillT=(s.stillT||0)+dt;
-    if(s.stillT>5){s.stillT=0;const pad=s.mesh.scale.x>1.3?2:1,tp=hullParam(P.pos),w=hullPath(s.z,s.th,tp.z,tp.th,pad,12)||hullPath(s.z,s.th,tp.z,tp.th,0,12)||freeSpot(s.z,s.th,pad+1);s.z=w[0];s.th=w[1];s.pathT=0;s.aggro=Math.max(s.aggro||0,4);}
+    if(s.stillT>5){s.stillT=0;const pad=spPad(s),tp=hullParam(P.pos),w=hullPath(s.z,s.th,tp.z,tp.th,pad,12)||hullPath(s.z,s.th,tp.z,tp.th,0,12)||freeSpot(s.z,s.th,pad+1);s.z=w[0];s.th=w[1];s.pathT=0;s.aggro=Math.max(s.aggro||0,4);}
     if(!hunting&&s.patch&&!s.wp&&ml<0.45&&state==='play'){s.state='eat';s.t=0;if(s.kind==='spitter'&&!s.ateMsg){s.ateMsg=1;showMsg('¡LA ESCUPIDORA MUERDE LA NAVE!','Si no vas a por ella, abre agujeros enormes',2.6);}}
     if(s.kind==='spitter')spitterAim(s,dist);else if(s.kind!=='thief')tryWindup(s,dist,W,dt,hunting);
   }else if(s.state==='eat'){
     const W=waveDef(wave),pa=s.patch;
     if(!pa||pa.hp<=0||state!=='play'){s.state='crawl';s.patch=null;if(!U.rig){U.body.rotation.x=0;U.body.position.y=0;}}
-    else{const n=new THREE.Vector3();hullPoint(s.z,s.th,s.pos,n);
+    else{const n=new THREE.Vector3();hullPoint(s.z,s.th,s.pos,n);if(isJumpS(s))spUp(s.z,s.th,n);
       const fw=V2.subVectors(pa.pos,s.pos).addScaledVector(n,-V2.dot(n));if(fw.lengthSq()>0.01){fw.normalize();s.face=(s.face||fw.clone()).lerp(fw,Math.min(1,dt*6)).normalize();}
       if(s.face)orient(s.mesh,s.face,n);
       s.mesh.position.copy(s.pos).addScaledVector(n,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.22);
@@ -199,7 +223,7 @@ function updateSpider(s,dt,t){
       s.chewT-=dt;if(s.chewT<=0){s.chewT=0.22+Math.random()*0.2;burst(V3.copy(pa.pos).addScaledVector(n,0.25),0xffc050,2);sfx('chew',s.pos);}
       s.moving=false;if(s.kind==='spitter'){if(dist<22){s.state='crawl';s.patch=null;}else spitterAim(s,dist);}else tryWindup(s,dist,W,dt,huntMode(s,dist,W));}
   }else if(s.state==='windup'){
-    const n=new THREE.Vector3();hullPoint(s.z,s.th,V3,n);const fw=V2.copy(toP).addScaledVector(n,-toP.dot(n)).normalize();
+    const n=new THREE.Vector3();hullPoint(s.z,s.th,V3,n);if(isJumpS(s))spUp(s.z,s.th,n);const fw=V2.copy(toP).addScaledVector(n,-toP.dot(n)).normalize();
     if(fw.lengthSq()>0.5)orient(s.mesh,fw,n);
     const k=Math.min(1,s.t/s.windT);if(!U.rig){U.body.position.y=-0.13*k;U.body.rotation.x=-0.22*k+Math.sin(t*60)*0.03*k;U.mEye.color.setHex(U.S.eye).lerp(WHITE,k);}
     if(s.t>=s.windT){if(s.kind==='spitter'&&s.atk!=='pounce')spitAcid(s);else{launchLeap(s);if(s.kind==='spitter')s.cd=THREE.MathUtils.randFloat(2,3.2);}}
@@ -219,25 +243,29 @@ function updateSpider(s,dt,t){
     if(wingRay(s.pos,V2.copy(s.vel).multiplyScalar(dt))>=0){s.vel.multiplyScalar(-0.35);if(s.state==='leap'){s.state='drift';s.t=0;}}
     s.pos.addScaledVector(s.vel,dt);s.mesh.position.copy(s.pos);
     if(s.kind!=='spitter'){const RK=rockAt(s.pos,0.15*s.mesh.scale.x);if(RK){landOnRock(s,RK);return;}}else pushOutOfRocks(s.pos,0.6*s.mesh.scale.x,s.vel);
-    if(s.vel.lengthSq()>0.01)orient(s.mesh,V2.copy(s.vel).normalize(),UP);
-    if(pushOutOfShip(s.pos,0.3,s.vel)&&!(s.state==='leap'&&s.t<0.6)){const hp=hullParam(s.pos);[s.z,s.th]=freeSpot(hp.z,hp.th,s.mesh.scale.x>1.3?2:1);s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);}
+    if(s.vel.lengthSq()>0.01&&!crabLeapOrient(s)&&!jumpOrient(s))orient(s.mesh,V2.copy(s.vel).normalize(),UP);
+    const hitE=pushOutOfShip(s.pos,0.3,s.vel);
+    if(isJumpS(s)){s.mesh.position.copy(s.pos);if(!jumpCollide(s)&&hitE&&!(s.state==='leap'&&s.t<JUMP_FIX.land))jumpLand(s,s.pos);} // v83: never drawn inside; head, fangs and abdomen against the real hull (41-saltos.js)
+    else if(hitE&&!(s.state==='leap'&&s.t<0.6)){const hp=hullParam(s.pos);[s.z,s.th]=freeSpot(hp.z,hp.th,spPad(s));s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);}
   }else if(s.state==='perch'){ // walking out on a wing (opening scene); pounces at you once the game starts
     const q=s.perch,d=V2.set(q.dx,0,q.dz).normalize(),stp=0.75*dt;let nx=q.x+d.x*stp,nz=q.z+d.z*stp;
-    if(wingTop(nx,nz)===null||Math.abs(nx)<4.4||Math.abs(nx)>7.3){q.dx=-q.dx;q.dz=-q.dz;nx=q.x;nz=q.z;}
-    q.x=nx;q.z=nz;s.pos.set(q.x,wingTop(q.x,q.z)??0.4,q.z);orient(s.mesh,V2.set(q.dx,0,q.dz).normalize(),UP);
-    s.mesh.position.copy(s.pos).addScaledVector(UP,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=true;
+    if(wingTop(nx,nz)===null||wingTop(nx+d.x*0.3,nz+d.z*0.3)===null||Math.abs(nx)<4.4||Math.abs(nx)>7.3){q.dx=-q.dx;q.dz=-q.dz;nx=q.x;nz=q.z;} // v79: it also turns round 0.3 m before the end of the wing (the lip falls away at 20-40 deg there)
+    q.x=nx;q.z=nz;s.pos.set(q.x,wingY(q.x,q.z)??0.4,q.z);
+    const nn=q.n||(q.n=wingNormal(q.x,q.z,new THREE.Vector3()));nn.lerp(wingNormal(q.x,q.z,_wnT),Math.min(1,dt*6)).normalize(); // v79: it lies along the wing (smoothed normal), not along world up
+    const pf=V2.set(q.dx,0,q.dz).normalize();pf.addScaledVector(nn,-pf.dot(nn)).normalize();orient(s.mesh,pf,nn);
+    s.mesh.position.copy(s.pos).addScaledVector(nn,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=true;
     if(state==='play'&&!CINE.on){s.perchT-=dt;
-      if((s.perchT<=0||dist<9)&&!shipBetween(s.pos,P.pos)){const lead=P.pos.clone().addScaledVector(P.vel,0.35);
+      if((s.perchT<=0||dist<9)&&!shipBetween(s.pos,P.pos)&&(!isJumpS(s)||leapClear(s.pos,P.pos,s.mesh.scale.x))){const lead=P.pos.clone().addScaledVector(P.vel,0.35);
         s.state='leap';s.t=0;s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed);s.leapMax=dist/CFG.leapSpeed+1.5;sfx('chitter',s.pos);sfx('leap',s.pos);}
       else if(s.perchT<-6){s.state='return';s.t=0;}}
   }else if(s.state==='fall'){if(!(CINE.on&&CINE.mode==='boss'&&CINE.boss===s&&CINE.t<0.35))updateFall(s,dt);
   }else if(s.state==='return'){
     // no swimming in vacuum: shoot a silk line at the nearest walkable hull spot, then reel in along it (faster and faster)
-    if(!s.silk){const hp=hullParam(s.pos);[hp.z,hp.th]=freeSpot(hp.z,hp.th,s.mesh.scale.x>1.3?2:1);s.silk={a:hullPoint(hp.z,hp.th,new THREE.Vector3()),z:hp.z,th:hp.th,v:1.5,t:0};silkOn(s);sfx('silk',s.pos);}
-    const SK=s.silk;SK.t+=dt;const d=V3.subVectors(SK.a,s.pos),L=d.length();
-    if(L<0.4){s.z=SK.z;s.th=SK.th;s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);s.slotTh+=THREE.MathUtils.randFloatSpread(1.5);s.silk=null;}
+    if(!s.silk){const hp=hullParam(s.pos);[hp.z,hp.th]=jumpSpot(s,hp.z,hp.th);s.silk={a:hullPoint(hp.z,hp.th,new THREE.Vector3()),z:hp.z,th:hp.th,v:1.5,t:0};silkOn(s);sfx('silk',s.pos);}
+    const SK=s.silk;SK.t+=dt;const d=V3.subVectors(SK.a,s.pos);if(isCrabS(s))crabReelAim(s,SK,d);else if(isJumpS(s))jumpReelAim(s,SK,d);const L=d.length();
+    if(L<0.4){s.z=SK.z;s.th=SK.th;s.state='crawl';if(isJumpS(s))s.jl=JUMP_FIX.net;const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);s.slotTh+=THREE.MathUtils.randFloatSpread(1.5);s.silk=null;}
     else{if(SK.t>0.16)SK.v=Math.min(s.kind==='spitter'?14:19,SK.v+(s.kind==='spitter'?11:17)*dt);else SK.v*=Math.exp(-3*dt);
-      s.pos.addScaledVector(d.normalize(),Math.min(L,SK.v*dt));s.mesh.position.copy(s.pos);orient(s.mesh,d,UP);
+      s.pos.addScaledVector(d.normalize(),Math.min(L,SK.v*dt));s.mesh.position.copy(s.pos);if(!crabReelOrient(s,SK,d,dt)&&!(isJumpS(s)&&jumpReelOrient(s,SK,d,L,dt)))orient(s.mesh,d,UP); // v83: belly to the hull as it arrives
       if(s.kind!=='spitter'&&!(s.t<0.5)){const RK=rockAt(s.pos,0.15*s.mesh.scale.x);if(RK){s.silk=null;landOnRock(s,RK);}}}
   }else if(s.state==='rock'){ // clinging to an asteroid: crawls round to the side facing you, crouches and pounces again
     const RK=s.rock,want=V2.subVectors(P.pos,RK.c).normalize(),prev=V3.copy(s.rd),ang=s.rd.angleTo(want);
@@ -247,7 +275,7 @@ function updateSpider(s,dt,t){
     s.face=(s.face||face.clone()).lerp(face,Math.min(1,dt*6)).normalize();orient(s.mesh,s.face,n);
     s.mesh.position.copy(s.pos).addScaledVector(n,U.rig?U.rig.spd.rootOff*s.mesh.scale.x:0.28);s.moving=ang>0.08;
     if(state==='play'&&!CINE.on){s.rockT+=dt;
-      if(s.cd<=0&&dist<34&&!shipBetween(s.pos,P.pos)){s.rw+=dt;if(s.rw>0.45){s.rw=0;const lead=P.pos.clone().addScaledVector(P.vel,0.3);
+      if(s.cd<=0&&dist<34&&!shipBetween(s.pos,P.pos)&&(!isJumpS(s)||leapClear(s.pos,P.pos,s.mesh.scale.x))){s.rw+=dt;if(s.rw>0.45){s.rw=0;const lead=P.pos.clone().addScaledVector(P.vel,0.3);
           s.state='leap';s.t=0;s.vel.subVectors(lead,s.pos).normalize().multiplyScalar(CFG.leapSpeed*1.05);s.leapMax=dist/CFG.leapSpeed+1.5;s.pos.addScaledVector(n,0.5*s.mesh.scale.x);sfx('leap',s.pos);}}
       else if(s.rockT>9&&dist>30){s.state='return';s.t=0;s.pos.addScaledVector(n,0.8);}}}
   if(U.rig){animSpider(s,dt,t);

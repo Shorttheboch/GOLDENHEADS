@@ -35,16 +35,18 @@ const LATE={s:{gun2:0,crab:0,egg:0,bip:0}};window.__late=LATE;
 const lateOk=k=>LATE.s[k]!==0;
 // ---- eggs (Santi's EGG_v1): laid on the hull from the round after the first spitter; they throb faster and faster, then burst into a brood ----
 const EGGS=[],EGG_S=0.8;let eggPlan=[];
-function layEgg(z,th,RK,rd){const n=new THREE.Vector3();let p;if(RK){n.copy(rd);p=RK.c.clone().addScaledVector(rd,rockR(RK,rd));}else{[z,th]=freeSpot(z,th,1);p=hullPoint(z,th,new THREE.Vector3(),n);}
+function layEgg(z,th,RK,rd,sp){const n=new THREE.Vector3();let p;if(RK){n.copy(rd);p=RK.c.clone().addScaledVector(rd,rockR(RK,rd));}else{[z,th]=freeSpot(z,th,1);p=hullPoint(z,th,new THREE.Vector3(),n);}
   let m;if(EGG_GLB){m=EGG_GLB.scene.clone(true);m.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.castShadow=true;}});}
   else m=new THREE.Mesh(new THREE.SphereGeometry(0.4,20,16).scale(1,1.25,1).translate(0,0.5,0),new THREE.MeshStandardMaterial({color:0x4a0808,emissive:0xff3010,emissiveIntensity:0.3,roughness:0.25}));
   const g=new THREE.Group();g.add(m);g.position.copy(p);g.quaternion.setFromUnitVectors(UP,n);g.scale.setScalar(0.01);scene.add(g);
   const mats=[];m.traverse(o=>{if(o.isMesh)mats.push(o.material);});
-  const e={g,mats,z,th,RK,rd:rd&&rd.clone(),n:n.clone(),pos:p.clone().addScaledVector(n,0.45*EGG_S),t:0,hatch:7.5,hp:8+Math.floor(wave/2),ph:0,flash:0};EGGS.push(e);
-  burst(p,0x8a0a0a,16);sfx('nest',p);floatText(e.pos.clone().addScaledVector(n,0.9),'¡HUEVO!','loss');
-  if(!stats.eggs)showMsg('¡UN HUEVO!','Destrúyelo antes de que eclosione',2.6);say('egg',3,{cd:40});stats.eggs++;return e;}
-function updateEggs(dt,t){for(let i=EGGS.length-1;i>=0;i--){const e=EGGS[i];if(state==='play'&&!CINE.on)e.t+=dt;const k=Math.min(1,e.t/e.hatch),grow=Math.min(1,e.t/0.6);
-    e.ph+=dt*(1.1+k*k*4.5);const bt=Math.pow(Math.max(0,Math.sin(e.ph*Math.PI*2)),8); // heartbeat, faster as it nears hatching
+  const e={g,mats,z,th,RK,rd:rd&&rd.clone(),n:n.clone(),pos:p.clone().addScaledVector(n,0.45*EGG_S),t:0,gt:0,hatch:7.5,hp:8+Math.floor(wave/2),ph:0,flash:0};EGGS.push(e);
+  // v76: the first egg of this device is shown in a short cinematic (36-huevo.js: the title replaces the message and the floating text); the egg keeps growing (gt) while the game stands still (t)
+  const cine=eggCineStart(e,sp);
+  burst(p,0x8a0a0a,16);sfx('nest',p);if(!cine)floatText(e.pos.clone().addScaledVector(n,0.9),'¡HUEVO!','loss');
+  if(!stats.eggs&&!cine)showMsg('¡UN HUEVO!','Destrúyelo antes de que eclosione',2.6);say('egg',3,{cd:40});stats.eggs++;return e;}
+function updateEggs(dt,t,cdt=dt){for(let i=EGGS.length-1;i>=0;i--){const e=EGGS[i];if(state==='play'&&!CINE.on)e.t+=dt;e.gt+=cdt;const k=Math.min(1,e.t/e.hatch),grow=Math.min(1,e.gt/0.6); // v76: cdt = real time (the egg grows and throbs during its cinematic, e.t = the hatch timer stays frozen)
+    e.ph+=cdt*(1.1+k*k*4.5);const bt=Math.pow(Math.max(0,Math.sin(e.ph*Math.PI*2)),8); // heartbeat, faster as it nears hatching
     const s=EGG_S*grow*(1+0.05*bt*(1+k))*(1+(k>0.85?0.02*Math.sin(t*45):0));e.g.scale.set(s*(1-0.025*bt),s*(1+0.06*bt*(1+k)),s*(1-0.025*bt));
     e.flash=Math.max(0,e.flash-dt*6);for(const m of e.mats)if(m.emissive)m.emissiveIntensity=0.5+k*1.4+bt*(1+3*k)+e.flash*4;
     if(bt>0.9&&!e.beat){e.beat=1;sfx('thump',e.pos);}else if(bt<0.3)e.beat=0;
@@ -60,10 +62,19 @@ function hatchEgg(e,i){EGGS.splice(i,1);scene.remove(e.g);
 function destroyEgg(e){EGGS.splice(EGGS.indexOf(e),1);scene.remove(e.g);for(let k=0;k<3;k++)burst(e.pos,k?0x6a0606:0xffb040,18);sfx('splat',e.pos);sfx('kill',e.pos);
   addPts(150);floatText(e.pos.clone().addScaledVector(e.n,0.9),'HUEVO DESTRUIDO +'+ptsVal(150),'pts');stats.eggsKilled++;}
 // a crawling spider away from you lays the egg
+// v76: just behind its abdomen (it used to appear right under the spider, hidden by its legs); back = how far behind the root, in metres at scale 1
+const _egF=new THREE.Vector3(),_egQ=new THREE.Vector3(),_egN=new THREE.Vector3(),_egH=new THREE.Vector3();
+function eggBehind(s,n){_egF.set(0,0,1).applyQuaternion(s.mesh.quaternion);_egF.addScaledVector(n,-_egF.dot(n));
+  if(_egF.lengthSq()<1e-4)return null;_egF.normalize();return _egQ.copy(s.pos).addScaledVector(_egF,-1.45*s.mesh.scale.x);}
 function tryLayEgg(){if(!lateOk('egg'))return false; // v74: the egg model may still be downloading: try again next frame
-  const r=spiders.filter(s=>s.state==='rock'&&s.kind!=='brood'&&s.pos.distanceTo(P.pos)>6);if(r.length&&Math.random()<0.6){const s=r[Math.floor(Math.random()*r.length)];layEgg(0,0,s.rock,s.rd);s.cd=Math.max(s.cd,1.5);return true;}
+  if(CINE.on&&(CINE.mode==='egg'||eggCineWanted()))return false; // v76: not during the egg cinematic; the first egg of the device waits for another cinematic to end (it gets its own)
+  const r=spiders.filter(s=>s.state==='rock'&&s.kind!=='brood'&&s.pos.distanceTo(P.pos)>6);if(r.length&&Math.random()<0.6){const s=r[Math.floor(Math.random()*r.length)];
+    let rd2=s.rd;const q=eggBehind(s,s.rd);if(q){const d=_egN.subVectors(q,s.rock.c);if(d.lengthSq()>1e-6)rd2=d.normalize().clone();}
+    layEgg(0,0,s.rock,rd2,s);s.cd=Math.max(s.cd,1.5);return true;}
   const c=spiders.filter(s=>(s.state==='crawl'||s.state==='eat')&&s.kind!=='brood'&&s.kind!=='spitter'&&s.pos.distanceTo(P.pos)>7&&s.pos.distanceTo(HATCH)>4);
-  if(!c.length)return false;const s=c[Math.floor(Math.random()*c.length)];layEgg(s.z,s.th);s.cd=Math.max(s.cd,1.5);return true;}
+  if(!c.length)return false;const s=c[Math.floor(Math.random()*c.length)];
+  let z=s.z,th=s.th;{hullPoint(s.z,s.th,_egH,_egN);const q=eggBehind(s,_egN);if(q){const hp=hullParam(q);z=hp.z;th=hp.th;}}
+  layEgg(z,th,null,null,s);s.cd=Math.max(s.cd,1.5);return true;}
 const SPD={tips:{R1:[0.4868,0.0351,0.9445],L1:[-0.4868,0.0351,0.9445],R2:[0.9357,0.0221,0.6481],L2:[-0.9357,0.0221,0.6481],
   R3:[1.2288,0.0053,0.1757],L3:[-1.2288,0.0053,0.1757],R4:[1.1152,0,-0.6115],L4:[-1.1152,0,-0.6115]},
   abdTail:[0,0.47,-1.15],sack:[0.0293,0.8082,-0.6566],head:[0.013,0.415,0.32],rootOff:0.28};
@@ -167,7 +178,7 @@ function makeBiped(scale=1){if(!BIPED_GLB)return null;bipedFlipClip();
 
 // rotate a bone by qm, given in its parent's rest frame (= model axes): +X pitch (head down / tail up), +Y yaw (left), +Z roll
 function sBoneRot(b,qm){const u=b.userData;b.quaternion.copy(u.pqi).multiply(qm).multiply(u.pq).multiply(u.q0);}
-function sHull(p,out){if(_rockS){_rk.subVectors(p,_rockS.c).normalize();return out.copy(_rockS.c).addScaledVector(_rk,rockR(_rockS,_rk));}if(_perch){const y=wingTop(p.x,p.z);if(y!==null){out.set(p.x,y,p.z);return out;}}const hp=hullParam(p);return hullPoint(hp.z,hp.th,out);}
+function sHull(p,out){if(_rockS){_rk.subVectors(p,_rockS.c).normalize();return out.copy(_rockS.c).addScaledVector(_rk,rockR(_rockS,_rk));}if(_perch){const y=wingY(p.x,p.z);if(y!==null){out.set(p.x,y,p.z);return out;}}const hp=hullParam(p);return hullPoint(hp.z,hp.th,out);}
 // FABRIK on the 5-segment leg; starting every frame from the rest pose keeps the knee arched upwards
 // FABRIK on the first n segments (p[0]..p[n])
 const _t4=new THREE.Vector3();
@@ -198,7 +209,7 @@ function remapCrabSkin(root){let n=0;
 const _uc=new THREE.Vector3(),_un=new THREE.Vector3();
 function unclipLeg(p,m){for(let i=1;i<=5;i++){const q=p[i];if(q.z<-14.6||q.z>21.6)continue;const hp=hullParam(q);hullPoint(hp.z,hp.th,_uc,_un);
     const d=_uc.subVectors(q,_uc).dot(_un);if(d<m)q.addScaledVector(_un,m-d);}}
-function solveLeg(R,L,T,ground){const p=L.p;solveLeg0(R,L,T,ground);if(R.sc&&!_rockS)unclipLeg(p,0.035*R.sc);}
+function solveLeg(R,L,T,ground){const p=L.p;if(R.crab&&!R.wasAir&&!_rockS)T=crabFoot(T,R.sc);solveLeg0(R,L,T,ground);if(R.sc&&!_rockS&&!_perch)unclipLeg(p,0.035*R.sc);} // v78: crabFoot lifts the Escupidora's feet · v79: no unclipLeg on a wing either: the hull ellipse there is not the surface under the feet (it pulled the inner claws up to 70 cm off the wing)
 function solveLeg0(R,L,T,ground){const p=L.p;
   if(!R.crab&&!ground){sFabrik(p,L.len,T);return;} // raised / reaching legs keep the free FABRIK motion
   if(!R.crab){ // spider: knees lifted high, the claw segment hangs down onto the foothold so it never digs into the hull
@@ -241,17 +252,22 @@ function animSpider(s,dt,t){
   if(!air){let hf=0,hb=0,hl=0,hr=0,ha=0;
     for(const L of R.legs){const h=_sc.subVectors(L.f,g.position).dot(upW)/sc+R.spd.rootOff;ha+=h/8;
       if(L.pair<=2)hf+=h/4;else hb+=h/4;if(L.side<0)hl+=h/4;else hr+=h/4;}
-    tH+=THREE.MathUtils.clamp(ha*0.6,-0.12,0.12);
+    tH+=THREE.MathUtils.clamp(ha*0.6,R.crab?-0.12:0,0.12)+(R.crab||_perch?0:0.04); // v79: the body is never lowered by feet below it (the hull is convex: that sank the abdomen into it) and rides 4 cm higher; the crab keeps its own
     tP+=THREE.MathUtils.clamp(Math.atan((hb-hf)/1.4),-0.3,0.3);tR+=THREE.MathUtils.clamp(Math.atan((hr-hl)/2.2),-0.3,0.3);
     let lift=0,sway=0;for(const L of R.legs)if(L.step){const w=Math.sin(Math.PI*Math.min(1,L.st));lift+=w/4;sway+=L.side*w/4;}
     tH-=0.03*lift*mv;tY+=0.06*sway*mv;tR-=0.04*sway*mv;
     tP+=THREE.MathUtils.clamp(-R.al.z*0.012,-0.12,0.12);tR+=THREE.MathUtils.clamp(R.al.x*0.01-R.yaw*0.03,-0.15,0.15);}
+  if(R.crab&&!air)tH+=crabHAdj(R,g,upW,sc);
   if(s.state==='eat'){const c=t*8.5+ph;tH-=0.11;tP+=0.34+0.1*Math.sin(c);tR+=0.07*Math.sin(c*0.5);tF+=0.06+0.05*Math.sin(c);}
   else if(s.state==='windup'){tH-=0.13*k;tF-=0.15*k;tP-=0.4*k;tH+=Math.sin(t*61)*0.012*k;tR+=Math.sin(t*53)*0.03*k;}
   else if(s.state==='leap'){tP-=0.25;}
   else if(s.state==='drift'){tP+=Math.sin(t*9+ph)*0.35;tR+=Math.cos(t*7+ph)*0.4;}
   else if(s.state==='fall'){tH+=0.05;}
   else if(air){tP+=0.12+Math.sin(t*6+ph)*0.08;}
+  if(R.crab&&s.state==='windup'){tP+=0.4*k*(1-CRAB_FIX.wp);tH+=0.13*k*(1-CRAB_FIX.wh);}
+  else if(s.state==='windup'&&isJumpS(s)&&!(s.idleT>0)){tP+=0.4*k*(1-JUMP_FIX.wp);tH+=0.13*k*(1-JUMP_FIX.wh);tP=Math.max(tP,JUMP_FIX.wpMin);} // v83: the other spiders keep part of the crouch and do not tip tail-down (41-saltos.js)
+  if(s.state==='leap'&&s.jumpN&&isJumpS(s))tP+=0.25*(1-(s.jumpW||0)); // v83: no tail-down droop while it still lies belly to the hull at take-off // v78: el cangrejo no clava la cabeza en el casco al agacharse (el resto de arañas conserva -0.4 y -0.13)
+  if(R.crab&&s.state==='eat'){tP-=0.34*(1-CRAB_FIX.ep);tH+=0.11*(1-CRAB_FIX.eh);} // v78: ni el abdomen al comer (+0.34 y -0.11 en el resto)
   if(s.idleT>0&&s.state==='windup'){const q=Math.min(1,k*1.5);tH=0.1*q+0.012*Math.sin(t*11);tP=-0.17*q+0.04*Math.sin(t*2.6);tR=0.07*Math.sin(t*1.7)*q;tY=0.2*Math.sin(t*1.25)*q;tF=-0.04*q;}
   const lam=s.state==='windup'||s.state==='leap'?18:9,bd=R.bd;
   const hPrev=bd.h;bd.h=sdamp(bd.h,tH,lam,dt);bd.hv=sdamp(bd.hv,(bd.h-hPrev)/dt,12,dt);
@@ -263,7 +279,7 @@ function animSpider(s,dt,t){
   const A=R.ab;let gp=-0.03+0.05*Math.sin(R.walk*2)*mv,gy=0.08*Math.sin(R.walk)*mv-R.yaw*0.12,breath=0.022*Math.sin(t*2.3+ph);
   if(s.state==='eat'){gp=0.1+0.05*Math.sin(t*8.5+ph);breath=0.04*Math.sin(t*5+ph);}
   else if(s.state==='windup'){gp=0.38*k+Math.sin(t*47)*0.03*k;}
-  else if(s.state==='leap'){gp=-0.18;}
+  else if(s.state==='leap'){gp=s.jumpN&&isJumpS(s)?-0.18*(s.jumpW||0):-0.18;} // v83: (same, the abdomen)
   else if(s.state==='drift'){gp=Math.sin(t*11+ph)*0.3;gy+=Math.cos(t*9+ph)*0.3;}
   if(s.idleT>0){gp=0.3+Math.sin(t*3.1)*0.1;gy=Math.sin(t*5.2)*0.42;breath=0.05*Math.sin(t*4.4);}
   const ka=70,ca=5;
@@ -293,6 +309,7 @@ function animSpider(s,dt,t){
   // ---------- legs
   for(const L of R.legs)for(let i=0;i<5;i++)L.bs[i].quaternion.copy(L.q0[i]);
   g.updateMatrixWorld(true);
+  if(R.crab)crabClear(s,R,g,dt);else if(isJumpS(s))jumpClear(s,R,g,dt); // v83: the body never sinks into the hull crouching to jump or landing (41-saltos.js)
   const thr=(spd>0.2?0.36:0.13)*sc,lead=0.13;
   let stA=0,stB=0;for(const L of R.legs)if(L.step){if(L.A)stA++;else stB++;}
   for(const L of R.legs){

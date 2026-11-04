@@ -6,7 +6,7 @@ function setG3(el,t){const g=el.querySelector('.g3'),i=g&&g.firstElementChild;if
 const ORN='<svg class="orn" viewBox="0 0 130 40" aria-hidden="true"><path d="M2 8H62L84 30H117"/><circle cx="123" cy="30" r="4"/></svg>';
 function showEndPlate(o){ // o: {title, sub, total, round, cargo, combat, rows:[[label,value]...], recHTML, isNew}
   const end=$('end');o.title=TR(o.title);o.sub=TR(o.sub);
-  const w=o.title.split(' '),k=Math.ceil(w.length/2),lines=w.length>1?[w.slice(0,k).join(' '),w.slice(k).join(' ')]:[o.title];
+  const w=o.title.split(' '),k=Math.ceil(w.length/2),lines=w.length>1&&innerHeight>520?[w.slice(0,k).join(' '),w.slice(k).join(' ')]:[o.title]; // v82: one line on short screens (phones), so the panel can be bigger
   $('endT').innerHTML=lines.map((l,j)=>`<span class="ln">${g3(l)}${j===lines.length-1?ORN+ORN.replace('class="orn"','class="orn r"'):''}</span>`).join('');
   $('endT').setAttribute('aria-label',o.title);
   $('endS').firstChild.textContent=o.sub;
@@ -38,11 +38,13 @@ function endGame(win,reason){if(state!=='play')return;state='dead';xpEnd(true);X
   rows.push(['Tricomas a bordo al final',fmt(Math.max(0,cargo))]);
   let best=null;try{best=JSON.parse(localStorage.getItem('heads_best_v3')||'null');}catch(e){}
   let recHTML,isNew=false;
-  if(!best||total>best.score){try{localStorage.setItem('heads_best_v3',JSON.stringify({score:total,round:wave+1}));}catch(e){}
+  if(RONDA.n&&!best)recHTML=isTouch?'':'Enter para reintentar'; // v80: a game started at another round (?ronda=N) never sets the record
+  else if(!RONDA.n&&(!best||total>best.score)){try{localStorage.setItem('heads_best_v3',JSON.stringify({score:total,round:wave+1}));}catch(e){}
     isNew=total>0;recHTML=isTouch?(isNew?'<b>¡NUEVO RÉCORD!</b>':''):(isNew?'<b>¡NUEVO RÉCORD!</b> · ':'')+'Enter para reintentar';}
   else recHTML=`Récord: ${fmt(best.score)} · ronda ${best.round}`+(isTouch?'':' · Enter para reintentar');
   showEndPlate({title:reason==='ship'?'NAVE PERDIDA':reason==='cargo'?'CARGA PERDIDA':'TRAJE ROTO',
     sub:reason==='ship'?'LAS ARAÑAS DEVORARON EL CASCO':reason==='cargo'?'LOS TRICOMAS SE PERDIERON EN EL VACÍO':'SEÑAL VITAL PERDIDA',
     total,round:wave+1,cargo:fmt(score),combat:fmt(pts),rows,recHTML,isNew});
-  rankShow(total,{kills:stats.kills,heads:stats.heads,acc,saved:Math.round(stats.saved),repairs});
-  sfx('boom');musicEnd(2);} // v73: the music fades out over ~2 s
+  RANK.newRec=isNew;rankShow(total,{kills:stats.kills,heads:stats.heads,acc,saved:Math.round(stats.saved),repairs,combat:Math.round(pts),cargo:Math.round(score),spit:stats.spitters,inc:stats.incs||0,eggs:stats.eggsKilled,xp:stats.xp}); // v82: online ranking (26-ranking.js, 40-cuentas.js)
+  sfx('boom');musicEnd(2); // v73: the music fades out over ~2 s
+  mtEnd(reason,acc);} // v81: anonymous metrics (39-metricas.js)

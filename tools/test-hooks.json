@@ -5,6 +5,11 @@
   "file": "game"
  },
  {
+  "a": "const isCrabS=s=>",
+  "b": "window.__spPad=s=>spPad(s);window.__crabFix=CRAB_FIX;const isCrabS=s=>",
+  "file": "game"
+ },
+ {
   "a": "const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;",
   "b": "const rdt=window.__dt?(clock.getDelta(),window.__dt):Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;",
   "file": "game"
@@ -55,6 +60,11 @@
   "file": "game"
  },
  {
+  "a": "function wingTop(x,z){",
+  "b": "window.__wingTop=(x,z)=>wingTop(x,z);window.__wingY=(x,z)=>wingY(x,z);function wingTop(x,z){",
+  "file": "game"
+ },
+ {
   "a": "window.__heads={get CINE",
   "b": "window.__heads={pickPU,get CINE",
   "file": "game"
@@ -72,6 +82,11 @@
  {
   "a": "if(onHull)incFeet(e);",
   "b": "if(onHull&&!window.__noFeetIK)incFeet(e);",
+  "file": "game"
+ },
+ {
+  "a": "window.__heads={pickPU,INCS,spawnInc,",
+  "b": "window.__heads={destroyEgg,hatchEgg,eggBehind,get EGGC(){return EGGC},pickPU,INCS,spawnInc,",
   "file": "game"
  },
  {
@@ -107,6 +122,31 @@
  {
   "a": "const MUSIC={url:",
   "b": "window.__MUS=()=>({M:MUSIC,g:musicGain,say,endGame,tick:musicTick,VOQ,on:musicOn});const MUSIC={url:",
+  "file": "game"
+ },
+ {
+  "a": "function say(id,prio=2,o={}){",
+  "b": "function say(id,prio=2,o={}){(window.__sayLog=window.__sayLog||[]).push(id);",
+  "file": "game"
+ },
+ {
+  "a": "window.__xp={XP,xpStart,",
+  "b": "window.__xpT=XPT;window.__xp={XP,xpStart,",
+  "file": "game"
+ },
+ {
+  "a": "const MT={on:",
+  "b": "window.__noMetrics=window.__noMetrics??1;const MT={on:window.__noMetrics===0||",
+  "file": "game"
+ },
+ {
+  "a": "function rondaStart(){const W0=RONDA.n-1;",
+  "b": "window.__ronda={get n(){return RONDA.n},get spitN(){return spitN},get incN(){return incN},get spitFirstW(){return spitFirstW},get rankOn(){return RANK.on},get eggPlan(){return eggPlan.length},get opSeen(){return opSeen},get eggLastW(){return eggLastW},set eggLastW(v){eggLastW=v},get spitFirstWv(){return spitFirstW},set spitFirstWv(v){spitFirstW=v}};function rondaStart(){const W0=RONDA.n-1;",
+  "file": "game"
+ },
+ {
+  "a": "const RANK={on:",
+  "b": "const RANK={on:window.__rankOn===1||",
   "file": "game"
  }
 ]

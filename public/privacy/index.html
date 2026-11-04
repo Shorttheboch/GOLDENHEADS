@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05050a">
+<title>Privacy and leaderboard rules · HEADS Golden Rescue</title>
+<meta name="description" content="What HEADS Golden Rescue stores, why, who handles it, for how long, your rights, how to delete your account and the leaderboard rules.">
+<link rel="alternate" hreflang="es" href="../privacidad/">
+<!-- v82: the English version of public/privacidad/index.html (same content, same look). Static, no script, relative links only. -->
+<style>
+@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f600.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f700.woff2) format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:TekturE;src:url(/assets/ui/endui/font.woff2) format('woff2');font-weight:400 900;font-display:swap}
+:root{color-scheme:dark;--void:#05050a;--panel:rgba(8,8,12,.88);--line:rgba(232,182,74,.5);--gold:#e8b64a;--gold-hi:#ffe39a;--ink:#f4ecd8;--ink2:#d4c9ad;--ink3:#948b74;
+  --fT:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;--fB:'TitilliumH','Titillium Web','Segoe UI',system-ui,sans-serif}
+*{box-sizing:border-box}
+html{background:var(--void)}
+body{margin:0;min-height:100vh;color:var(--ink);font:600 16px/1.55 var(--fB);-webkit-text-size-adjust:100%;
+  background:radial-gradient(1200px 600px at 70% -10%,rgba(255,180,60,.10),transparent 60%),radial-gradient(900px 500px at 0% 110%,rgba(40,150,200,.08),transparent 60%),var(--void);background-attachment:fixed}
+.wrap{max-width:860px;margin:0 auto;padding:18px max(18px,env(safe-area-inset-right)) 48px max(18px,env(safe-area-inset-left))}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 18px}
+header img{height:52px;width:auto;filter:drop-shadow(0 0 10px rgba(255,190,60,.35))}
+header .t{flex:1;min-width:220px}
+h1,h2{font-family:var(--fT);font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:0;
+  background:linear-gradient(180deg,#ffe58c 0%,#ffc83c 50%,#ee9f14 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1{font-size:24px;line-height:1.15}
+h2{font-size:17px;margin:0 0 8px}
+.sub{color:var(--ink3);font-size:13px;letter-spacing:.04em}
+nav{display:flex;gap:10px;flex-wrap:wrap}
+nav a{display:inline-flex;align-items:center;height:36px;padding:0 14px;border:1px solid rgba(232,182,74,.55);background:rgba(10,8,4,.6);color:#e9d9a8;text-decoration:none;
+  font:800 12px/1 var(--fT);letter-spacing:.16em;text-transform:uppercase}
+nav a.go{background:linear-gradient(180deg,#ffe07a,#d9960f);color:#1d150a;border-color:#ffd56a}
+nav a:hover,nav a:focus-visible{outline:none;box-shadow:0 0 10px rgba(255,200,80,.5)}
+section{position:relative;margin:0 0 14px;padding:16px 18px 14px;background:var(--panel);border:1.5px solid var(--line);border-radius:2px;box-shadow:0 0 12px rgba(255,190,60,.08),0 8px 24px rgba(0,0,0,.45)}
+section::before,section::after{content:'';position:absolute;width:9px;height:9px;border:2px solid var(--gold-hi);pointer-events:none}
+section::before{left:-3px;top:-3px;border-right:0;border-bottom:0}section::after{right:-3px;bottom:-3px;border-left:0;border-top:0}
+p{margin:0 0 10px;color:var(--ink2)}
+ul{margin:0 0 10px;padding-left:20px;color:var(--ink2)}
+li{margin:0 0 6px}
+li::marker{color:var(--gold)}
+b,strong{color:var(--ink);font-weight:700}
+a{color:#ffd659;text-underline-offset:.18em;text-decoration-color:rgba(255,214,89,.5)}
+.lead{font-size:17px;color:var(--ink)}
+.box2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
+.box2>div{padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(232,182,74,.2)}
+.box2 h3{margin:0 0 6px;font:800 12px/1.2 var(--fT);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.box2 p,.box2 ul{font-size:15px}
+.k{font:800 13px/1 var(--fT);letter-spacing:.12em;color:var(--gold-hi)}
+footer{margin-top:20px;color:var(--ink3);font-size:13px;text-align:center}
+#rules{scroll-margin-top:12px}
+@media (max-width:640px){body{font-size:15px}h1{font-size:20px}header img{height:40px}.box2{grid-template-columns:minmax(0,1fr)}section{padding:14px 14px 12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="/assets/ui/menuui/logo.webp" alt="HEADS Rescue">
+    <div class="t"><h1>Privacy and leaderboard rules</h1><div class="sub">HEADS Golden Rescue · updated 3 November 2026</div></div>
+    <nav><a class="go" href="../">Back to the game</a><a href="../privacidad/" hreflang="es" lang="es">Español</a></nav>
+  </header>
+
+  <section>
+    <p class="lead">You can play without an account. Only if you want to <b>save your score on the leaderboard</b> do you sign in with Google and choose a nickname. Here is, in short, what we keep and why.</p>
+    <p><b>Controller:</b> Golden Heads · <a href="mailto:headsrescueadmin@gmail.com">headsrescueadmin@gmail.com</a></p>
+  </section>
+
+  <section>
+    <h2>What we keep</h2>
+    <div class="box2">
+      <div><h3>If you play without an account</h3>
+        <p>Nothing that says who you are. Your own device (not our servers) keeps the language, your record, whether you saw the tutorial and your answer to the stats question.</p></div>
+      <div><h3>Anonymous stats</h3>
+        <p>How each game goes: the round you reach, how it ends, time, points, device type, system, browser, language, smoothness and game errors, and your approximate country, region and city from the network. <b>We never keep your IP</b> or your name. If you answer <b>YES</b> to the menu question, your device also keeps a random number so we can tell when you come back; with <b>NO</b>, it doesn't.</p></div>
+      <div><h3>If you save your score with Google</h3>
+        <p>Your <b>nickname</b>, when you accepted these rules and your <b>saved runs</b> (points, round, duration, game stats, PC or phone, language and date). To sign you in, our provider keeps your <b>Google account id and your email</b>; Google also sends it your name and profile picture, which the game <b>does not use or show</b>.</p></div>
+      <div><h3>What everyone sees</h3>
+        <p>The leaderboard only shows your <b>nickname</b>, your best score, the round and your place. <b>Never</b> your email, your name or your Google account.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why</h2>
+    <ul>
+      <li>To save your runs under your nickname and show them on the leaderboard: that is what you ask for when you press <span class="k">SAVE MY SCORE</span>.</li>
+      <li>To keep the leaderboard fair: checking runs and keeping every nickname unique.</li>
+      <li>To improve the game with the anonymous stats (how far people get, what breaks).</li>
+    </ul>
+    <p>We don't sell your data, there are no ads, and we don't use it for anything else.</p>
+  </section>
+
+  <section>
+    <h2>Who helps us</h2>
+    <ul>
+      <li><b>Supabase</b>: database and sign-in. Servers in the European Union (Frankfurt, Germany).</li>
+      <li><b>Netlify</b> (United States): hosts the website and the server functions; it handles your IP to serve the page, but we don't keep it.</li>
+      <li><b>Google</b>: the Google sign-in (under its own privacy terms) and the page font (Google Fonts).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>For how long</h2>
+    <ul>
+      <li>Your account, nickname and runs: for as long as you keep the account. You can delete it whenever you want.</li>
+      <li>The run that waits while you sign in with Google: 4 hours at most, on your device.</li>
+      <li>The anonymous stats: 2 years at most.</li>
+      <li>The old leaderboard (Season 0, hand-typed names, no accounts) is archived and no longer shown.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Your rights and how to delete your account</h2>
+    <p><b>Delete your account:</b> on the end screen of a game, while signed in, press <span class="k">Delete my account</span> and confirm. Your nickname, all your runs and your Google sign-in are deleted. You can also ask by writing to <a href="mailto:headsrescueadmin@gmail.com">headsrescueadmin@gmail.com</a> from your account's email.</p>
+    <p>You can ask us to see your data, correct it (for example, change a nickname), delete it, take it with you or object to its use, by writing to the same email. If we don't answer properly, you can complain to the Spanish Data Protection Agency (<a href="https://www.aepd.es" rel="noopener">aepd.es</a>).</p>
+  </section>
+
+  <section id="rules">
+    <h2>Leaderboard rules</h2>
+    <ul>
+      <li><b>Fair play.</b> No cheating: no changing the game or what it sends, no bots or programs that play for you.</li>
+      <li><b>One account per person.</b></li>
+      <li><b>We check the runs.</b> The server checks every run; odd-looking ones are held for review and may not be shown. If someone cheats, we delete those runs and the account is taken off the leaderboard.</li>
+      <li><b>Your nickname</b> has 3 to 12 letters or digits (also . _ -) and is unique: «Sántí», «SANTI» and «S.ANTI» count as the same. No insults, and no pretending to be someone else or HEADS. It can't be changed from the game, and we may remove one that breaks these rules.</li>
+      <li><b>Seasons.</b> The current leaderboard is Season 1; we may start new seasons.</li>
+      <li><b>No prizes.</b> The leaderboard is for fun: there are no official prizes inside the game.</li>
+    </ul>
+    <p>Questions? <a href="mailto:headsrescueadmin@gmail.com">headsrescueadmin@gmail.com</a></p>
+  </section>
+
+  <footer>Golden Heads · HEADS Golden Rescue</footer>
+</div>
+</body>
+</html>

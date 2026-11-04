@@ -5,10 +5,11 @@ let spitN=0,spitFirstW=-1,eggLastW=-9;
 function spawnSpitter(cine=false){spitN++;if(spitN===1)spitFirstW=wave;const k=spitN-1,s=spawnSpider('spitter');s.gen=spitN;
   s.mesh.scale.setScalar(Math.min(2.7,1.75+(spitN>=3?0.3+(spitN-3)*0.15:spitN===2?0.1:0)));
   s.hp=s.maxHp=Math.round((40+wave*4)*(1+0.18*k));s.spd=0.75+Math.min(0.5,k*0.08);s.cd=Math.max(1.2,2.2-k*0.2);s.spits=0;
-  $('boss').firstChild.textContent='ESCUPIDORA'+(spitN>1?' '+['','II','III','IV','V','VI','VII','VIII','IX','X'][Math.min(9,k)]:'');
+  $('boss').firstChild.textContent=s.bossName='ESCUPIDORA'+(spitN>1?' '+['','II','III','IV','V','VI','VII','VIII','IX','X'][Math.min(9,k)]:'');updateBoss.who=null;
   const hp=hullParam(P.pos);s.z=THREE.MathUtils.clamp(hp.z+(Math.random()<0.5?-8:8),-13,20);s.th=hp.th+THREE.MathUtils.randFloatSpread(0.5);
   s.slotZ=(s.z>hp.z?1:-1)*(4.5+Math.random()*3);s.slotTh=THREE.MathUtils.randFloatSpread(0.7);
   if(cine){s.th=Math.PI/2+0.5;s.z=3.6;} // the cylindrical mid-ship: no hull curve between the lens and the spider
+  [s.z,s.th]=freeSpot(s.z,s.th,spPad(s)); // v78: never lands on a spot its margin would push it off at once
   const n=new THREE.Vector3();hullPoint(s.z,s.th,s.pos,n);
   // it drops out of the sky like a meteor and smashes into the hull
   s.fall={tgt:s.pos.clone(),n:n.clone(),v:cine?14:18,cine};s.pos.addScaledVector(n,cine?48:46);s.state='fall';s.mesh.position.copy(s.pos);orient(s.mesh,new THREE.Vector3(0,0,1).addScaledVector(n,-n.z).normalize(),n);

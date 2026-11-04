@@ -7,9 +7,14 @@ import './styles/04-language.css';
 import './styles/05-hud-movil.css';
 import './styles/06-hud-pc.css';
 import './styles/07-tutorial-movil.css';
+import './styles/08-instalar.css'; // v75: add to home screen (phones)
+import './styles/09-huevo.css'; // v76: first-egg cinematic title and egg markers
+import './styles/10-metricas.css'; // v81: the anonymous-stats question on the start menu
+import './styles/11-cuentas.css'; // v82: Google accounts (end plate button, nickname and result screens)
 // v62: phone HUD (Santi's design) and its font, bundled so it works without internet
 import '@fontsource/saira-condensed/latin-600.css';
 import '@fontsource/saira-condensed/latin-700.css';
 import '@fontsource/saira-condensed/latin-800.css';
 import './hud/hud.js';
+import './cuentas/loader.js'; // v82: window.HEADS_AUTH, the lazy Google login chunk
 import 'virtual:heads-game'; // src/game/*.js joined in file-name order (one shared scope, exactly as the original single file)

@@ -68,7 +68,15 @@ const zoneHp=Z=>Z.patches.reduce((s,p)=>s+p.hp,0)/(Z.patches.length*CFG.patchHp)
 const shipHp=()=>PATCHES.reduce((s,p)=>s+p.hp,0)/(PATCHES.length*CFG.patchHp);
 // the worse the hull, the faster every breach bleeds: x1 above 85 % ... x2 at 20 %
 // v35: no more 'damaged ship bleeds faster' (too much to read); instead the first rounds simply leak less
-function leakMult(){return 1;}
+// v83 emergency brake (Santi): with little cargo left the holes and broken plates leak slower: below 30 % on board (the «¡LA CARGA SE AGOTA!» line) x0.5,
+// below 10 % x0.35. Only the cargo that escapes through the hull (the chewing in damagePatch and the slow leak of broken plates in 31-loop.js); never anything else.
+// Each change of level is a 1 s smoothstep from wherever it was, so the speed of the cargo bar never jumps. leakBrakeTick runs once a frame in play (31-loop.js).
+const LEAKB={m:1,from:1,to:1,u:1,T:1};
+function leakBrakeTo(k){return k<0.1?0.35:k<0.3?0.5:1;}
+function leakBrakeTick(dt){const tg=leakBrakeTo(cargo/CFG.cargo);if(tg!==LEAKB.to){LEAKB.from=LEAKB.m;LEAKB.to=tg;LEAKB.u=0;}
+  if(LEAKB.u<1){LEAKB.u=Math.min(1,LEAKB.u+dt/LEAKB.T);const e=LEAKB.u*LEAKB.u*(3-2*LEAKB.u);LEAKB.m=LEAKB.from+(LEAKB.to-LEAKB.from)*e;}}
+function leakBrakeReset(){LEAKB.m=LEAKB.from=LEAKB.to=1;LEAKB.u=1;}
+function leakMult(){return LEAKB.m;} // the HUD reads it too (30-hud4-menus.js: «PÉRDIDA ×» only shows at x1.1 or more, so the brake shows nothing there)
 function leakScale(){return [0.6,0.75,0.85,0.95][wave]??1;}
 let cargo=0,score=0,repairs=0;
 // trichomes escape through a hole into space (they can be vacuumed back)
@@ -77,7 +85,7 @@ function leakFrom(pa,n){n=Math.min(n,cargo);if(n<=0)return;cargo-=n;
 }
 const _lk=new THREE.Vector3();
 function damagePatch(pa,dmg){if(pa.hp<=0||state!=='play')return;const before=pa.hp;pa.hp=Math.max(0,pa.hp-dmg);
-  pa.leak+=(before-pa.hp)*CFG.leakPerHp*(pa.zone.name==='BODEGA'?CFG.bodegaLeak:1)*leakScale();
+  pa.leak+=(before-pa.hp)*CFG.leakPerHp*(pa.zone.name==='BODEGA'?CFG.bodegaLeak:1)*leakScale()*leakMult();
   if(pa.leak>=1){const n=Math.floor(pa.leak);pa.leak-=n;leakFrom(pa,n);}
   const Z=pa.zone;if(Z.alarmT<=0){Z.alarmT=7;sfx('alarm');tutorialEvent('eat');say(ZONE_VO[Z.name],3,{cd:12});}
   if(pa.hp===0){burst(pa.pos,0xff5020,10);sfx('crack',pa.pos);

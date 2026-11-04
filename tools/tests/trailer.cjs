@@ -100,7 +100,7 @@ async function main(b){
   await p.evaluate(()=>{__T.startWave(1);__T.toSpawn=0;window.__mk=__heads.spawnSpider('hunter');});await frames(p,3);
   r=await p.evaluate(()=>{const m=window.__mk.mesh.userData.mark;return m?m.visible:null;});ok(r===false,'the red 3D sign above the last spiders is hidden too',r);
   if(SHOTS){await key(p,'KeyU',600);await p.screenshot({path:shot('trailer_pc_clean.png')});}
-  await key(p,'Digit3');const op2=await opac(p,HUD_IDS),ST=['hTop','hVit','hScore','hTk','cross'];
+  await key(p,'Digit3',700);const op2=await opac(p,HUD_IDS),ST=['hTop','hVit','hScore','hTk','cross']; // (they fade back in)
   ok(ST.every(i=>op2[i]>0.5&&Math.abs(op2[i]-op0[i])<0.15),'3 again: the HUD as it was',{op0,op2});
   r=await p.evaluate(()=>{const m=window.__mk.mesh.userData.mark;return m?m.visible:null;});ok(r===true,'... the red sign too',r);
   if(SHOTS)await p.screenshot({path:shot('trailer_pc_hud.png')});
@@ -272,7 +272,7 @@ async function vert(b){
     return {x:a.x,y:a.y,head:hd.y,feet:ft.y,h:(hd.y-ft.y)/2};});
   ok(Math.abs(r.x)<0.45&&r.head<0.9&&r.feet>-0.95&&r.h>0.1,'the astronaut is framed (centre x, whole height on screen, a good size)',r);
   // HUD panels inside the window and not on top of each other
-  await p.evaluate(()=>{__T.startWave(1);}); // a round message on screen too
+  await key(p,'KeyO',200);await p.evaluate(()=>{__T.startWave(1);}); // the boss bar and a round message on screen too
   await p.waitForTimeout(400);
   r=await p.evaluate(()=>{const ids=['hTop','hVit','hScore','hTk','pcKeys','msg','sub','tut','boss','pwr','tip'],R={};for(const i of ids){const e=document.getElementById(i);if(!e||e.hidden)continue;const b=e.getBoundingClientRect();
       let o=1;for(let x=e;x&&x.nodeType===1;x=x.parentElement)o*=+getComputedStyle(x).opacity;

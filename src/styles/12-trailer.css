@@ -21,7 +21,8 @@ body.trV.trLb :is(#flash,#burn,#zapFlash,#xpFlash,#eggFade){inset:calc(50vh - va
 body.trV:not(.trLb){--hx:3vw;--ht:2.4vh;--scw:37vw;--trTop:calc(var(--ht) + 37vw * 250 / 460)}
 body.trV:not(.trLb) #hVit{width:54vw}
 body.trV:not(.trLb) #hTop{top:calc(var(--trTop) + 1.6vh)!important;width:80vw!important}
-body.trV:not(.trLb) #tut,body.trV:not(.trLb) #boss,body.trV:not(.trLb) #pwr{top:calc(var(--trTop) + 9.5vh)!important}
+body.trV:not(.trLb) #tut,body.trV:not(.trLb) #boss,body.trV:not(.trLb) #pwr{top:calc(var(--trTop) + 10.8vh)!important}
+body.trV:not(.trLb) #msg{top:31%!important}
 body.trV:not(.trLb) #hTk .tkT{width:30vw}
 body.trV:not(.trLb) #hTk .tkIc{width:15vw;height:15vw}
 body.trV:not(.trLb) #sub{bottom:calc(5vh + 15vw)!important;max-width:84vw!important}
@@ -39,8 +40,8 @@ body.trailer #trHelp .trR i[data-s]:empty::after{content:'';display:inline-block
 body.trailer #trHelp .trR i.on{color:#7dffb0}
 body.trailer #trHelp .trR i.on:empty::after{background:#7dffb0;border-color:#7dffb0;box-shadow:0 0 6px #7dffb0}
 
-/* the notice when something switches (hidden with the HUD) */
-body.trailer #trToast{position:fixed;left:50%;top:13vh;transform:translate(-50%,-6px);z-index:90;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;
+/* the notice when something switches (hidden with the HUD): under the crosshair, where nothing else sits */
+body.trailer #trToast{position:fixed;left:50%;top:62%;transform:translate(-50%,-6px);z-index:90;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;
   display:flex;gap:10px;align-items:baseline;padding:5px 14px;border:1px solid rgba(232,182,74,.5);border-radius:4px;background:rgba(6,5,3,.72);
   font:700 13px/1.2 var(--f-display);letter-spacing:.16em;color:var(--gold-hi);white-space:nowrap}
 body.trailer #trToast b{color:#7dffb0;font-weight:800}

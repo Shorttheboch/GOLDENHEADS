@@ -13,6 +13,7 @@
 // The top 5 is always five lines: empty places wait for a captain, and on an empty board the first one says «¡Sé el primero!».
 // The hand-typed names of v81 and before are gone: that board (Netlify Blobs) is archived as «Temporada 0», no longer shown.
 const RANK={on:/^https?:$/.test(location.protocol)&&!/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname),token:null,pending:null,seq:0,show:5};
+if(TRAILER)RANK.on=false; // v84: a trailer game (?trailer, 42-trailer.js) never goes to the online ranking, like ?ronda=N
 function rankStart(){RANK.token=null;RANK.pending=null;const q=++RANK.seq;if(!RANK.on)return;
   fetch('/api/run',{method:'POST'}).then(r=>r.ok?r.json():null).then(j=>{if(q===RANK.seq&&j&&j.token)RANK.token=j.token;}).catch(()=>{});}
 function rankRow(pos,e,cls){return `<li class="${cls||''}"><i>${pos}</i><span>${escH(e.nick)}</span><em>R${e.round}</em><b>${fmtN(e.score)}</b></li>`;}

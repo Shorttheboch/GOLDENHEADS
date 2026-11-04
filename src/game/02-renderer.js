@@ -37,7 +37,12 @@ const GRADE=new ShaderPass({uniforms:{tDiffuse:{value:null},uTime:{value:0},uRes
       float g=hash(vUv*uRes+fract(uTime*13.17)*vec2(91.7,37.3))-.5;col+=g*uGrain*(1.-.6*l);
       gl_FragColor=vec4(col,1.);}`});
 composer.addPass(GRADE);
-function resize(){const w=innerWidth,h=innerHeight;renderer.setPixelRatio(qaPR(w,h));renderer.setSize(w,h,false);composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(w,h);
+// v84 trailer, ?trailer&vertical: the picture is always TRV.w x TRV.h at pixel ratio TRV.s (1080x1920, or 2160x3840 with &escala=2), whatever the window;
+// the canvas is shown centred and scaled to fit (12-trailer.css), so a window of exactly that size (an OBS browser source) is filled 1:1. Quality levels never change it.
+function trResize(){const w=TRV.w,h=TRV.h,s=TRV.s;renderer.setPixelRatio(s);renderer.setSize(w,h,false);composer.setPixelRatio(s);composer.setSize(w,h);
+  {const d=QA.bloomDiv[QA.lvl];if(d)bloom.setSize(w/d,h/d);}camera.aspect=w/h;camera.updateProjectionMatrix();GRADE.uniforms.uRes.value.set(w*s,h*s);
+  const k=Math.min(innerWidth/w,innerHeight/h);canvas.style.width=(w*k)+'px';canvas.style.height=(h*k)+'px';}
+function resize(){if(TRV)return trResize();const w=innerWidth,h=innerHeight;renderer.setPixelRatio(qaPR(w,h));renderer.setSize(w,h,false);composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(w,h);
   {const d=QA.bloomDiv[QA.lvl];if(d)bloom.setSize(w/d,h/d);}camera.aspect=w/h;camera.updateProjectionMatrix();GRADE.uniforms.uRes.value.set(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());}
 addEventListener('resize',resize);resize();
 

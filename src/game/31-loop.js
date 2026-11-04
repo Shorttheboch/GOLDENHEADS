@@ -34,6 +34,7 @@ function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.text
 qaHud();
 function tick(){const _qa0=performance.now();
   if((TC.paused||MTUT.on)&&state==='play'){clock.getDelta();tcOrientTick();if(MTUT.on)mtutFrame();if(!window.__noRender)composer.render();if(!window.__manual)requestAnimationFrame(tick);return;} // touch pause · v66 phone tutorial
+  if(TRAILER)trPre(); // v84 trailer (42-trailer.js): its switches act first; with slow motion or the freeze, clock.getDelta() itself returns the scaled world time
   const rdt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;let dt=rdt;if(hitStop>0){hitStop-=rdt;dt=rdt*0.12;}dt*=xpClock(rdt); // tiny freeze on kills · v77: the EXTRA POWER pose runs in real time and slows the world (0.4x) for a moment
   // v76: while the first egg is shown (CINE.mode 'egg') the world stands still: dt is ~0 for everything; fdt (real time) only drives the sparks, the camera shake and the egg itself
   const eggC=CINE.on&&CINE.mode==='egg',fdt=eggC?rdt:dt;if(eggC)dt=1e-4;
@@ -78,16 +79,17 @@ function tick(){const _qa0=performance.now();
     const w=THREE.MathUtils.clamp(camOrbit/2.6,0,1),cyaw=camYaw+camOrbit,cpit=camPitch*(1-w)+0.15*w,ccp=Math.cos(cpit);
     const fc=new THREE.Vector3(-Math.sin(cyaw)*ccp,Math.sin(cpit),-Math.cos(cyaw)*ccp);
     const rightC=new THREE.Vector3(Math.cos(camYaw),0,-Math.sin(camYaw));
-    const pivot=P.pos.clone().addScaledVector(UP,0.5-0.2*w+0.45*XP.push).addScaledVector(rightC,(isTouch?0.8:0.98)*(1-w));
-    const want=pivot.clone().addScaledVector(fc,-((isTouch?2.55:3.3)-0.5*w-XP.push)); // v77: XP.push = the push-in during the EXTRA POWER pose · v56: closer on phones so the astronaut reads bigger
+    const pivot=P.pos.clone().addScaledVector(UP,0.5-0.2*w+0.45*XP.push+(TRV?TRV.up*(1-w):0)).addScaledVector(rightC,(isTouch?0.8:TRV?TRV.sh:0.98)*(1-w)); // v84: TRV = ?trailer&vertical, framed for 9:16
+    const want=pivot.clone().addScaledVector(fc,-((isTouch?2.55:TRV?TRV.dist:3.3)-0.5*w-XP.push)); // v77: XP.push = the push-in during the EXTRA POWER pose · v56: closer on phones so the astronaut reads bigger
     // v72: camPos is the smoothed wish; the camera itself comes in along the arm when the ship or a rock is in the way (camArm, 05-rocks.js)
     camPos.lerp(want,1-Math.exp(-12*dt));camera.position.copy(camArm(CAM.head.copy(P.pos).addScaledVector(UP,0.5-0.2*w),pivot,camPos,dt));camera.lookAt(pivot.clone().addScaledVector(fc,20*(1-w)+0.01));
     if(CINE.on){if(CINE.mode==='boss')bossCam(dt);else{CINE.nPos.copy(camera.position);CINE.nLook.copy(pivot).addScaledVector(fc,20);if(CINE.mode==='egg')eggCam(rdt);else cineCam(dt);}}
     // lens feel: a short zoom kick on the dash, and a slow, tiny hand-held drift
-    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=CINE.on&&CINE.fov?CINE.fov:62+fovK-XP.fovD; /* v67: a cinematic can set its own lens */if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
+    fovK=THREE.MathUtils.damp(fovK,0,5,dt);{const fv=CINE.on&&CINE.fov?CINE.fov:(TRV?TRV.fov:62)+fovK-XP.fovD; /* v67: a cinematic can set its own lens */if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}}
     if(!window.__camOv){camera.rotateX(Math.sin(t*0.83)*0.0015+Math.sin(t*2.1)*0.0005);camera.rotateY(Math.sin(t*0.61+1.3)*0.0017+Math.sin(t*1.7)*0.0005);}
     $('cross').style.visibility=w>0.3?'hidden':'';camFill.intensity=0.6+1.3*w;
     if(window.__camOv){camera.position.copy(P.pos).add(window.__camOv);camera.lookAt(P.pos.clone().add(window.__camLook||new THREE.Vector3()));}
+    if(TRAILER&&TRA.fc)trCam(); // v84: the trailer's free camera takes the view (the follow camera above keeps running underneath, so it comes back exactly where it was)
     // aim
     ray.origin.copy(camera.position);ray.direction.copy(f3);aimTarget.copy(camera.position).addScaledVector(f3,80);
     let best=1e9;_tcAimP=null;_tcAimHit=false;for(const s of spiders){const d=ray.distanceSqToPoint(s.mesh.position);if(d<(isTouch?1.25:0.8)*Math.max(1,s.mesh.scale.x*s.mesh.scale.x*0.6)){const dd=camera.position.distanceTo(s.mesh.position);if(dd<best){best=dd;_tcAimP=s.mesh.position;
@@ -204,6 +206,7 @@ function tick(){const _qa0=performance.now();
     for(const s of [...spiders])updateSpider(s,dt,t);updateSilk(t);
     for(const e of [...INCS])updateInc(e,dt,t);incFxFrame();
     // v74: these three wait (their timer stops, the round stays open) while the crab / biped model is still downloading in the background
+    if(!(TRAILER&&TRA.hold)){ // v84: the trailer's HOLD (42-trailer.js): no boss timers, no eggs, no clouds, no new spiders and no round advance while it is on
     if(state==='play'&&!inBreak&&WB.bossT>0&&lateOk('crab')){WB.bossT-=dt;if(WB.bossT<=0){WB.bossT=0;spawnSpitter(true);}}
     if(state==='play'&&!inBreak&&WB.incT>0&&lateOk('bip')){WB.incT-=dt;if(WB.incT<=0){WB.incT=0;spawnInc(incN===0);}}
     if(state==='play'&&!inBreak&&WB.spitQ&&WB.spitQ.length&&lateOk('crab')){WB.spitQ[0]-=dt;if(WB.spitQ[0]<=0){WB.spitQ.shift();spawnSpitter();}}
@@ -212,11 +215,13 @@ function tick(){const _qa0=performance.now();
     if(state==='play'&&!inBreak&&cloudPlan>=0){const W0=waveDef(wave);if((W0.n-toSpawn)/Math.max(1,W0.n)>=cloudPlan){cloudPlan=-1;spawnCloud();}}
     WB.rt=(WB.rt||0)+dt;
     if(state==='play'&&!inBreak&&eggPlan.length&&!(isIncRound(wave)&&incIntro())){const n0=WB.n0||waveDef(wave).n,fr=(n0-toSpawn)/Math.max(1,n0);if((fr>=eggPlan[0]||WB.rt>25+eggPlan[0]*20)&&tryLayEgg())eggPlan.shift();} // v83: progress against what the round really sends (an Incineradora round sends 7 at most) and never while the Incineradora is arriving
+    }else bossGiftTick();
     updateEggs(dt,t,fdt);
     markLast();
     if(state==='play'){
       playT+=dt;
       const W=waveDef(wave),nests=ZONES.filter(Z=>Z.nest).length;
+      if(!(TRAILER&&TRA.hold)){ // v84: trailer HOLD (see above)
       if(toSpawn>0&&!CINE.on){
         if(WB.left<=0&&wave===0){if(spiders.length<=1||stats.kills>=2){WB.gi++;WB.left=toSpawn;WB.intro2=true;spawnT=0.2;}}
         else if(WB.left<=0){ // burst spawned: once it is (almost) cleared, a short calm before the next one
@@ -231,6 +236,7 @@ function tick(){const _qa0=performance.now();
           if(PATCHES.some(p=>p.hp<CFG.patchHp))tutorialEvent('repairTime');}
         if(breakT>3&&!workLeft())breakT=3; // nothing left to fix or collect -> next round right away
         breakT-=dt;if(skipReq||breakT<=0)startWave(wave+1);}
+      }
       skipReq=false;
       $('round').textContent=inBreak?`Ronda ${wave+2} en ${Math.ceil(Math.max(0,breakT))} s · Enter`:`Ronda ${wave+1} · ${spiders.length+toSpawn} arañas`;
     }
@@ -319,7 +325,7 @@ function tick(){const _qa0=performance.now();
   updateMusic();
   // camera shake on top of the follow camera (re-copied from camPos every frame, so it never accumulates)
   if(shakeAmp>0.002){camera.position.x+=(Math.random()-0.5)*shakeAmp;camera.position.y+=(Math.random()-0.5)*shakeAmp;camera.position.z+=(Math.random()-0.5)*shakeAmp;shakeAmp*=Math.exp(-fdt*10);}
-  tcFrame(dt);mhudFrame();mtutTick();pckFrame(dt);qaFrame(_qa0);if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
+  tcFrame(dt);mhudFrame();mtutTick();pckFrame(dt);qaFrame(_qa0);if(TRAILER)trFrame();if(!window.__noRender)composer.render();requestAnimationFrame(tick);}
 camera.position.set(14,4,16);camera.lookAt(0,0,0);
 requestAnimationFrame(tick);
 window.__renderer=renderer;window.__GRADE=GRADE;window.__heads={get CINE(){return CINE},spawnCloud,shipClear,BELT,DUST,get leakMult(){return leakMult()},ROCKS,rockAt,landOnRock,get ammo(){return P.ammo},EGGS,layEgg,tryLayEgg,P,spiders,CLOUDS,killSpider,spawnSpider,spawnSpitter,spitAcid,ACID,hullBlocked,stats,inp,get lost(){return lostN;},get pts(){return pts},PU,DROPS,spawnDrop,applyPU,WB,get cargo(){return cargo},giftPick,giftLoss,bossGift,GIFT,LEAKB,leakBrakeTo,INC_SPIT,isIncAll,looseCount,damagePatch,spawnLoose,get dropsRound(){return dropsRound},set dropsRound(v){dropsRound=v},get lastDrop(){return lastDrop},set lastDrop(v){lastDrop=v},get JUMP_FIX(){return JUMP_FIX}};

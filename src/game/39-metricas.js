@@ -14,6 +14,7 @@
 const MT_VER='v81';
 const MT={on:/^https?:$/.test(location.protocol)&&!/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)&&!window.__noMetrics,
   sid:mtId(),pid:null,cs:'unset',visit:false,go:false,ready:null,film:null,g:0,gm:null,quitK:'',err:[],errK:new Set(),env:null};
+if(TRAILER)MT.on=false; // v84: a trailer session (?trailer, 42-trailer.js) sends nothing at all and never asks the question
 function mtId(){try{const a=new Uint8Array(12);crypto.getRandomValues(a);return Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');}
   catch(_){let s='';for(let i=0;i<24;i++)s+=(Math.random()*16|0).toString(16);return s;}}
 const mtLS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(_){}return null;};

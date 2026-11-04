@@ -1,0 +1,36 @@
+/* v84: trailer mode (?trailer, src/game/42-trailer.js). Every rule hangs from a class only the trailer puts on <body>
+   (trailer, trNoHud, trFree, trPlay, trV): without ?trailer nothing here applies. */
+
+/* 3: a clean picture. Every HUD element and message goes (opacity, so nothing inside can come back on its own and the layout the HUD code
+   measures stays as it is); the canvas, the full-screen image effects (hit / burn / zap / EXTRA POWER flashes, the egg-scene fade, the lens flare),
+   the screens (menu, end plate, accounts, film, language) and the trailer's own help panel stay. */
+body.trNoHud>:not(#c):not(#flash):not(#burn):not(#zapFlash):not(#xpFlash):not(#eggFade):not(#flare):not(#menu):not(#end):not(#acct):not(#opening):not(#langPick):not(#trHelp):not(script){opacity:0!important;transition:none!important}
+/* free camera: no crosshair or mouse hint (they belong to the astronaut's view) */
+body.trFree #cross,body.trFree #hint{opacity:0!important}
+/* playing: no mouse cursor anywhere */
+body.trPlay,body.trPlay *{cursor:none!important}
+
+/* vertical (?trailer&vertical): the canvas keeps its fixed 9:16 picture, centred and scaled to fit (its size in px comes from trResize, 02-renderer.js) */
+body.trV{background:#000}
+body.trV #c{inset:auto;left:50%;top:50%;transform:translate(-50%,-50%)}
+
+/* the help panel (H) */
+body.trailer #trHelp{position:fixed;left:10px;top:50%;transform:translateY(-50%);z-index:90;max-height:96vh;overflow:hidden;pointer-events:none;
+  padding:8px 10px 6px;border:1px solid rgba(232,182,74,.45);border-radius:6px;background:rgba(6,5,3,.78);
+  font:600 clamp(9px,1.25vh,12px)/1.32 var(--f-display);letter-spacing:.04em;color:var(--ink);white-space:nowrap}
+body.trailer #trHelp .trH{margin:6px 0 3px;font-weight:800;font-size:1.05em;letter-spacing:.14em;color:var(--gold-hi)}
+body.trailer #trHelp .trH:first-child{margin-top:0}
+body.trailer #trHelp .trR{display:flex;align-items:center;gap:7px}
+body.trailer #trHelp .trR b{min-width:1.7em;text-align:center;padding:0 3px;border:1px solid rgba(232,182,74,.55);border-radius:3px;color:var(--gold);font-weight:700}
+body.trailer #trHelp .trR i{margin-left:auto;padding-left:8px;font-style:normal;font-size:.9em;color:var(--ink-dim)}
+body.trailer #trHelp .trR i[data-s]:empty::after{content:'';display:inline-block;width:.62em;height:.62em;border-radius:50%;border:1px solid var(--ink-dim);vertical-align:-.04em}
+body.trailer #trHelp .trR i.on{color:#7dffb0}
+body.trailer #trHelp .trR i.on:empty::after{background:#7dffb0;border-color:#7dffb0;box-shadow:0 0 6px #7dffb0}
+
+/* the notice when something switches (hidden with the HUD) */
+body.trailer #trToast{position:fixed;left:50%;top:13vh;transform:translate(-50%,-6px);z-index:90;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;
+  display:flex;gap:10px;align-items:baseline;padding:5px 14px;border:1px solid rgba(232,182,74,.5);border-radius:4px;background:rgba(6,5,3,.72);
+  font:700 13px/1.2 var(--f-display);letter-spacing:.16em;color:var(--gold-hi);white-space:nowrap}
+body.trailer #trToast b{color:#7dffb0;font-weight:800}
+body.trailer #trToast.on{opacity:1;transform:translate(-50%,0)}
+body.trailer.trNoHud #trToast{display:none}

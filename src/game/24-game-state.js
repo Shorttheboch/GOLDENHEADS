@@ -71,7 +71,7 @@ function showMsg(t,sub='',dur=2.5){if(mhudMsg(t,sub,dur,'msg'))return; // v63: p
   $('msg').innerHTML=t+(sub?`<small>${sub}</small>`:'');$('msg').style.opacity=1;msgT=dur;}
 function crossHit(){const c=$('cross');c.classList.add('hit');clearTimeout(crossHit.t);crossHit.t=setTimeout(()=>c.classList.remove('hit'),120);}
 function crossCrit(){const c=$('cross');c.classList.add('crit');clearTimeout(crossCrit.t);crossCrit.t=setTimeout(()=>c.classList.remove('crit'),180);}
-function damagePlayer(d,dir){if(P.inv>0||state!=='play')return;P.hp=Math.max(0,P.hp-d);P.inv=0.9;P.lastHit=playT;xpBreak();
+function damagePlayer(d,dir){if(P.inv>0||state!=='play'||TRAILER&&TRA.god)return;P.hp=Math.max(0,P.hp-d);P.inv=0.9;P.lastHit=playT;xpBreak();
   AN.pitchV+=(Math.random()-0.3)*7;AN.rollV+=(Math.random()-0.5)*9;
   if(P.hp>0&&P.hp<30)say('pl_low',4,{cd:20});else if(P.hp>0)say('pl_hit',2,{cd:25});
   $('dash').classList.add('hit');setTimeout(()=>$('dash').classList.remove('hit'),260);$('hVit').classList.add('hit','hot');setTimeout(()=>$('hVit').classList.remove('hit'),260);

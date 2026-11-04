@@ -263,7 +263,7 @@ function updateSpider(s,dt,t){
     // no swimming in vacuum: shoot a silk line at the nearest walkable hull spot, then reel in along it (faster and faster)
     if(!s.silk){const hp=hullParam(s.pos);[hp.z,hp.th]=freeSpot(hp.z,hp.th,spPad(s));s.silk={a:hullPoint(hp.z,hp.th,new THREE.Vector3()),z:hp.z,th:hp.th,v:1.5,t:0};silkOn(s);sfx('silk',s.pos);}
     const SK=s.silk;SK.t+=dt;const d=V3.subVectors(SK.a,s.pos);if(isCrabS(s))crabReelAim(s,SK,d);else if(isJumpS(s))jumpReelAim(s,SK,d);const L=d.length();
-    if(L<0.4){s.z=SK.z;s.th=SK.th;s.state='crawl';const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);s.slotTh+=THREE.MathUtils.randFloatSpread(1.5);s.silk=null;}
+    if(L<0.4){s.z=SK.z;s.th=SK.th;s.state='crawl';if(isJumpS(s))s.jl=JUMP_FIX.net;const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);s.slotTh+=THREE.MathUtils.randFloatSpread(1.5);s.silk=null;}
     else{if(SK.t>0.16)SK.v=Math.min(s.kind==='spitter'?14:19,SK.v+(s.kind==='spitter'?11:17)*dt);else SK.v*=Math.exp(-3*dt);
       s.pos.addScaledVector(d.normalize(),Math.min(L,SK.v*dt));s.mesh.position.copy(s.pos);if(!crabReelOrient(s,SK,d,dt)&&!(isJumpS(s)&&jumpReelOrient(s,SK,d,L,dt)))orient(s.mesh,d,UP); // v83: belly to the hull as it arrives
       if(s.kind!=='spitter'&&!(s.t<0.5)){const RK=rockAt(s.pos,0.15*s.mesh.scale.x);if(RK){s.silk=null;landOnRock(s,RK);}}}

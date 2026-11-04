@@ -22,7 +22,9 @@ const JUMP_FIX={on:1,
   los:0.3,     // m (·escala) que la recta del salto deja con el casco a partir de 1.5 m del despegue (antes, solo no tocarlo)
   land:0.6,    // s de salto en los que tocar el casco no lo hace aterrizar (resbala): como antes
   reel:2.2,    // m (·escala): a esa distancia del anclaje la seda empieza a girar el vientre hacia el casco
-  wh:0.3,wp:0.5};// la agachada antes del salto (animSpider): fracción que conserva de lo que baja el cuerpo (-0.13) y del cabeceo (-0.4, cola abajo). Entera, el abdomen
+  wh:0.3,wp:0.5,// (sigue abajo)
+  wpMin:-0.12, // y en esa agachada el cuerpo no cabecea más de 0.12 rad cola abajo (las patas delanteras levantadas lo inclinaban otros 0.3)
+  net:0.6};    // s después de aterrizar (de un salto o de la seda) en los que mira la red de seguridad del cuerpo (jumpClear), además de toda la agachada// la agachada antes del salto (animSpider): fracción que conserva de lo que baja el cuerpo (-0.13) y del cabeceo (-0.4, cola abajo). Entera, el abdomen
                // quedaba 13 cm·escala por debajo de los pies (medido con la malla con piel); así queda 7.6 cm por encima. Ojos, colmillos, patas delanteras y chirrido, igual
 const isJumpS=s=>JUMP_FIX.on&&!isCrabS(s);
 // ---- 1. la normal de verdad: la elipse x=a(z)cosθ, y=c(z)+b(z)sinθ tiene normal (b cosθ, a sinθ, -(a sinθ (c'+b' sinθ) + a' b cos²θ)) (pendientes a', b', c' sobre ±0.5 m)
@@ -102,7 +104,7 @@ function jumpCollide(s){const g=s.mesh,sc=g.scale.x;
   if(h+e>root+0.5*sc)return false; // only the abdomen or a leg brushed it on the way past: it slides on (landing from there would be a visible jump down)
   jumpLand(s,s.pos);return true;}
 // aterriza: en la casilla libre más cercana, mirando hacia donde iba, el vientre al casco
-function jumpLand(s,p){const hp=hullParam(p);[s.z,s.th]=freeSpot(hp.z,hp.th,spPad(s));s.state='crawl';s.jumpN=null;
+function jumpLand(s,p){const hp=hullParam(p);[s.z,s.th]=freeSpot(hp.z,hp.th,spPad(s));s.state='crawl';s.jumpN=null;s.jl=JUMP_FIX.net;
   const W=waveDef(wave);s.cd=THREE.MathUtils.randFloat(W.cd[0],W.cd[1]);
   const n=spUp(s.z,s.th,_sjL);hullPoint(s.z,s.th,s.pos);const f=_jf.copy(s.vel.lengthSq()>0.01?s.vel:(s.face||_jf.set(0,0,1)));f.addScaledVector(n,-f.dot(n));
   if(f.lengthSq()<1e-4)f.set(-n.y,n.x,0);f.normalize();s.face=(s.face||new THREE.Vector3()).copy(f);orient(s.mesh,f,n);
@@ -117,3 +119,19 @@ function jumpReelOrient(s,SK,d,L,dt){const sc=s.mesh.scale.x,n=SK.jn;
   s.mesh.quaternion.copy(_sjq2).slerp(_sjq1,SK.jw);
   if(!jumpNear(s.pos,2.5*sc))return true; // far from the ship: nothing to touch
   jumpSurf(s.pos,_jsq,_jsn);const N=_sjN.copy(_jsn),e=jumpNeed(s,N);if(e>0)s.pos.addScaledVector(N,e);if(_sjX.lengthSq()>1e-8)s.pos.add(_sjX);s.mesh.position.copy(s.pos);return true;}
+// ---- 6. red de seguridad en el casco (como crabClear de la Escupidora, más ligera): mientras se agacha para saltar y los primeros JUMP_FIX.net s después de
+// aterrizar, si algún punto del cuerpo (los de jumpProbes, con la pose de este fotograma) entra en el casco real, sube el modelo (R.inner, no el grupo) a lo largo
+// de la normal lo justo, de golpe, y lo suelta en 0.15 s. Así el aterrizaje y la agachada (el rebote, las patas que cuelgan en la punta) no meten el abdomen ni la cabeza.
+const _jcN=new THREE.Vector3(),_jcl=new THREE.Vector3(),_jcq=new THREE.Quaternion();
+function jumpClear(s,R,g,dt){const C=R.jc||(R.jc={lt:0,on:false}),inn=R.inner,y0=-R.spd.rootOff;
+  if(C.on){inn.position.set(0,y0,0);g.updateMatrixWorld(true);C.on=false;}
+  if(s.jl>0)s.jl-=dt;
+  const act=(s.state==='windup'||s.jl>0)&&(s.state==='crawl'||s.state==='eat'||s.state==='windup');
+  C.lt*=Math.exp(-dt/0.15);if(C.lt<1e-4)C.lt=0;
+  if(act){jumpSurf(g.position,_jsq,_jsn);_jcN.copy(_jsn);const pts=R.jp||(R.jp=jumpProbes(R));let e=0;
+    for(const P of pts){_jpw.copy(P.l).applyMatrix4(P.b.matrixWorld).addScaledVector(_jcN,C.lt);if(Math.abs(_jpw.z)>HZ1+0.05)continue;
+      const d=jumpSurf(_jpw,_jpq,_jpn);if(d<JUMP_FIX.mar){const t=(JUMP_FIX.mar-d)/Math.max(0.35,_jpn.dot(_jcN));if(t>e)e=t;}}
+    e=Math.min(e,Math.max(0,0.5*g.scale.x-C.lt));if(e>0)C.lt+=e;}
+  R.jlift=C.lt;
+  if(C.lt>1e-4){_jcl.copy(_jcN.lengthSq()>0.5?_jcN:_jsn).multiplyScalar(C.lt).applyQuaternion(_jcq.copy(g.quaternion).invert()).divideScalar(g.scale.x);
+    inn.position.set(0,y0,0).add(_jcl);g.updateMatrixWorld(true);C.on=true;}}

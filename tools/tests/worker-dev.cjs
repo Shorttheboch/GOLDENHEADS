@@ -1,5 +1,6 @@
 // v85: the Worker in Cloudflare's own runtime (workerd, through `wrangler dev`, local, no account, no login), with a fake Supabase over HTTP.
 //   npm run build:cf && node tools/tests/worker-dev.cjs          (no browser; about a minute)
+//   without site/ it makes it from dist/ (npm run build) itself: on the PC runner, worker-dev@dist
 // ranking-fn.cjs and metrics-fn.cjs check every answer in Node; this one checks that the same code really runs where it will run:
 // the bundle wrangler makes (nodejs_compat: node:crypto, Buffer, @supabase/supabase-js), the rate limit binding, the Cache API, the static
 // assets with site/_redirects, site/_headers and html_handling, and the real site / preview split by host name.
@@ -42,7 +43,9 @@ const keyOf=(base,scope)=>createHmac('sha256',base).update('heads-run-token|v82|
 const signedBy=(tok,key)=>{const [a,b,c]=String(tok).split('.');return createHmac('sha256',key).update(a+'.'+b).digest('base64url')===c;};
 
 (async()=>{
-  if(!fs.existsSync(path.join(ROOT,'site/headsrescue/index.html'))||!fs.existsSync(path.join(ROOT,'site/_redirects'))){console.log('no site/: run npm run build:cf first');process.exit(2);}
+  if(!fs.existsSync(path.join(ROOT,'site/headsrescue/index.html'))||!fs.existsSync(path.join(ROOT,'site/_redirects'))){
+    if(!fs.existsSync(path.join(ROOT,'dist/index.html'))){console.log('no site/ and no dist/: run npm run build:cf first');process.exit(2);}
+    const {makeSite}=await import(require('url').pathToFileURL(path.join(ROOT,'tools/cloudflare/make-site.mjs')).href);makeSite({});console.log('site/ made from dist/');}
   const SB=await fakeSupabase(),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'heads-dev-')),envFile=path.join(tmp,'dev.vars');
   fs.writeFileSync(envFile,[`SUPABASE_URL=http://127.0.0.1:${SB.port}`,'SUPABASE_SECRET_KEY=sb_secret_DEVTEST','SUPABASE_PUBLISHABLE_KEY=sb_publishable_DEVTEST','RANK_SECRET=dev-rank-secret','ADMIN_PASSWORD=dev-admin'].join('\n')+'\n');
   const runs=[];

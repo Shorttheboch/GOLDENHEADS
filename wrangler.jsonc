@@ -1,0 +1,36 @@
+// HEADS · Rescate Dorado on Cloudflare Workers (v85): static assets (the game at /headsrescue/) + one Worker for /api/*.
+//   npm run build:cf      vite build -> dist/, then tools/cloudflare/make-site.mjs -> site/ (site/headsrescue/ = dist/, site/_headers, site/_redirects)
+//   npx wrangler deploy   (Workers Builds does it on every push to main; other branches: npx wrangler versions upload = preview URL on workers.dev)
+// The five settings (SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY as text; SUPABASE_SECRET_KEY, RANK_SECRET, ADMIN_PASSWORD as secrets) live only in the
+// Worker's settings in the dashboard, never here: keep_vars stops a deploy from wiping them.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "goldenheads",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
+  // workers.dev on: the preview URLs of other branches live there (they behave like Netlify's Deploy Previews: only test runs).
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "./site",
+    "binding": "ASSETS",
+    // only the API and the two streamed media (worker/media.ts: byte ranges for iPhone Safari) run the Worker first;
+    // everything else is a plain file (free, does not count as a Worker request)
+    "run_worker_first": ["/api/*", "/headsrescue/assets/opening.mp4", "/headsrescue/assets/music/*"],
+    // /headsrescue -> /headsrescue/, /headsrescue/index.html -> /headsrescue/, /headsrescue/admin -> admin.html, /headsrescue/privacidad -> .../
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+  // the host names of the real site: any other host (workers.dev, preview URLs) is a preview and saves only test runs and test events
+  "vars": {
+    "PROD_HOSTS": "goldenheads2021.com,www.goldenheads2021.com"
+  },
+  // Cloudflare's limit per IP before the handlers (worker/index.ts), as Netlify's rules were: ranking 40 a minute, metrics 60 a minute
+  "ratelimits": [
+    { "name": "RL_RANKING", "namespace_id": "8501", "simple": { "limit": 40, "period": 60 } },
+    { "name": "RL_METRICS", "namespace_id": "8502", "simple": { "limit": 60, "period": 60 } }
+  ],
+  "observability": { "enabled": true }
+}

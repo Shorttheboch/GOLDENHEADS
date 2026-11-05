@@ -1,4 +1,5 @@
-// Google accounts and the Season 1 ranking (v82): the Netlify function netlify/functions/ranking.mts in plain Node (22+), no Netlify, no Supabase.
+// Google accounts and the Season 1 ranking (v82; v85: on Cloudflare): the Worker (worker/index.ts -> worker/ranking.ts) in plain Node (22+),
+// no Cloudflare, no Supabase (tools/tests/worker-lib.cjs: env, request.cf, CF-Connecting-IP, the host of the real site or of a preview, waitUntil).
 //   node tools/tests/ranking-fn.cjs
 // Supabase is replaced twice, as in metrics-fn.cjs:
 //   mock  a fake @supabase/supabase-js that records what the function asks of it: auth.getUser(token), auth.admin.deleteUser(id), rpc(fn, args)
@@ -6,8 +7,8 @@
 // What it checks:
 //   /api/auth     the Supabase URL and the PUBLISHABLE key from the environment (503 without them, never a sb_secret_ key), cacheable
 //   /api/run      a signed token; the key is derived (RANK_SECRET if set, else SUPABASE_SECRET_KEY) and differs between the real site and previews
-//   /api/scores   the board of season 1, real runs on the real site and test runs on previews, cached 20 s by Netlify's CDN; ?n= lines (1-50,
-//                 default 10); &me=1 with a Bearer token adds my own line (checked with Supabase Auth, never cached)
+//   /api/scores   the board of season 1, real runs on the real site and test runs on previews, kept 20 s in the data centre's cache (Cache API,
+//                 v85; Netlify's CDN before); ?n= lines (1-50, default 10); &me=1 with a Bearer token adds my own line (checked with Supabase Auth, never cached)
 //   sessions      no / bad Authorization -> 401, an account that is not Google -> 403, the player id always from Supabase Auth (never from the body)
 //   /api/nick     terms must be accepted, format (3-12, letters, digits, ÁÉÍÓÚÜÑÇ ÀÈÒÏ . _ -, at least 3 letters or digits), upper case, bad words
 //                 (also with 0/1/3/4/5/7 for letters), reserved names, taken / exists from the database, preview flag, limit per IP
@@ -15,23 +16,22 @@
 //                 that save the run as 'flagged', stats whitelisted, nickname missing / banned, previews saved as test
 //   /api/forget   the player and its runs (rank_forget) and the Supabase Auth user (admin deleteUser); any account may delete itself
 //   admin         ADMIN_PASSWORD (503 / 401 / 429 after 8 wrong tries), rank_admin for the page, hide / show / ban / unban validated
-const path=require('path'),{pathToFileURL}=require('url'),{register}=require('module'),{createHmac}=require('crypto');
+//   Worker (v85)  real site or preview by the host name (PROD_HOSTS in wrangler.jsonc: goldenheads2021.com and www; workers.dev and anything else =
+//                 preview), a preview token refused on the real site with ONE secret for both, CF-Connecting-IP for the limits, the rate limit
+//                 binding (40 a minute per IP and host -> 429 before the handler), unknown /api/* -> 404 JSON, every other path -> ASSETS
+const {createHmac}=require('crypto');
+const {ROOT,WORKER,hookSupabase,makeEnv,ctx:ctx0,bind,fakeCaches}=require('./worker-lib.cjs');
 let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefined&&!c?'  '+JSON.stringify(i).slice(0,700):''));if(!c)bad++;};
-const ROOT=path.join(__dirname,'../..'),FN=pathToFileURL(path.join(ROOT,'netlify/functions/ranking.mts')).href;
 const MOCK=`export function createClient(url,key,opts){const L=globalThis.__sb;L.created.push({url,key,opts});return {
   auth:{getUser(t){L.getUser.push(t);const u=L.users[t];return Promise.resolve(u?{data:{user:u},error:null}:{data:{user:null},error:{message:'invalid JWT'}});},
         admin:{deleteUser(id){L.deleted.push(id);return Promise.resolve(L.failDelete?{data:null,error:{message:'auth down'}}:{data:{},error:null});}}},
   rpc(fn,args){L.rpcs.push({fn,args});if(L.fail)return Promise.resolve({data:null,error:{message:'db down'}});
     const h=L.answers[fn];return Promise.resolve({data:typeof h==='function'?h(args):h===undefined?null:h,error:null});}};}`;
 let SBDIR='';try{require.resolve('@supabase/supabase-js',{paths:[ROOT]});SBDIR=ROOT;}catch(_){}
-register('data:text/javascript,'+encodeURIComponent(`import {pathToFileURL} from 'node:url';let DIR='';export function initialize(d){DIR=d.dir;}
-export async function resolve(spec,ctx,next){if(spec==='@supabase/supabase-js'){
-  if(ctx.parentURL&&ctx.parentURL.includes('sb=real')&&DIR)return next(spec,{...ctx,parentURL:pathToFileURL(DIR+'/x.mjs').href});
-  return {url:'data:text/javascript,'+encodeURIComponent(${JSON.stringify(MOCK)}),shortCircuit:true};}
- return next(spec,ctx);}`),{data:{dir:SBDIR}});
+hookSupabase(MOCK,SBDIR);
 
-const ENV={};globalThis.Netlify={env:{get:k=>ENV[k]}};
-const ctx=(ip='203.0.113.5',dc='production')=>({ip,geo:{},params:{},deploy:{context:dc,id:'d1',published:dc==='production'}});
+const {cfg:CFG,env:ENV}=makeEnv(); // the Worker's settings: the tests add and remove SUPABASE_URL, RANK_SECRET... on it
+const ctx=(ip='203.0.113.5',dc='production')=>ctx0(ip,dc);
 const U1='5b0e2f1c-1111-4aaa-8bbb-000000000001',U2='5b0e2f1c-2222-4aaa-8bbb-000000000002',U3='5b0e2f1c-3333-4aaa-8bbb-000000000003';
 const USERS={'tok-google':{id:U1,email:'santi@gmail.com',app_metadata:{provider:'google',providers:['google']}},
   'tok-google2':{id:U2,email:'otro@gmail.com',app_metadata:{provider:'google',providers:['google']}},
@@ -51,7 +51,7 @@ let IPN=0;const nip=()=>'198.51.100.'+(++IPN);
 
 (async()=>{
   console.log('1) mock Supabase client');
-  const fn=(await import(FN+'?sb=mock')).default;let L=fresh();
+  const W=(await import(WORKER+'?sb=mock')).default,fn=bind(W,ENV);let L=fresh();
   let r=await req(fn,'/api/auth');ok(r.status===503,'/api/auth without the variables -> 503',r.status);
   r=await req(fn,'/api/run',{method:'POST'});ok(r.status===503,'/api/run without any secret -> 503',r.status);
   r=await req(fn,'/api/scores');ok(r.status===503,'/api/scores without Supabase -> 503',r.status);
@@ -80,16 +80,16 @@ let IPN=0;const nip=()=>'198.51.100.'+(++IPN);
   r=await req(fn,'/api/scores');j=await J(r);
   ok(r.status===200&&j.season===1&&j.count===3&&j.top.length===3&&!('me' in j),'season, count, top (no "me" without a session)',j);
   ok(JSON.stringify(L.rpcs.at(-1))===JSON.stringify({fn:'rank_board',args:{p_season:1,p_test:false,p_limit:10,p_player:null}}),'rank_board(1, real, 10, nobody)',L.rpcs.at(-1));
-  ok(/s-maxage=20/.test(r.headers.get('netlify-cdn-cache-control')||''),'cached 20 s by the CDN',r.headers.get('netlify-cdn-cache-control'));
+  ok(r.headers.get('cache-control')==='no-store'&&!r.headers.get('x-heads-cache'),'the browser gets no-store (the 20 s copy lives in the data centre: section 10)',r.headers.get('cache-control'));
   await req(fn,'/api/scores',{dc:'deploy-preview'});ok(L.rpcs.at(-1).args.p_test===true,'on a preview: the test board');
   for(const [q,n] of [['?n=50',50],['?n=5',5],['?n=500',50],['?n=0',1],['?n=-3',1],['?n=abc',10],['?n=',10],['?n=7.6',8]]){await req(fn,'/api/scores'+q);ok(L.rpcs.at(-1).args.p_limit===n,q+' -> '+n+' lines',L.rpcs.at(-1).args);}
   r=await req(fn,'/api/scores?n=50&me=1',{auth:'tok-google',ip:nip()});j=await J(r);
   ok(r.status===200&&j.me&&j.me.pos===2&&j.top.length===3&&L.rpcs.at(-1).args.p_player===U1&&L.rpcs.at(-1).args.p_limit===50,'&me=1 with a Google session: my line, the id from Supabase Auth',{j,a:L.rpcs.at(-1).args});
-  ok(r.headers.get('cache-control')==='no-store'&&!r.headers.get('netlify-cdn-cache-control'),'... and never cached',r.headers.get('netlify-cdn-cache-control'));
+  ok(r.headers.get('cache-control')==='no-store'&&!r.headers.get('x-heads-cache'),'... and never cached',r.headers.get('cache-control'));
   r=await req(fn,'/api/scores?me=1',{auth:'tok-nope',ip:nip()});ok(r.status===200&&L.rpcs.at(-1).args.p_player===null,'&me=1 with a token Supabase refuses: the board without me (no error)',L.rpcs.at(-1).args);
   r=await req(fn,'/api/scores?me=1',{auth:'tok-email',ip:nip()});ok(r.status===200&&L.rpcs.at(-1).args.p_player===null,'&me=1 with a non-Google account: without me');
-  r=await req(fn,'/api/scores?me=1',{ip:nip()});ok(r.status===200&&L.rpcs.at(-1).args.p_player===null&&!r.headers.get('netlify-cdn-cache-control'),'&me=1 without a token: without me, not cached');
-  await req(fn,'/api/scores',{dc:'branch-deploy'});ok(L.rpcs.at(-1).args.p_test===true,'on a branch deploy: the test board too');
+  r=await req(fn,'/api/scores?me=1',{ip:nip()});ok(r.status===200&&L.rpcs.at(-1).args.p_player===null&&!r.headers.get('x-heads-cache'),'&me=1 without a token: without me, not cached');
+  await req(fn,'/api/scores',{dc:'branch-deploy'});ok(L.rpcs.at(-1).args.p_test===true,'on the workers.dev address of the Worker: the test board too');
   ok(L.created.length===1&&L.created[0].key==='sb_secret_TESTKEY_123'&&L.created[0].opts.auth.persistSession===false,'one server client, with the secret key, no session kept',L.created);
   L.fail=true;r=await req(fn,'/api/scores');ok(r.status===500,'database error -> 500',r.status);L.fail=false;
 
@@ -111,7 +111,7 @@ let IPN=0;const nip=()=>'198.51.100.'+(++IPN);
   r=await nick('NOVA',{accept:false});ok(r.status===400&&(await J(r)).error==='terms','without accepting the privacy page and the rules -> 400 terms',r.status);
   r=await nick('nova');j=await J(r);const nr=L.rpcs.at(-1);
   ok(r.status===200&&j.ok&&j.nick==='NOVA','«nova» -> NOVA',j);
-  ok(nr.fn==='rank_nick'&&nr.args.p_player===U2&&nr.args.p_nick==='NOVA'&&nr.args.p_terms_ver==='2026-11-v82'&&nr.args.p_preview===false,'rank_nick: the session\'s id (not the one in the body), upper case, terms version',nr);
+  ok(nr.fn==='rank_nick'&&nr.args.p_player===U2&&nr.args.p_nick==='NOVA'&&nr.args.p_terms_ver==='2026-11-v85'&&nr.args.p_preview===false,'rank_nick: the session\'s id (not the one in the body), upper case, terms version',nr);
   r=await nick('Sántí_7');ok(r.status===200&&L.rpcs.at(-1).args.p_nick==='SÁNTÍ_7','accents and _ kept as written, upper case: SÁNTÍ_7',L.rpcs.at(-1).args);
   r=await nick('peña.ç-ü');ok(r.status===200&&L.rpcs.at(-1).args.p_nick==='PEÑA.Ç-Ü','Ñ Ç Ü . - allowed',L.rpcs.at(-1).args);
   for(const [n,want] of [['àlex','ÀLEX'],['Pèrez','PÈREZ'],['jòrdi','JÒRDI'],['raïm','RAÏM'],['Lluís.Ç','LLUÍS.Ç']]){r=await nick(n);ok(r.status===200&&L.rpcs.at(-1).args.p_nick===want,'v82b, Catalan: «'+n+'» -> '+want,L.rpcs.at(-1).args);}
@@ -199,6 +199,83 @@ let IPN=0;const nip=()=>'198.51.100.'+(++IPN);
   r=await adm({key:'dorado-secreto-2026',ip:'192.0.2.10'});ok(r.status===200,'another IP gets in',r.status);
   r=await req(fn,'/api/other');ok(r.status===404,'another path -> 404',r.status);
 
+  console.log('10) the Worker: real site or preview by host, one secret, CF-Connecting-IP, rate limit binding, cache, other paths');
+  for(const [host,prod] of [['goldenheads2021.com',true],['www.goldenheads2021.com',true],['GoldenHeads2021.COM',true],['cloudflare-goldenheads.santi.workers.dev',false],
+    ['goldenheads.santi.workers.dev',false],['goldenheads2021.com.evil.test',false],['evil-goldenheads2021.com',false],['heads-rescate-dorado.netlify.app',false]]){
+    await fn(new Request('https://x/api/scores'),{ip:nip(),host});ok(L.rpcs.at(-1).args.p_test===!prod,host+' -> '+(prod?'the real board':'a preview: the test board'),L.rpcs.at(-1).args);}
+  ok(CFG.vars.PROD_HOSTS==='goldenheads2021.com,www.goldenheads2021.com','wrangler.jsonc: PROD_HOSTS = goldenheads2021.com,www.goldenheads2021.com',CFG.vars);
+  {const ph=ENV.PROD_HOSTS;delete ENV.PROD_HOSTS;await req(fn,'/api/scores',{ip:nip()});ok(L.rpcs.at(-1).args.p_test===true,'without PROD_HOSTS every host is a preview (never the real board by mistake)');ENV.PROD_HOSTS=ph;}
+  // one set of secrets for every version (Cloudflare): the label keeps a preview's token out of the real site
+  ENV.RANK_SECRET='one-secret-for-all';
+  {const tpv=(await J(await req(fn,'/api/run',{method:'POST',dc:'deploy-preview',ip:nip()}))).token,tpr=(await J(await req(fn,'/api/run',{method:'POST',ip:nip()}))).token;
+   const [p1,p2,p3]=tpv.split('.'),[q1,q2,q3]=tpr.split('.');
+   ok(createHmac('sha256',keyOf('one-secret-for-all','test')).update(p1+'.'+p2).digest('base64url')===p3&&createHmac('sha256',keyOf('one-secret-for-all','prod')).update(q1+'.'+q2).digest('base64url')===q3,
+     'same RANK_SECRET everywhere: HMAC(RANK_SECRET, "...|test") on a preview, "...|prod" on the real site');
+   r=await save({...GOOD,token:tpv});ok(r.status===400&&(await J(r)).error==='token','a token handed out by a preview, saved on the real site -> token (refused)',r.status);
+   r=await save({...GOOD,token:tpr},{dc:'deploy-preview'});ok(r.status===400&&(await J(r)).error==='token','a real-site token saved on a preview -> token',r.status);
+   r=await save({...GOOD,token:tpr});ok(r.status===400&&(await J(r)).error==='implausible','the real site\'s own token passes the signature (then: too fast, implausible)',(await J(r)));
+   r=await save({...GOOD,token:forge(keyOf('one-secret-for-all','prod'),600)});ok(r.status===200&&L.rpcs.at(-1).args.p_test===false,'a real-site token 10 minutes old -> saved as a real run');
+   r=await save({...GOOD,token:forge(keyOf('one-secret-for-all','test'),600)},{dc:'deploy-preview'});ok(r.status===200&&L.rpcs.at(-1).args.p_test===true,'a preview token on a preview -> saved as a test run');}
+  delete ENV.RANK_SECRET;
+  // the in-memory limits count CF-Connecting-IP (nothing else)
+  {const ipx=nip();codes=[];for(let i=0;i<21;i++)codes.push((await fn(new Request('https://x/api/nick',{method:'POST',headers:{authorization:'Bearer tok-google2','content-type':'application/json','x-forwarded-for':'10.9.8.'+i,'x-real-ip':'10.7.7.'+i},body:JSON.stringify({nick:'NOVA',accept:true})}),ctx(ipx))).status);
+   ok(codes.slice(0,20).every(c=>c===200)&&codes[20]===429,'limits per CF-Connecting-IP (a different X-Forwarded-For / X-Real-IP on every request changes nothing)',codes.join(','));
+   r=await fn(new Request('https://x/api/nick',{method:'POST',headers:{authorization:'Bearer tok-google2','content-type':'application/json'},body:JSON.stringify({nick:'NOVA',accept:true})}),ctx(nip()));ok(r.status===200,'another CF-Connecting-IP: fine',r.status);}
+  // Cloudflare's rate limit binding (wrangler.jsonc), before the handler, like Netlify's rule
+  {const b=CFG.ratelimits.find(x=>x.name==='RL_RANKING');ok(b&&b.simple.limit===40&&b.simple.period===60&&/^\d+$/.test(b.namespace_id),'wrangler.jsonc: RL_RANKING 40 a minute',b);
+   const RL=ENV.RL_RANKING;RL.on=true;RL.keys.length=0;const ipr=nip(),n0=L.rpcs.length;codes=[];
+   for(let i=0;i<41;i++)codes.push((await req(fn,'/api/scores',{ip:ipr})).status);
+   ok(codes.slice(0,40).every(c=>c===200)&&codes[40]===429,'41st request in a minute from one IP -> 429',codes.join(','));
+   r=await req(fn,'/api/scores',{ip:ipr});j=await J(r);ok(r.status===429&&j.error==='demasiadas peticiones'&&r.headers.get('cache-control')==='no-store','429 {"error":"demasiadas peticiones"}, no-store',j);
+   ok(L.rpcs.length===n0+40,'the refused requests never reach the handler (no database call)',L.rpcs.length-n0);
+   r=await req(fn,'/api/scores',{ip:nip()});ok(r.status===200,'another IP: fine',r.status);
+   r=await req(fn,'/api/scores',{ip:ipr,dc:'deploy-preview'});ok(r.status===200,'the same IP on a preview: counted apart (host + IP, like Netlify\'s ip + domain)',r.status);
+   ok(!RL.keys.some(k=>k.includes(ipr))&&RL.keys.every(k=>/^[a-z0-9.-]+\|[A-Za-z0-9_-]{22}$/.test(k)),'the binding\'s key: host + a hash of the IP, never the IP itself',RL.keys.slice(-2));
+   const k0=RL.keys.length;for(const p of ['/api/auth','/api/me','/api/admin/ranking'])await req(fn,p,{ip:nip()});await req(fn,'/api/run',{method:'POST',ip:nip()});
+   ok(RL.keys.length===k0+4&&ENV.RL_METRICS.keys.length===0,'every ranking path goes through RL_RANKING (and none through RL_METRICS)',{n:RL.keys.length-k0,m:ENV.RL_METRICS.keys.length});
+   RL.on=false;ENV.RL_RANKING={limit:async()=>{throw new Error('binding down');}};r=await req(fn,'/api/scores',{ip:nip()});ok(r.status===200,'the binding failing never blocks a player',r.status);ENV.RL_RANKING=RL;}
+  // the shared board kept 20 s in the data centre (Cache API), never with &me=1, never across hosts
+  {globalThis.caches=fakeCaches();const C=globalThis.caches.default,n0=L.rpcs.length;
+   r=await req(fn,'/api/scores?n=7',{ip:nip()});j=await J(r);await Promise.all(fn.WAIT);
+   const put=C.log.find(e=>e[0]==='put');
+   ok(r.status===200&&L.rpcs.length===n0+1&&put&&put[1]==='https://goldenheads2021.com/api/scores?n=7'&&/max-age=20\b/.test(put[2]),'first ask: the database, then a copy kept 20 s (put through waitUntil)',C.log);
+   ok(r.headers.get('cache-control')==='no-store','... the browser still gets no-store',r.headers.get('cache-control'));
+   r=await req(fn,'/api/scores?n=7',{ip:nip()});let j2=await J(r);
+   ok(r.status===200&&L.rpcs.length===n0+1&&r.headers.get('x-heads-cache')==='hit'&&JSON.stringify(j2)===JSON.stringify(j)&&r.headers.get('cache-control')==='no-store'&&/json/.test(r.headers.get('content-type')),'again within 20 s: the same answer from the cache, no database call',{h:r.headers.get('x-heads-cache'),n:L.rpcs.length-n0});
+   r=await req(fn,'/api/scores?n=07.4',{ip:nip()});ok(r.headers.get('x-heads-cache')==='hit'&&L.rpcs.length===n0+1,'?n=07.4 is the same 7 lines: same copy');
+   r=await req(fn,'/api/scores?n=8',{ip:nip()});ok(!r.headers.get('x-heads-cache')&&L.rpcs.length===n0+2,'another number of lines: its own copy');
+   r=await req(fn,'/api/scores?n=7',{ip:nip(),dc:'deploy-preview'});await Promise.all(fn.WAIT);ok(!r.headers.get('x-heads-cache')&&L.rpcs.at(-1).args.p_test===true&&C.log.some(e=>e[0]==='put'&&e[1]==='https://cloudflare-goldenheads.santi.workers.dev/api/scores?n=7'),'a preview never gets the real board\'s copy (the key has the host)');
+   const nl=C.log.length;r=await req(fn,'/api/scores?n=7&me=1',{auth:'tok-google',ip:nip()});await Promise.all(fn.WAIT);ok(r.status===200&&(await J(r)).me&&C.log.length===nl&&!r.headers.get('x-heads-cache'),'&me=1 never reads nor writes the cache',C.log.slice(nl));
+   C.expire();r=await req(fn,'/api/scores?n=7',{ip:nip()});ok(!r.headers.get('x-heads-cache')&&L.rpcs.at(-1).fn==='rank_board','after 20 s: the database again');
+   C.expire();L.fail=true;const np=C.log.filter(e=>e[0]==='put').length;r=await req(fn,'/api/scores?n=7',{ip:nip()});await Promise.all(fn.WAIT);
+   ok(r.status===500&&C.log.filter(e=>e[0]==='put').length===np,'database error -> 500, and nothing kept');L.fail=false;
+   globalThis.caches={default:{match:async()=>{throw new Error('cache down');},put:async()=>{throw new Error('cache down');}}};
+   r=await req(fn,'/api/scores?n=7',{ip:nip()});await Promise.all(fn.WAIT).catch(()=>{});ok(r.status===200,'the cache failing: the board straight from the database',r.status);
+   delete globalThis.caches;}
+  // everything else
+  {const A=ENV.ASSETS,na=A.calls.length;
+   r=await fn(new Request('https://x/headsrescue/?ronda=3'),ctx());ok(r.status===200&&A.calls.length===na+1&&A.calls.at(-1)==='https://goldenheads2021.com/headsrescue/?ronda=3'&&/asset/.test(await r.text()),'a path that is not the API -> the static assets (ASSETS.fetch, the same request)',A.calls.slice(na));
+   for(const p of ['/api/nope','/api','/api/scores/','/api/admin','/api/auth/x']){r=await fn(new Request('https://x'+p),ctx());j=await J(r);ok(r.status===404&&j&&j.error==='no encontrado'&&/json/.test(r.headers.get('content-type')),p+' -> 404 {"error":"no encontrado"}',{s:r.status,j});}
+   ok(A.calls.length===na+1,'... and never the assets');
+   // the streamed media: Cloudflare's assets ignore Range, the Worker cuts them (iPhone Safari plays <video>/<audio> only with 206)
+   const F=A.FILM,M=async(p,range,o={})=>{const r=await fn(new Request('https://x'+p,{method:o.method||'GET',headers:range?{range}:{}}),ctx());const b=new Uint8Array(await r.arrayBuffer());return {r,b};};
+   const eq=(b,a,z)=>b.length===z-a+1&&b.every((v,i)=>v===F[a+i]);
+   let m=await M('/headsrescue/assets/opening.mp4','bytes=0-1');ok(m.r.status===206&&m.r.headers.get('content-range')==='bytes 0-1/100000'&&m.r.headers.get('content-length')==='2'&&eq(m.b,0,1)&&m.r.headers.get('accept-ranges')==='bytes'&&m.r.headers.get('content-type')==='video/mp4','the film, bytes=0-1 -> 206 Partial Content, 2 bytes, Content-Range of the whole size',[...m.r.headers]);
+   m=await M('/headsrescue/assets/opening.mp4','bytes=31000-65999');ok(m.r.status===206&&eq(m.b,31000,65999),'a range in the middle (across chunks): the right bytes',m.b.length);
+   m=await M('/headsrescue/assets/music/game.mp3','bytes=99000-');ok(m.r.status===206&&eq(m.b,99000,99999)&&m.r.headers.get('content-type')==='audio/mpeg','the music, open-ended range',m.b.length);
+   m=await M('/headsrescue/assets/music/game.mp3','bytes=-10');ok(m.r.status===206&&eq(m.b,99990,99999),'the last 10 bytes',m.b.length);
+   m=await M('/assets/opening.mp4','bytes=0-99999999');ok(m.r.status===206&&eq(m.b,0,99999)&&m.r.headers.get('content-range')==='bytes 0-99999/100000','at the root too (any folder), an end past the file is cut to it',m.r.headers.get('content-range'));
+   m=await M('/headsrescue/assets/opening.mp4','bytes=100000-');ok(m.r.status===416&&m.r.headers.get('content-range')==='bytes */100000'&&!m.b.length,'past the end -> 416',m.r.status);
+   for(const rg of ['bytes=0-1,5-9','items=0-9','bytes=-']){m=await M('/headsrescue/assets/opening.mp4',rg);ok(m.r.status===200&&eq(m.b,0,99999),'«'+rg+'» -> the whole file (200)',m.r.status);}
+   m=await M('/headsrescue/assets/opening.mp4');ok(m.r.status===200&&eq(m.b,0,99999)&&m.r.headers.get('accept-ranges')==='bytes'&&m.r.headers.get('etag')==='"film"','no Range: the whole file as it comes, Accept-Ranges: bytes, its ETag',[...m.r.headers]);
+   m=await M('/headsrescue/assets/opening.mp4','bytes=0-9',{method:'HEAD'});ok(m.r.status===200&&!m.b.length,'HEAD: as the asset answers',m.r.status);
+   m=await M('/headsrescue/assets/music/menu.mp3','bytes=500-509');ok(m.r.status===206&&eq(m.b,500,509)&&m.r.headers.get('content-range')==='bytes 500-509/100000','a file missing from assets/media.json: read whole, still cut right',m.r.status);
+   A.noSizes=true;const nk=A.calls.length;
+   m=await M('/other/assets/music/game.mp3','bytes=500-509');ok(m.r.status===206&&eq(m.b,500,509),'no assets/media.json at all: read whole, still cut right',m.r.status);
+   ok(A.calls.slice(nk).some(u=>u.endsWith('/other/assets/media.json')),'(the sizes are looked up next to the file: <folder>/assets/media.json)',A.calls.slice(nk));
+   m=await M('/other/assets/music/game.mp3','bytes=200000-');ok(m.r.status===416,'... and 416 past its end',m.r.status);A.noSizes=false;
+   m=await M('/headsrescue/assets/sfx/shot_0.mp3','bytes=0-1');ok(m.r.status===200&&/asset/.test(new TextDecoder().decode(m.b)),'other files are not the Worker\'s business (plain assets)',m.r.status);}
+
   console.log('9) real @supabase/supabase-js, fetch replaced');
   if(!SBDIR)console.log('  skipped: @supabase/supabase-js is not installed (npm install)');
   else{
@@ -210,7 +287,7 @@ let IPN=0;const nip=()=>'198.51.100.'+(++IPN);
       if(url.includes('/rest/v1/rpc/rank_player'))return new Response(JSON.stringify({nick:'SANTI',banned:false,best:null,pos:null,count:0}),{status:200,headers:{'content-type':'application/json'}});
       if(url.includes('/rest/v1/rpc/rank_forget'))return new Response(JSON.stringify({runs:2,player:true}),{status:200,headers:{'content-type':'application/json'}});
       return new Response('null',{status:200,headers:{'content-type':'application/json'}});};
-    const fr=(await import(FN+'?sb=real')).default;
+    const fr=bind((await import(WORKER+'?sb=real')).default,ENV);
     r=await req(fr,'/api/me',{auth:'good-jwt',ip:nip()});j=await J(r);
     const gu=calls.find(c=>c.url.endsWith('/auth/v1/user')),rp=calls.find(c=>c.url.includes('/rpc/rank_player'));
     ok(r.status===200&&j.player.nick==='SANTI','/api/me with the real client -> 200',{s:r.status,j});

@@ -2,7 +2,7 @@
 // tools/tests/metrics-stats-sample.json, made by metrics-sql.cjs from the real SQL). Run on any build:
 //   npm run build:test && PORT=8792 tools/run-test.sh dist-test tools/tests/admin.cjs
 // What it checks (screenshots go to tools/tests/out/admin_*.png):
-//   - not indexed (meta robots, X-Robots-Tag + /admin rewrite in netlify.toml), no request to another site, no page errors
+//   - not indexed (meta robots; v85: X-Robots-Tag in site/_headers for /headsrescue/admin, served by html_handling), no request to another site, no page errors
 //   - login: a wrong password says so and is not kept; the right one goes in the x-admin-key header and lives in sessionStorage only; Salir forgets it
 //   - every section renders with numbers (no NaN / undefined), the funnel has one row per round, the errors table one row per error
 //   - range and platform buttons ask the server again (range=30d&platform=touch...) and are remembered on reload
@@ -55,8 +55,10 @@ const look=p=>p.evaluate(()=>{let t=document.getElementById('out').innerText;for
 (async()=>{
   const b=await chromium.launch({args:ARGS});
   console.log('1) the page itself');
-  const toml=fs.readFileSync(path.join(ROOT,'netlify.toml'),'utf8');
-  ok(/from = "\/admin"\s+to = "\/admin.html"\s+status = 200/.test(toml)&&/for = "\/admin\*"[\s\S]*?X-Robots-Tag = "noindex/.test(toml),'netlify.toml: /admin -> admin.html, X-Robots-Tag noindex');
+  {const {HEADERS,REDIRECTS}=await import(require('url').pathToFileURL(path.join(ROOT,'tools/cloudflare/make-site.mjs')).href),W=require('./worker-lib.cjs').wranglerConfig();
+   const rule=p=>{const m=new RegExp('^'+p.replace(/[.*]/g,'\\$&')+'\\n((?:  .+\\n)+)','m').exec(HEADERS);return m?m[1]:'';};
+   for(const p of ['/headsrescue/admin','/headsrescue/admin.html'])ok(/X-Robots-Tag: noindex, nofollow, noarchive/.test(rule(p))&&/Cache-Control: no-cache/.test(rule(p))&&/Referrer-Policy: no-referrer/.test(rule(p))&&/X-Frame-Options: DENY/.test(rule(p)),'site/_headers '+p+': noindex, no-cache, no-referrer, DENY',rule(p));
+   ok(W.assets.html_handling==='auto-trailing-slash'&&/^\/admin\s+\/headsrescue\/admin\s+301$/m.test(REDIRECTS),'Cloudflare: /headsrescue/admin -> admin.html (html_handling), /admin -> /headsrescue/admin');}
   let p=await page(b,{viewport:{width:1280,height:720}});
   ok(await p.evaluate(()=>/noindex/.test(document.querySelector('meta[name=robots]').content)),'meta robots noindex');
   ok(await p.evaluate(()=>!document.getElementById('login').hidden&&document.getElementById('app').hidden),'starts at the login, nothing else shown');

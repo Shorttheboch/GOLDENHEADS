@@ -1,7 +1,7 @@
 -- HEADS Rescate Dorado · anonymous play metrics (v81)
 -- Run it by hand in Supabase > SQL editor. It is idempotent: running it again changes nothing (it only replaces the stats function).
 --
--- Who writes and reads: only the Netlify function netlify/functions/metrics.mts, with the secret key (SUPABASE_SECRET_KEY = sb_secret_...,
+-- Who writes and reads: only the Worker (worker/metrics.ts; Netlify function until v84), with the secret key (SUPABASE_SECRET_KEY = sb_secret_...,
 -- Postgres role service_role). The game and the /admin page never talk to Supabase.
 -- The project has "automatically expose new tables" OFF and automatic RLS ON, so everything is explicit here:
 --   * RLS on the table, with NO policies (nobody gets rows through the browser keys: anon / authenticated)

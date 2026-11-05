@@ -9,9 +9,9 @@
 <link rel="alternate" hreflang="es" href="../privacidad/">
 <!-- v82: the English version of public/privacidad/index.html (same content, same look). Static, no script, relative links only. -->
 <style>
-@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f600.woff2) format('woff2');font-weight:600;font-display:swap}
-@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f700.woff2) format('woff2');font-weight:700;font-display:swap}
-@font-face{font-family:TekturE;src:url(/assets/ui/endui/font.woff2) format('woff2');font-weight:400 900;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(../assets/ui/menuui/f600.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(../assets/ui/menuui/f700.woff2) format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:TekturE;src:url(../assets/ui/endui/font.woff2) format('woff2');font-weight:400 900;font-display:swap}
 :root{color-scheme:dark;--void:#05050a;--panel:rgba(8,8,12,.88);--line:rgba(232,182,74,.5);--gold:#e8b64a;--gold-hi:#ffe39a;--ink:#f4ecd8;--ink2:#d4c9ad;--ink3:#948b74;
   --fT:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;--fB:'TitilliumH','Titillium Web','Segoe UI',system-ui,sans-serif}
 *{box-sizing:border-box}
@@ -55,8 +55,8 @@ footer{margin-top:20px;color:var(--ink3);font-size:13px;text-align:center}
 <body>
 <div class="wrap">
   <header>
-    <img src="/assets/ui/menuui/logo.webp" alt="HEADS Rescue">
-    <div class="t"><h1>Privacy and leaderboard rules</h1><div class="sub">HEADS Golden Rescue · updated 3 November 2026</div></div>
+    <img src="../assets/ui/menuui/logo.webp" alt="HEADS Rescue">
+    <div class="t"><h1>Privacy and leaderboard rules</h1><div class="sub">HEADS Golden Rescue · updated 5 November 2026</div></div>
     <nav><a class="go" href="../">Back to the game</a><a href="../privacidad/" hreflang="es" lang="es">Español</a></nav>
   </header>
 
@@ -93,7 +93,8 @@ footer{margin-top:20px;color:var(--ink3);font-size:13px;text-align:center}
     <h2>Who helps us</h2>
     <ul>
       <li><b>Supabase</b>: database and sign-in. Servers in the European Union (Frankfurt, Germany).</li>
-      <li><b>Netlify</b> (United States): hosts the website and the server functions; it handles your IP to serve the page, but we don't keep it.</li>
+      <li><b>Cloudflare</b> (United States): hosts the website and the game's server; it handles your IP to serve the page and stop abuse, but we don't keep it.</li>
+      <li><b>Netlify</b> (United States): only sends the game's old address to the new one; it handles your IP for that and nothing else.</li>
       <li><b>Google</b>: the Google sign-in (under its own privacy terms) and the page font (Google Fonts).</li>
     </ul>
   </section>

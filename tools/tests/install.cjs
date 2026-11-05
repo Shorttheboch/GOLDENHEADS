@@ -18,12 +18,12 @@ const SIZES=[[844,390],[667,375],[932,430]];
 const TXT={
   es:{ios:['JUEGA A PANTALLA COMPLETA','Añade HEADS a tu pantalla de inicio: se abre sin barras, como una app.','1 · COMPARTIR','iOS 26','Toca Compartir en Safari. En iOS 26, primero toca ···','2 · AÑADIR','Copiar','Añadir a pantalla de inicio','Añadir a favoritos',
        'Baja en la lista y elige «Añadir a pantalla de inicio».','3 · JUGAR','HEADS','Abre HEADS desde su icono: se juega a pantalla completa.','La app guarda sus datos aparte de Safari: la primera vez te pedirá el idioma.','ENTENDIDO'],
-      other:['JUEGA A PANTALLA COMPLETA','Instala HEADS en tu móvil: se abre a pantalla completa y en horizontal, como una app.','1 · MENÚ','heads-rescate-dorado…','Toca el menú ⋮ del navegador, arriba a la derecha.','2 · INSTALAR','Nueva pestaña','Instalar aplicación','Compartir…',
+      other:['JUEGA A PANTALLA COMPLETA','Instala HEADS en tu móvil: se abre a pantalla completa y en horizontal, como una app.','1 · MENÚ','goldenheads2021.com…','Toca el menú ⋮ del navegador, arriba a la derecha.','2 · INSTALAR','Nueva pestaña','Instalar aplicación','Compartir…',
        'Elige «Instalar aplicación» o «Añadir a pantalla de inicio».','3 · JUGAR','Abre HEADS desde su icono: se juega a pantalla completa.','Esta guía solo sale si tu navegador no deja instalar directamente desde el botón.','ENTENDIDO'],
       btn:'PANTALLA COMPLETA',close:'Cerrar',k:{ios:['Compartir','«Añadir a pantalla de inicio»'],other:['⋮','«Instalar aplicación»']},c:{ios:['···','pantalla completa'],other:['pantalla completa']}},
   en:{ios:['PLAY FULL SCREEN','Add HEADS to your Home Screen: it opens without bars, like an app.','1 · SHARE','iOS 26','Tap Share in Safari. On iOS 26, tap ··· first','2 · ADD','Copy','Add to Home Screen','Add to Favorites',
        'Scroll down and choose “Add to Home Screen”.','3 · PLAY','HEADS','Open HEADS from its icon: it plays full screen.','The app keeps its data apart from Safari: the first time it will ask for your language.','GOT IT'],
-      other:['PLAY FULL SCREEN','Install HEADS on your phone: it opens full screen and in landscape, like an app.','1 · MENU','heads-rescate-dorado…',"Tap the browser's ⋮ menu, top right.",'2 · INSTALL','New tab','Install app','Share…',
+      other:['PLAY FULL SCREEN','Install HEADS on your phone: it opens full screen and in landscape, like an app.','1 · MENU','goldenheads2021.com…',"Tap the browser's ⋮ menu, top right.",'2 · INSTALL','New tab','Install app','Share…',
        'Choose “Install app” or “Add to Home screen”.','3 · PLAY','Open HEADS from its icon: it plays full screen.',"This guide only shows if your browser can't install straight from the button.",'GOT IT'],
       btn:'FULL SCREEN',close:'Close',k:{ios:['Share','“Add to Home Screen”'],other:['⋮','“Install app”']},c:{ios:['···','full screen'],other:['full screen']}}};
 
@@ -149,7 +149,9 @@ async function pcPhase(b){
   ok(man&&man.status===200&&man.json,'manifest: linked from index.html and parses ('+(man&&man.href)+')');
   const m=man.json||{},icons=m.icons||[];
   ok(m.name==='HEADS Rescate Dorado'&&m.short_name==='HEADS','manifest: name "HEADS Rescate Dorado", short_name "HEADS"');
-  ok(m.start_url==='/'&&m.scope==='/','manifest: start_url "/" and scope "/"');
+  ok(m.start_url==='./'&&m.scope==='./'&&m.id===undefined,'manifest: start_url "./" and scope "./", relative to the manifest (v85: the game\'s own folder, / here, /headsrescue/ on goldenheads2021.com); no id, so the app\'s identity is that folder');
+  const mres=await p.evaluate(h=>({start:new URL('./',h).href,icon:new URL('icons/icon-192.png',h).href}),man.href);
+  ok(mres.start===BASE+'/'&&mres.icon===BASE+'/icons/icon-192.png','manifest: start_url and icons resolve next to it ('+mres.start+')');
   ok(m.display==='fullscreen'&&JSON.stringify(m.display_override)===JSON.stringify(['fullscreen','standalone']),'manifest: display fullscreen, display_override [fullscreen, standalone]');
   ok(m.orientation==='landscape','manifest: orientation landscape');
   ok(m.background_color==='#000000'&&m.theme_color==='#000000','manifest: background_color and theme_color black');
@@ -286,7 +288,7 @@ async function enPhase(b){
     ok(await p.evaluate(()=>document.getElementById('instOv').dataset.os)===os,'EN: '+os+' wording');
     const g=await guideLayout(p,'EN '+os+' 844x390');
     for(const t of TXT.en[os])ok(g.texts.includes(t),'EN text present: '+t);
-    ok(!/[ÁÉÍÓÚÑáéíóúñ¿¡«»]/.test(g.texts.replace(/heads-rescate-dorado…/,'')),'EN: no Spanish left in the guide ('+(g.texts.match(/[^ ]*[ÁÉÍÓÚÑáéíóúñ¿¡«»][^ ]*/g)||[]).join(', ')+')');
+    ok(!/[ÁÉÍÓÚÑáéíóúñ¿¡«»]/.test(g.texts.replace(/goldenheads2021\.com…/,'')),'EN: no Spanish left in the guide ('+(g.texts.match(/[^ ]*[ÁÉÍÓÚÑáéíóúñ¿¡«»][^ ]*/g)||[]).join(', ')+')');
     ok(await p.evaluate(()=>document.querySelector('.instX').getAttribute('aria-label'))==='Close','EN: the X says "Close" (aria-label)');
     const ink=await inkOk(p,'en',os);ok(TXT.en.k[os].every(w=>ink.ks.some(s=>s.startsWith(w+'|rgb(255, 200, 60)'))),'EN gold words: '+ink.ks.join(' / '));
     ok(TXT.en.c[os].every(w=>ink.cs.some(s=>s.startsWith(w+'|rgb(143, 227, 255)'))),'EN cyan words: '+ink.cs.join(' / '));

@@ -216,8 +216,9 @@ function siteChecks(tag,L,O,{need=[],allow=[],allowStatus=[]}={}){
   await p.context().close();
 
   console.log('4) the pages: privacy (ES / EN) and admin');
-  p=await open(b,O);
+  // one page each: the last step lands on the game, and leaving it while it still downloads would only show the browser stopping those downloads
   for(const [dir,other,back] of [['privacidad','privacy','Volver al juego'],['privacy','privacidad','Back to the game']]){
+    p=await open(b,O);
     const start=PRE?'/'+dir+'/':'/'+dir; // the old root address (Cloudflare) or the address without the slash (root)
     await p.goto(O.origin+start);await p.waitForLoadState('load');
     ok(new URL(p.url()).pathname===PRE+'/'+dir+'/',start+' -> '+PRE+'/'+dir+'/',p.url());
@@ -227,15 +228,16 @@ function siteChecks(tag,L,O,{need=[],allow=[],allowStatus=[]}={}){
     await p.screenshot({path:shot(`subpath_${LAYOUT}_${BUILD}_${dir}.png`),timeout:180000});
     await p.click(`nav a[href="../${other}/"]`);await p.waitForLoadState('load');ok(new URL(p.url()).pathname===PRE+'/'+other+'/','the language link -> '+PRE+'/'+other+'/',p.url());
     await p.goBack();await p.waitForLoadState('load');await p.click('nav a.go');await p.waitForLoadState('load');ok(new URL(p.url()).pathname===PRE+'/','«'+back+'» -> '+PRE+'/',p.url());
-}
-  await p.goto(O.origin+(PRE?'/admin':'/admin'));await p.waitForLoadState('load');await p.waitForTimeout(300);
+    siteChecks(dir,p.L,O,{allow:PRE?['/'+dir+'/']:[]});await p.context().close();}
+  p=await open(b,O);
+  await p.goto(O.origin+'/admin');await p.waitForLoadState('load');await p.waitForTimeout(300);
   const A=await p.evaluate(()=>({path:location.pathname,login:!!document.getElementById('pw'),fonts:document.fonts.check('800 16px TekturE')&&document.fonts.check('600 14px TitilliumH'),logo:(i=>i&&i.complete&&i.naturalWidth>0?i.src:null)(document.querySelector('header img'))}));
   ok(A.path===PRE+'/admin'&&A.login&&A.fonts&&A.logo===O.origin+PRE+'/assets/ui/menuui/logo.webp','/admin -> '+PRE+'/admin: the login, its fonts and logo from '+PRE+'/assets/',A);
   await p.route('**/api/admin/stats*',r=>r.fulfill({status:401,contentType:'application/json',body:'{"error":"contraseña incorrecta"}'}));
   await p.fill('#pw','nope');await p.click('#login button[type=submit]');await p.waitForTimeout(500);
   ok(p.L.req.some(r=>r.p==='/api/admin/stats'),'admin: asks /api/admin/stats at the root',p.L.req.filter(r=>/api/.test(r.p)).map(r=>r.p));
   await p.screenshot({path:shot(`subpath_${LAYOUT}_${BUILD}_admin.png`),timeout:180000});
-  siteChecks('pages',p.L,O,{allow:PRE?['/privacidad/','/privacy/','/admin']:[],allowStatus:['401 /api/admin/stats']}); // (that 401 is the test's own answer to a wrong password)
+  siteChecks('admin',p.L,O,{allow:PRE?['/admin']:[],allowStatus:['401 /api/admin/stats']}); // (that 401 is the test's own answer to a wrong password)
   await p.context().close();
 
   console.log('5) ?ronda=14 and the language switch');

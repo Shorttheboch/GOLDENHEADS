@@ -104,19 +104,22 @@ async function open(b,O,{phone=false,init=null,lang='es'}={}){
   return p;}
 const menuReady=(p,phone)=>p.waitForFunction(ph=>{const g=document.getElementById(ph?'mmGo':'menuGo');return g&&!g.disabled;},phone,{timeout:400000});
 const playing=p=>p.waitForFunction(()=>document.getElementById('menu').hidden&&document.getElementById('opening').hidden,null,{timeout:240000});
+const T0=Date.now(),say=m=>console.log(`    [${((Date.now()-T0)/1000).toFixed(0)} s] ${m}`);
 async function jugar(p,phone){
-  const g=await p.evaluate(ph=>{const r=document.getElementById(ph?'mmGo':'menuGo').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2];},phone);
-  if(phone)await p.touchscreen.tap(g[0],g[1]);else await p.mouse.click(g[0],g[1]);
+  for(let i=0;i<6;i++){ // a real click / tap on JUGAR (again if the menu's own entrance was still running and it did not take)
+    const g=await p.evaluate(ph=>{const r=document.getElementById(ph?'mmGo':'menuGo').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2];},phone);
+    say('JUGAR at '+g.map(Math.round));if(phone)await p.touchscreen.tap(g[0],g[1]);else await p.mouse.click(g[0],g[1]);
+    if(await p.waitForFunction(()=>document.getElementById('menu').hidden,null,{timeout:4000}).then(()=>true,()=>false))break;}
   // the opening film: wait until it is asked for, then skip it (Esc / SALTAR); without H.264 (Claude's Chromium) it ends by itself
   await p.waitForFunction(()=>{const v=document.getElementById('opVid');return document.getElementById('opening').hidden&&document.getElementById('menu').hidden||(v&&v.currentSrc);},null,{timeout:60000}).catch(()=>{});
-  await p.waitForTimeout(1500);
-  if(!(await p.evaluate(()=>document.getElementById('opening').hidden))){if(phone)await p.tap('#opSkip').catch(()=>{});else await p.keyboard.press('Escape');}
-  await playing(p);}
+  await p.waitForTimeout(1500);say('film: '+JSON.stringify(await p.evaluate(()=>{const v=document.getElementById('opVid');return {open:!document.getElementById('opening').hidden,menu:!document.getElementById('menu').hidden,src:v&&v.currentSrc,err:v&&v.error&&v.error.code,t:v&&v.currentTime};})));
+  if(!(await p.evaluate(()=>document.getElementById('opening').hidden))){if(phone)await p.tap('#opSkip').catch(()=>{});else await p.keyboard.press('Escape');say('film skipped');}
+  await playing(p);say('playing');}
 const has=(L,re)=>L.req.filter(r=>re.test(r.p));
-function siteChecks(tag,L,O,{need=[],allow=[]}={}){
+function siteChecks(tag,L,O,{need=[],allow=[],allowStatus=[]}={}){
   const wrong=L.req.filter(r=>!(r.p.startsWith('/api/')||r.p.startsWith(PRE+'/')||(PRE&&(r.p==='/'))||allow.includes(r.p)));
   ok(!wrong.length,tag+': every request to the site is under '+(PRE||'')+'/ or the API ('+L.req.length+' requests)',wrong.slice(0,12));
-  ok(!L.badStatus.length,tag+': zero 404s / errors from the site',L.badStatus.slice(0,12));
+  const bs=L.badStatus.filter(x=>!allowStatus.includes(x));ok(!bs.length,tag+': zero 404s / errors from the site',bs.slice(0,12));
   ok(!L.fail.length,tag+': zero failed requests',L.fail.slice(0,12));
   const apiWrong=L.req.filter(r=>/\/api\//.test(r.p)&&!r.p.startsWith('/api/'));ok(!apiWrong.length,tag+': no API call under '+PRE+'/ (the API is at the root)',apiWrong);
   for(const [name,re] of need){const n=has(L,re);ok(n.length>0,tag+': '+name+' from '+(PRE||'')+'/… ('+(n[0]?n[0].p:'none')+(n.length>1?' +'+(n.length-1):'')+')');}
@@ -204,7 +207,7 @@ function siteChecks(tag,L,O,{need=[],allow=[]}={}){
   const cx=422,cy=250;await p.touchscreen.tap(cx,cy);await p.waitForTimeout(3000);
   await p.screenshot({path:shot(`subpath_${LAYOUT}_phone_play.png`),timeout:180000});
   siteChecks('phone',p.L,O,{need:[['the phone menu art',/\/assets\/ui\/menumob\/.*\.webp$/],['the ship',/\/assets\/models\/ship_(mobile|test)\.glb$/],['the opening film',/\/assets\/opening\.mp4$/],
-    ['game music',/\/assets\/music\/game\.mp3$/],['the service worker',/\/sw\.js$/],['the manifest',/\/manifest\.webmanifest$/],['the phone HUD font (Saira)',/\/js\/saira-condensed-.*\.woff2$/]].map(([n,re])=>[n,new RegExp('^'+PRE.replace('/','\\/')+re.source)])});
+    ['game music',/\/assets\/music\/game\.mp3$/],['the manifest',/\/manifest\.webmanifest$/],['the phone HUD font (Saira)',/\/js\/saira-condensed-.*\.woff2$/]].map(([n,re])=>[n,new RegExp('^'+PRE.replace('/','\\/')+re.source)])});
   ok(S.api.slice(api1).some(a=>a.p==='/api/run'),'phone: /api/run at the root',S.api.slice(api1).map(a=>a.m+' '+a.p));
   await p.reload();await p.waitForLoadState('load');await menuReady(p,true);
   const ctl=await p.evaluate(async()=>({ctl:navigator.serviceWorker.controller&&navigator.serviceWorker.controller.scriptURL,caches:'caches' in self?(await caches.keys()).length:0,path:location.pathname}));
@@ -230,7 +233,7 @@ function siteChecks(tag,L,O,{need=[],allow=[]}={}){
   await p.fill('#pw','nope');await p.click('#login button[type=submit]');await p.waitForTimeout(500);
   ok(p.L.req.some(r=>r.p==='/api/admin/stats'),'admin: asks /api/admin/stats at the root',p.L.req.filter(r=>/api/.test(r.p)).map(r=>r.p));
   await p.screenshot({path:shot(`subpath_${LAYOUT}_admin.png`),timeout:180000});
-  siteChecks('pages',p.L,O,{allow:PRE?['/privacidad/','/privacy/','/admin']:[]});
+  siteChecks('pages',p.L,O,{allow:PRE?['/privacidad/','/privacy/','/admin']:[],allowStatus:['401 /api/admin/stats']}); // (that 401 is the test's own answer to a wrong password)
   await p.context().close();
 
   console.log('5) ?ronda=14 and the language switch');

@@ -11,7 +11,7 @@
 // Worker: wrangler.jsonc run_worker_first), which records every call. At the root (HEADS_LAYOUT=root) every file takes ranges, as Netlify.
 // Chrome opens it as http://heads.localhost:<port> (127.0.0.1; a *.localhost name is a secure origin for Chrome, so the service worker can
 // register, and it is not «localhost» for the game, so the ranking and the metrics are on as on a real host): every /api call is seen.
-// What it checks (screenshots tools/tests/out/subpath_*.png):
+// What it checks (screenshots tools/tests/out/subpath_<sub|root>_<test|real>_*.png):
 //   files      _redirects (/ -> /headsrescue/ 302 with ?ronda=14, old /privacidad /privacy /admin -> /headsrescue/... 301), _headers (js immutable,
 //              sw.js and manifest no-cache, manifest content type, admin noindex/no-cache/no-referrer/DENY), html_handling, 404 for the rest;
 //              netlify.toml (v85): every old address -> https://goldenheads2021.com/headsrescue/<same path>, the API -> /api/<same>, 301, forced
@@ -28,6 +28,7 @@ const http=require('http'),fs=require('fs'),os=require('os'),path=require('path'
 const {BASE,ARGS,shot,ROOT}=require('./lib.cjs');
 let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefined&&!c?'  '+JSON.stringify(i).slice(0,900):''));if(!c)bad++;};
 const LAYOUT=process.env.HEADS_LAYOUT==='root'?'root':'sub',PRE=LAYOUT==='sub'?'/headsrescue':'',HOST='heads.localhost';
+let BUILD='test'; // screenshots: subpath_<layout>_<test|real>_*.png
 const SOFT=!process.env.HEADS_CHANNEL; // software GPU (Claude's machine): the 4K ship is swapped for the light one after it has been fetched
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.webmanifest':'application/manifest+json',
   '.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.ico':'image/x-icon','.glb':'model/gltf-binary','.mp3':'audio/mpeg','.mp4':'video/mp4',
@@ -90,16 +91,16 @@ async function open(b,O,{phone=false,init=null,lang='es'}={}){
   const L={req:[],fail:[],badStatus:[],errs:[],outside:[]};
   ctx.on('request',r=>{const u=new URL(r.url());if(u.host===O.host)L.req.push({m:r.method(),p:u.pathname,q:u.search,t:r.resourceType(),sw:!!r.serviceWorker()});else if(!/^(data|blob):/.test(r.url()))L.outside.push(r.url());});
   ctx.on('requestfailed',r=>{const u=new URL(r.url()),e=(r.failure()||{}).errorText||'';if(u.host!==O.host)return;
-    // a media download the page itself stops (the film skipped) and the stats sent with keepalive / sendBeacon (the page does not wait for the
-    // answer, so Chrome reports them aborted) are not failures: the stats are checked on the server side instead (S.api)
-    if(/ERR_ABORTED/.test(e)&&(/\.(mp4|mp3)$/.test(u.pathname)||u.pathname==='/api/m'))L.aborted=(L.aborted||[]).concat(u.pathname);else L.fail.push(u.pathname+' '+e);});
+    // ERR_ABORTED = the page itself stopped it (the film skipped, a background model when the test leaves the page, the stats sent with
+    // keepalive / sendBeacon, whose answer the page never waits for): not a failure of the site; the stats are checked on the server (S.api)
+    if(/ERR_ABORTED/.test(e))L.aborted=(L.aborted||[]).concat(u.pathname);else L.fail.push(u.pathname+' '+e);});
   ctx.on('response',r=>{const u=new URL(r.url());if(u.host===O.host&&r.status()>=400)L.badStatus.push(r.status()+' '+u.pathname);});
   await ctx.addInitScript(l=>{window.__noMetrics=0;window.__rankOn=1;window.__noOpening=0;window.__noTut=1;
     try{if(!sessionStorage.getItem('heads_lang_skip'))window.__lang=l;}catch(_){window.__lang=l;}},lang);
   if(init)await ctx.addInitScript(init);
   if(SOFT)await ctx.route(/\/assets\/models\/ship(_mobile)?\.glb$/,async r=>{const sp=new URL(r.request().url()).pathname,res=await get(O.port,sp);L.ship=(L.ship||[]).concat(res.s+' '+sp);
     r.fulfill({status:res.s,contentType:'model/gltf-binary',body:res.s===200?fs.readFileSync(path.join(ROOT,'tools/test-assets/ship_test.glb')):''});});
-  const p=await ctx.newPage();p.L=L;p.on('pageerror',e=>L.errs.push(e.message));
+  const p=await ctx.newPage();p.L=L;p.on('pageerror',e=>L.errs.push(e.message));p.on('crash',()=>{L.errs.push('the page crashed');say('THE PAGE CRASHED');});
   p.on('console',m=>{if(m.type()==='error'&&!/fonts\.g|ERR_TUNNEL|ERR_NAME|ERR_CONNECTION|ERR_PROXY|Failed to load resource/.test(m.text()))L.errs.push(m.text());});
   return p;}
 const menuReady=(p,phone)=>p.waitForFunction(ph=>{const g=document.getElementById(ph?'mmGo':'menuGo');return g&&!g.disabled;},phone,{timeout:400000});
@@ -126,7 +127,7 @@ function siteChecks(tag,L,O,{need=[],allow=[],allowStatus=[]}={}){
   ok(!L.errs.length,tag+': no page errors',L.errs.slice(0,6));}
 
 (async()=>{
-  const test=await fetch(BASE+'/test.html').then(r=>r.ok,()=>false),build=test?'dist-test':'dist',dist=path.join(ROOT,build);
+  const test=await fetch(BASE+'/test.html').then(r=>r.ok,()=>false),build=test?'dist-test':'dist',dist=path.join(ROOT,build);BUILD=test?'test':'real';
   console.log(`build ${build} (${test?'test hooks':'real build'}), layout ${LAYOUT}${PRE?' ('+PRE+'/)':' (root)'}${SOFT?', software GPU: light ship':''}`);
   const {makeSite,HEADERS,REDIRECTS}=await import(pathToFileURL(path.join(ROOT,'tools/cloudflare/make-site.mjs')).href);
   let dir=dist,tmp=null,rules={};
@@ -171,12 +172,12 @@ function siteChecks(tag,L,O,{need=[],allow=[],allowStatus=[]}={}){
   await p.goto(O.origin+'/');ok(new URL(p.url()).pathname===PRE+'/','the address: '+PRE+'/',p.url());
   await menuReady(p,false);await p.waitForTimeout(2500);
   await p.mouse.click(480,40);await p.waitForTimeout(1500); // a first gesture: the menu sounds and the menu music start loading
-  await p.screenshot({path:shot(`subpath_${LAYOUT}_pc_menu.png`),timeout:180000});
+  await p.screenshot({path:shot(`subpath_${LAYOUT}_${BUILD}_pc_menu.png`),timeout:180000});
   const api0=S.api.length;
   await jugar(p,false);
   await p.mouse.move(480,270);for(const k of ['KeyW','KeyA','KeyD']){await p.keyboard.down(k);await p.waitForTimeout(900);await p.keyboard.up(k);}
   await p.mouse.down();await p.waitForTimeout(600);await p.mouse.up();await p.waitForTimeout(2500);
-  await p.screenshot({path:shot(`subpath_${LAYOUT}_pc_play.png`),timeout:180000});
+  await p.screenshot({path:shot(`subpath_${LAYOUT}_${BUILD}_pc_play.png`),timeout:180000});
   const PA=S.api.slice(api0);
   siteChecks('PC',p.L,O,{need:[['menu art',/\/assets\/ui\/menuui\/.*\.webp$/],['menu fonts',/\/assets\/ui\/menuui\/f\d00\.woff2$/],['end-plate font',/\/assets\/ui\/endui\/font\.woff2$/],
     ['the built code',/\/js\/index-.*\.js$/],['the styles',/\/js\/index-.*\.css$/],['the ship',/\/assets\/models\/ship(_test)?\.glb$/],['the astronaut',/\/assets\/models\/astronaut\.glb$/],
@@ -201,11 +202,11 @@ function siteChecks(tag,L,O,{need=[],allow=[],allowStatus=[]}={}){
   ok(man.href===O.origin+PRE+'/manifest.webmanifest'&&/manifest\+json/.test(man.ct),'phone: the manifest at '+PRE+'/manifest.webmanifest',man);
   ok(man.start===O.origin+PRE+'/'&&man.scope===O.origin+PRE+'/'&&man.id===undefined,'phone: start_url and scope = '+PRE+'/ (no id: the identity is the game\'s folder)',man);
   ok(man.icons.length===3&&man.icons.every(i=>i.s===200&&i.src.startsWith(O.origin+PRE+'/icons/')&&i.t==='image/png')&&man.apple.s===200&&man.apple.href===O.origin+PRE+'/icons/apple-touch-icon.png','phone: the 3 icons and the apple-touch-icon load from '+PRE+'/icons/',man.icons);
-  await p.screenshot({path:shot(`subpath_${LAYOUT}_phone_menu.png`),timeout:180000});
+  await p.screenshot({path:shot(`subpath_${LAYOUT}_${BUILD}_phone_menu.png`),timeout:180000});
   const api1=S.api.length;
   await jugar(p,true);
   const cx=422,cy=250;await p.touchscreen.tap(cx,cy);await p.waitForTimeout(3000);
-  await p.screenshot({path:shot(`subpath_${LAYOUT}_phone_play.png`),timeout:180000});
+  await p.screenshot({path:shot(`subpath_${LAYOUT}_${BUILD}_phone_play.png`),timeout:180000});
   siteChecks('phone',p.L,O,{need:[['the phone menu art',/\/assets\/ui\/menumob\/.*\.webp$/],['the ship',/\/assets\/models\/ship_(mobile|test)\.glb$/],['the opening film',/\/assets\/opening\.mp4$/],
     ['game music',/\/assets\/music\/game\.mp3$/],['the manifest',/\/manifest\.webmanifest$/],['the phone HUD font (Saira)',/\/js\/saira-condensed-.*\.woff2$/]].map(([n,re])=>[n,new RegExp('^'+PRE.replace('/','\\/')+re.source)])});
   ok(S.api.slice(api1).some(a=>a.p==='/api/run'),'phone: /api/run at the root',S.api.slice(api1).map(a=>a.m+' '+a.p));
@@ -223,16 +224,17 @@ function siteChecks(tag,L,O,{need=[],allow=[],allowStatus=[]}={}){
     await p.waitForTimeout(300);
     const I=await p.evaluate(()=>({fonts:document.fonts.check('800 16px TekturE')&&document.fonts.check('600 14px TitilliumH'),logo:(i=>i&&i.complete&&i.naturalWidth>0?i.src:null)(document.querySelector('header img'))}));
     ok(I.fonts&&I.logo===O.origin+PRE+'/assets/ui/menuui/logo.webp',dir+': fonts and logo from '+PRE+'/assets/',I);
+    await p.screenshot({path:shot(`subpath_${LAYOUT}_${BUILD}_${dir}.png`),timeout:180000});
     await p.click(`nav a[href="../${other}/"]`);await p.waitForLoadState('load');ok(new URL(p.url()).pathname===PRE+'/'+other+'/','the language link -> '+PRE+'/'+other+'/',p.url());
     await p.goBack();await p.waitForLoadState('load');await p.click('nav a.go');await p.waitForLoadState('load');ok(new URL(p.url()).pathname===PRE+'/','«'+back+'» -> '+PRE+'/',p.url());
-    await p.screenshot({path:shot(`subpath_${LAYOUT}_${dir}.png`),timeout:180000});}
+}
   await p.goto(O.origin+(PRE?'/admin':'/admin'));await p.waitForLoadState('load');await p.waitForTimeout(300);
   const A=await p.evaluate(()=>({path:location.pathname,login:!!document.getElementById('pw'),fonts:document.fonts.check('800 16px TekturE')&&document.fonts.check('600 14px TitilliumH'),logo:(i=>i&&i.complete&&i.naturalWidth>0?i.src:null)(document.querySelector('header img'))}));
   ok(A.path===PRE+'/admin'&&A.login&&A.fonts&&A.logo===O.origin+PRE+'/assets/ui/menuui/logo.webp','/admin -> '+PRE+'/admin: the login, its fonts and logo from '+PRE+'/assets/',A);
   await p.route('**/api/admin/stats*',r=>r.fulfill({status:401,contentType:'application/json',body:'{"error":"contraseña incorrecta"}'}));
   await p.fill('#pw','nope');await p.click('#login button[type=submit]');await p.waitForTimeout(500);
   ok(p.L.req.some(r=>r.p==='/api/admin/stats'),'admin: asks /api/admin/stats at the root',p.L.req.filter(r=>/api/.test(r.p)).map(r=>r.p));
-  await p.screenshot({path:shot(`subpath_${LAYOUT}_admin.png`),timeout:180000});
+  await p.screenshot({path:shot(`subpath_${LAYOUT}_${BUILD}_admin.png`),timeout:180000});
   siteChecks('pages',p.L,O,{allow:PRE?['/privacidad/','/privacy/','/admin']:[],allowStatus:['401 /api/admin/stats']}); // (that 401 is the test's own answer to a wrong password)
   await p.context().close();
 
@@ -247,7 +249,7 @@ function siteChecks(tag,L,O,{need=[],allow=[],allowStatus=[]}={}){
   await jugar(p,false);
   const rn=await p.waitForFunction(()=>{const t=(document.getElementById('dRound')||{}).textContent+' '+(document.getElementById('msg')||{}).textContent;return /(RONDA|ROUND) 14\b/.test(t)&&t;},null,{timeout:60000}).then(h=>h.jsonValue(),()=>null);
   ok(!!rn,'the game starts in round 14',rn);
-  await p.waitForTimeout(1500);await p.screenshot({path:shot(`subpath_${LAYOUT}_ronda14.png`),timeout:180000});
+  await p.waitForTimeout(1500);await p.screenshot({path:shot(`subpath_${LAYOUT}_${BUILD}_ronda14.png`),timeout:180000});
   siteChecks('ronda',p.L,O);
   await p.context().close();
   }catch(e){console.error(e);bad++;}

@@ -1,6 +1,6 @@
 // Google accounts (v82): the end plate, the login round trip, the nickname, the saved run, auto-save, sign out, delete. Run on dist-test:
 //   npm run build:test && PORT=8796 tools/run-test.sh dist-test tools/tests/cuentas.cjs
-// No Google, no Supabase, no Netlify: the test answers /api/* itself (a small fake of netlify/functions/ranking.mts with its state), and
+// No Google, no Supabase, no server: the test answers /api/* itself (a small fake of worker/ranking.ts (until v84 netlify/functions/ranking.mts) with its state), and
 //   fake   window.HEADS_AUTH is replaced by a fake Google (init script): signIn() really leaves the page for test.html?code=... (or ?error=...)
 //   real   in part 5 the real login chunk (src/cuentas/sb.js, @supabase/auth-js) runs against a fake Supabase Auth: authorize answers with a
 //          302 back to the game, the PKCE code is exchanged at /auth/v1/token (the verifier is checked against the challenge)
@@ -29,7 +29,7 @@ const {BASE,ARGS,shot}=require('./lib.cjs');
 let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefined&&!c?'  '+JSON.stringify(i).slice(0,700):''));if(!c)bad++;};
 const SB='https://fake-ref.supabase.co';
 
-// ---------- the fake server (what netlify/functions/ranking.mts answers) ----------
+// ---------- the fake server (what worker/ranking.ts answers) ----------
 function server(){
   const S={players:{},runs:[],used:new Set(),calls:[],authOff:false,scoresOff:false,users:{'tok-u1':'u1','tok-u2':'u2','real-tok':'u3'},n:0};
   S.seed=[['ORION',15200,12],['LUNA',9800,9],['KRAKEN',7400,8],['NOVA',5100,6],['ZETA',2600,4],['ECO',900,2]];

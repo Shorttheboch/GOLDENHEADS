@@ -87,4 +87,18 @@ const rel=log=>{const t0=log.length?log[0].t:0;return log.map(c=>c.n+(c.ok?'':'(
  log=await p.evaluate(()=>menuSfx.log.filter(c=>c.t>0).slice());console.log('  cues:',rel(log));
  ok(log.every(c=>c.n==='button'),'only the JUGAR chime (or nothing) with reduced motion');
  ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs.slice(0,3)));await p.context().close();
+ // ---- 5) iPhone silent switch (v85): on touch the menu asks for the "playback" audio session before its AudioContext exists; never on PC
+ console.log('5) audio session (iPhone silent switch)');
+ const SESS=()=>{window.__sess={type:'auto'};try{Object.defineProperty(navigator,'audioSession',{value:window.__sess,configurable:true});}catch(e){}
+   window.__ctxType=[];const C=window.AudioContext;window.AudioContext=function(...a){window.__ctxType.push(window.__sess.type);return new C(...a);};window.AudioContext.prototype=C.prototype;};
+ for(const [label,opts] of [['phone',{viewport:{width:844,height:390},hasTouch:true,isMobile:true}],['PC',{}]]){
+   p=await newPage(b,opts,SESS);
+   await p.waitForSelector('#langPick:not([hidden])',{timeout:120000});
+   if(label==='phone')await p.tap('#langPick button[data-l=es]');else await p.click('#langPick button[data-l=es]');
+   await p.waitForTimeout(1500);
+   const s=await p.evaluate(()=>({type:window.__sess.type,atCtx:window.__ctxType.slice(),state:menuSfx.info().state}));console.log('  '+label,JSON.stringify(s));
+   if(label==='phone')ok(s.type==='playback'&&s.atCtx[0]==='playback','phone: "playback" session set before the menu\'s AudioContext ('+JSON.stringify(s)+')');
+   else ok(s.type==='auto','PC: the audio session is left alone ('+s.type+')');
+   ok(p.errs.length===0,'no page errors '+JSON.stringify(p.errs.slice(0,3)));await p.context().close();
+ }
  console.log(bad?('FAILED '+bad):'ALL OK');await b.close();process.exitCode=bad?1:0;})();

@@ -42,6 +42,7 @@ function spawnInc(cine){const B=makeBiped(INC_SC);if(!B)return null;incN++;const
   $('boss').firstChild.textContent=e.bossName='INCINERADORA'+(incN>1?' '+['','II','III','IV','V','VI'][Math.min(5,k)]:'');updateBoss.who=null;
   const hp=hullParam(P.pos);e.z=THREE.MathUtils.clamp(hp.z+(Math.random()<0.5?-9:9),-12,19);e.th=hp.th+THREE.MathUtils.randFloatSpread(0.4);
   if(cine){e.th=Math.PI/2+0.5;e.z=3.6;}
+  else if(TRAILER&&TRA.at){e.z=TRA.at[0];e.th=TRA.at[1];} // v84: the trailer's spawn key (42-trailer.js): the hull spot in front of the player
   [e.z,e.th]=freeSpot(e.z,e.th,2);hullPoint(e.z,e.th,e.pos,e.n);
   e.face.subVectors(P.pos,e.pos);if(e.face.lengthSq()<1e-4)e.face.set(0,0,1);
   // the chest core (weak spot), measured once on the idle pose in the chest bone's own space
@@ -546,7 +547,7 @@ function updateAcid(dt){for(let i=ACID.length-1;i>=0;i--){const a=ACID[i];a.life
     if(pop){burst(a.m.position,0xff8a20,18);sfx('splat',a.m.position);scene.remove(a.m);a.m.children[1].material.dispose();for(const q of a.drops)scene.remove(q.d);ACID.splice(i,1);
       if(hitP)acidBurn(a.vel);}}}
 // the venom sticks and burns: a small hit, then the suit melts away for a few seconds
-function acidBurn(dir){const g=Math.max(0,spitN-1);damagePlayer(6+g,dir.clone().multiplyScalar(0.3));P.burn=3.4+Math.min(1.5,g*0.3);P.burnDps=5+Math.min(5,wave*0.25)+Math.min(4,g*0.8);
+function acidBurn(dir){if(TRAILER&&TRA.god)return;const g=Math.max(0,spitN-1);damagePlayer(6+g,dir.clone().multiplyScalar(0.3));P.burn=3.4+Math.min(1.5,g*0.3);P.burnDps=5+Math.min(5,wave*0.25)+Math.min(4,g*0.8);
   floatText(P.pos.clone().addScaledVector(UP,1),'¡ÁCIDO!','loss');sfx('sizzle');}
 function updateBurn(dt){if(!(P.burn>0)||state!=='play'){if($('burn').style.opacity!=='0')$('burn').style.opacity=0;return;}
   P.burn-=dt;P.hp=Math.max(0,P.hp-P.burnDps*dt);P.lastHit=playT;

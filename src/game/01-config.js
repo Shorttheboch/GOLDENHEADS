@@ -20,4 +20,12 @@ const AS=0.88; // astronaut scale (a little smaller: the ship reads bigger, the 
 const isTouch=matchMedia('(pointer:coarse)').matches; // v54: primary pointer only: a touch laptop used with a mouse stays PC
 if(isTouch)document.body.classList.add('touch');
 if(isTouch){$('keysPC').hidden=true;$('keysTouch').hidden=false;}
+// v84: trailer mode (?trailer in the address, PC keyboard only; the whole mode lives in 42-trailer.js and 12-trailer.css).
+// Parsed here, first thing, so every piece can read it at load time. Without ?trailer, TRAILER is false and TRV is null: nothing changes.
+// TRV (?trailer&vertical): the picture is a fixed 9:16 size (1080x1920, x2 with &escala=2) and the follow camera is framed for it.
+const TRAILER=!isTouch&&/[?&]trailer(?:[=&#]|$)/.test(location.search);
+const TRV=TRAILER&&/[?&]vertical(?:[=&#]|$)/.test(location.search)?{w:1080,h:1920,s:/[?&]escala=2(?![\d])/.test(location.search)?2:1,fov:76,dist:4.6,sh:0.34,up:0.12}:null;
+// the trailer switches (42-trailer.js): god = the astronaut cannot be hurt, ship = the hull takes no damage, slow/pause = world time, fc = free camera, hold = no spawns, no round advance
+const TRA={god:false,ship:false,c0:0,hud:true,slow:1,pause:false,fc:false,hold:false,cine:false,brk:false,at:null,egc:null};
+if(TRAILER){document.body.classList.add('trailer');if(TRV)document.body.classList.add('trV');}
 

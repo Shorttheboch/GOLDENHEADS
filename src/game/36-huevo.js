@@ -9,7 +9,8 @@
 const EGGC={key:'heads_egg_seen',seen:false,flag:/[?&]huevo\b/.test(location.search),sp:null,p0:new THREE.Vector3(),p1:new THREE.Vector3(),look:new THREE.Vector3(),qF:new THREE.Quaternion(),blend:'',u:0,fov:54};
 try{EGGC.seen=localStorage.getItem(EGGC.key)==='1';}catch(_){}
 // wanted: this egg should get the cinematic (the first one of the device; with ?huevo, the first of each game). window.__noCine (tests) turns it off unless ?huevo
-function eggCineWanted(){return state==='play'&&(EGGC.flag?stats.eggs===0:!EGGC.seen&&!window.__noCine);}
+function eggCineWanted(){if(TRAILER&&TRA.egc!==null)return state==='play'&&TRA.egc; // v84: an egg laid with the trailer key gets the scene only when the trailer's cinematics switch is on
+  return state==='play'&&(EGGC.flag?stats.eggs===0:!EGGC.seen&&!window.__noCine);}
 const _e1=new THREE.Vector3(),_e2=new THREE.Vector3(),_e3=new THREE.Vector3(),_e4=new THREE.Vector3(),_e5=new THREE.Vector3(),_e6=new THREE.Vector3();
 // is the straight way a -> b clear of the ship and the rocks (pad m around them)? The last `skip` m before b do not count (b sits right on the hull)
 function eggLos(a,b,skip,pad){const L=a.distanceTo(b),N=Math.max(2,Math.ceil(L/0.12));for(let k=1;k<N;k++){if(L*(1-k/N)<skip)break;if(camSolid(_e6.lerpVectors(a,b,k/N),pad))return false;}return true;}

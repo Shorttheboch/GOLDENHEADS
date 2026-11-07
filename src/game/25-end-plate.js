@@ -38,8 +38,8 @@ function endGame(win,reason){if(state!=='play')return;state='dead';xpEnd(true);X
   rows.push(['Tricomas a bordo al final',fmt(Math.max(0,cargo))]);
   let best=null;try{best=JSON.parse(localStorage.getItem('heads_best_v3')||'null');}catch(e){}
   let recHTML,isNew=false;
-  if(RONDA.n&&!best)recHTML=isTouch?'':'Enter para reintentar'; // v80: a game started at another round (?ronda=N) never sets the record
-  else if(!RONDA.n&&(!best||total>best.score)){try{localStorage.setItem('heads_best_v3',JSON.stringify({score:total,round:wave+1}));}catch(e){}
+  if((RONDA.n||TRAILER)&&!best)recHTML=isTouch?'':'Enter para reintentar'; // v80: a game started at another round (?ronda=N) never sets the record · v84: nor a trailer game (?trailer)
+  else if(!(RONDA.n||TRAILER)&&(!best||total>best.score)){try{localStorage.setItem('heads_best_v3',JSON.stringify({score:total,round:wave+1}));}catch(e){}
     isNew=total>0;recHTML=isTouch?(isNew?'<b>¡NUEVO RÉCORD!</b>':''):(isNew?'<b>¡NUEVO RÉCORD!</b> · ':'')+'Enter para reintentar';}
   else recHTML=`Récord: ${fmt(best.score)} · ronda ${best.round}`+(isTouch?'':' · Enter para reintentar');
   showEndPlate({title:reason==='ship'?'NAVE PERDIDA':reason==='cargo'?'CARGA PERDIDA':'TRAJE ROTO',

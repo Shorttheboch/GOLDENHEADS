@@ -84,7 +84,7 @@ function leakFrom(pa,n){n=Math.min(n,cargo);if(n<=0)return;cargo-=n;
   const k=spawnLoose(_lk.copy(pa.pos).addScaledVector(pa.n,0.3),n,1.6,pa.n);lostN+=n-k;tutorialEvent('leak');
 }
 const _lk=new THREE.Vector3();
-function damagePatch(pa,dmg){if(pa.hp<=0||state!=='play')return;const before=pa.hp;pa.hp=Math.max(0,pa.hp-dmg);
+function damagePatch(pa,dmg){if(pa.hp<=0||state!=='play')return;if(TRAILER&&TRA.ship&&!TRA.brk)dmg=0;const before=pa.hp;pa.hp=Math.max(0,pa.hp-dmg);
   pa.leak+=(before-pa.hp)*CFG.leakPerHp*(pa.zone.name==='BODEGA'?CFG.bodegaLeak:1)*leakScale()*leakMult();
   if(pa.leak>=1){const n=Math.floor(pa.leak);pa.leak-=n;leakFrom(pa,n);}
   const Z=pa.zone;if(Z.alarmT<=0){Z.alarmT=7;sfx('alarm');tutorialEvent('eat');say(ZONE_VO[Z.name],3,{cd:12});}
@@ -92,7 +92,7 @@ function damagePatch(pa,dmg){if(pa.hp<=0||state!=='play')return;const before=pa.
     if(!Z.nest&&Z.patches.every(p=>p.hp<=0)){Z.nest=true;toSpawn+=2;WB.left+=2;
       showMsg('¡NIDO EN '+Z.art+Z.name+'!','Las arañas entran por ahí · repárala para cerrarlo',3);sfx('nest');shake(0.2);
       if(Z.name==='BODEGA'){tutorialEvent('nestBodega');say('zn_hold_nest',4);}}}
-  if(shipHp()<=0)endGame(false,'ship');}
+  if(shipHp()<=0&&!(TRAILER&&TRA.ship))endGame(false,'ship');} // v84: TRA.ship = the trailer's ship-damage freeze (42-trailer.js); TRA.brk = its manual plate break
 function repairPatch(pa,perfect,free=false){pa.hp=CFG.patchHp;pa.prog=0;pa.leak=0;pa.noPerf=false;const Z=pa.zone;
   if(!free){repairs++;if(perfect)stats.perfect++;addPts(perfect?PTS.perfect:PTS.repair);}
   if(Z.nest){Z.nest=false;if(!free){showMsg(Z.name+' SELLADA','Nido cerrado',2);say('zn_sealed',3);}}

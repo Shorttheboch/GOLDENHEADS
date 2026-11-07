@@ -1,4 +1,4 @@
-// ---- online ranking, Season 1 (v82: Google accounts; server netlify/functions/ranking.mts -> Supabase, supabase/v82-cuentas.sql) ----
+// ---- online ranking, Season 1 (v82: Google accounts; server worker/ranking.ts -> Supabase, supabase/v82-cuentas.sql) ----
 // Every run gets a signed token from the server (rankStart in reset). At game over (rankShow, from endGame) the run is kept in RANK.pending and,
 // while the ranking is on, the end plate's panel gets a second framed slide: the Season 1 ranking (#rankBox), after the run's stats.
 // The whole frames swap sideways with a blur (ENDV, endSwap below): tabs «TU PARTIDA · RANKING» (a click, or on PC the mouse resting on one),

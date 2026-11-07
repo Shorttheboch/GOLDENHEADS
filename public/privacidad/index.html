@@ -8,12 +8,12 @@
 <meta name="description" content="Qué datos guarda HEADS Rescate Dorado, para qué, quién los trata, cuánto tiempo, tus derechos, cómo borrar tu cuenta y las normas del ranking.">
 <link rel="alternate" hreflang="en" href="../privacy/">
 <!-- v82: the privacy page and the ranking rules (Spanish; English at privacy/). Static, no script, reachable without logging in: Google asks for it
-     to publish the login. Every link is relative (no domain): the game is ../, the English page ../privacy/. Same look as the game and /admin.
-     Keep TERMS_VER in netlify/functions/ranking.mts in step with the date below when this text changes in substance. -->
+     to publish the login. Every link is relative (no domain): the game is ../, the English page ../privacy/, fonts and logo ../assets/ (v85: it lives at /headsrescue/privacidad/). Same look as the game and /admin.
+     Keep TERMS_VER in worker/ranking.ts in step with the date below when this text changes in substance. -->
 <style>
-@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f600.woff2) format('woff2');font-weight:600;font-display:swap}
-@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f700.woff2) format('woff2');font-weight:700;font-display:swap}
-@font-face{font-family:TekturE;src:url(/assets/ui/endui/font.woff2) format('woff2');font-weight:400 900;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(../assets/ui/menuui/f600.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(../assets/ui/menuui/f700.woff2) format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:TekturE;src:url(../assets/ui/endui/font.woff2) format('woff2');font-weight:400 900;font-display:swap}
 :root{color-scheme:dark;--void:#05050a;--panel:rgba(8,8,12,.88);--line:rgba(232,182,74,.5);--gold:#e8b64a;--gold-hi:#ffe39a;--ink:#f4ecd8;--ink2:#d4c9ad;--ink3:#948b74;
   --fT:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;--fB:'TitilliumH','Titillium Web','Segoe UI',system-ui,sans-serif}
 *{box-sizing:border-box}
@@ -57,8 +57,8 @@ footer{margin-top:20px;color:var(--ink3);font-size:13px;text-align:center}
 <body>
 <div class="wrap">
   <header>
-    <img src="/assets/ui/menuui/logo.webp" alt="HEADS Rescue">
-    <div class="t"><h1>Privacidad y normas del ranking</h1><div class="sub">HEADS Rescate Dorado · actualizado el 3 de noviembre de 2026</div></div>
+    <img src="../assets/ui/menuui/logo.webp" alt="HEADS Rescue">
+    <div class="t"><h1>Privacidad y normas del ranking</h1><div class="sub">HEADS Rescate Dorado · actualizado el 5 de noviembre de 2026</div></div>
     <nav><a class="go" href="../">Volver al juego</a><a href="../privacy/" hreflang="en" lang="en">English</a></nav>
   </header>
 
@@ -95,7 +95,8 @@ footer{margin-top:20px;color:var(--ink3);font-size:13px;text-align:center}
     <h2>Quién nos ayuda</h2>
     <ul>
       <li><b>Supabase</b>: base de datos e inicio de sesión. Servidores en la Unión Europea (Fráncfort, Alemania).</li>
-      <li><b>Netlify</b> (Estados Unidos): aloja la web y las funciones del servidor; procesa tu IP para servirte la página, pero nosotros no la guardamos.</li>
+      <li><b>Cloudflare</b> (Estados Unidos): aloja la web y el servidor del juego; procesa tu IP para servirte la página y frenar abusos, pero nosotros no la guardamos.</li>
+      <li><b>Netlify</b> (Estados Unidos): solo lleva la dirección antigua del juego a la nueva; procesa tu IP para eso y nada más.</li>
       <li><b>Google</b>: el inicio de sesión con Google (con sus propias condiciones de privacidad) y la tipografía de la página (Google Fonts).</li>
     </ul>
   </section>

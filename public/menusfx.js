@@ -64,9 +64,13 @@
     try{var t=c.currentTime;g.gain.cancelScheduledValues(t);g.gain.setTargetAtTime(0,t,FADE_OUT/4.5);s.stop(t+FADE_OUT+0.1);}catch(e){}
     mOut=performance.now();return true;
   }
+  // v85: on iPhone, Web Audio is "ambient" by default, so the ring/silent switch muted the whole menu (music and machinery) while the
+  // film and the game still sounded; the game asks for "playback" in initAudio (19-audio.js, v57) and the menu now does the same, touch only
+  function session(){try{if(navigator.audioSession&&window.matchMedia&&matchMedia('(pointer: coarse)').matches&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback';}catch(e){}}
   function ensure(){
     if(AC||dead||!Ctor)return;
     try{
+      session();
       AC=new Ctor();mg=AC.createGain();mg.gain.value=MASTER;mg.connect(AC.destination);
       NAMES.forEach(function(n){if(!bufs[n]&&raw[n])dec(AC,raw[n].slice(0)).then(function(b){bufs[n]=b;}).catch(function(){});}); // no offline decoder: decode here
       if(!mBuf&&mRaw&&!window.__noMenuMusic)dec(AC,mRaw.slice(0)).then(function(b){mBuf=b;mRaw=null;musicBegin();}).catch(function(){});

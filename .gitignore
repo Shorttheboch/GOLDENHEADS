@@ -9,5 +9,9 @@ Thumbs.db
 desktop.ini
 dist/
 dist-test/
+site/
+.wrangler/
+.dev.vars*
 tools/tests/out/
 __pycache__/
+netlify-redirect/

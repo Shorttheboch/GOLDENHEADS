@@ -3,7 +3,7 @@
 // The first time you choose a nickname (unique, checked by the server, cannot be changed afterwards; no 18+ box, just the line with the privacy
 // page and the ranking rules); from then on the session stays on this device and every game is saved by itself when it ends.
 // Pieces: 26-ranking.js (run token, end-plate box, RANK.pending) · this file (flow and screens) · src/cuentas/sb.js (@supabase/auth-js, its own chunk,
-// loaded only when needed through window.HEADS_AUTH, src/cuentas/loader.js) · netlify/functions/ranking.mts (the referee: /api/auth, /api/me,
+// loaded only when needed through window.HEADS_AUTH, src/cuentas/loader.js) · worker/ranking.ts (the referee: /api/auth, /api/me,
 // /api/nick, /api/save, /api/forget) · markup #rankBox / #acct in index.html · look src/styles/11-cuentas.css · privacy page public/privacidad/.
 // The login is a redirect (PKCE), so the page reloads: before leaving, the run waits in localStorage (heads_pending_run: token, score, round,
 // stats; 4 h, claimed once); back from Google, over the menu: nickname if needed -> the run saved -> the full ranking (top 50, my line, place).

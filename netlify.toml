@@ -1,55 +1,22 @@
-# GOLDENHEADS · HEADS Rescate Dorado — Netlify config
-# Netlify runs `npm run build` (Vite) and publishes dist/. The functions (v82 accounts + ranking, v81 metrics) live in netlify/functions.
+# GOLDENHEADS · HEADS Rescate Dorado — Netlify, from v85 on: only a redirect.
+# The game moved to Cloudflare Workers: https://goldenheads2021.com/headsrescue/ (wrangler.jsonc, worker/, tools/cloudflare/make-site.mjs).
+# Built from main, Netlify publishes a folder with one file and sends every address of heads-rescate-dorado.netlify.app to the same place on the
+# new site, for good (301), with its query string (Netlify passes it on by itself): / -> /headsrescue/, /privacidad/ -> /headsrescue/privacidad/,
+# /admin -> /headsrescue/admin, /?ronda=14 -> /headsrescue/?ronda=14. No functions, no Vite build.
+# The API stays at the root of the new site (/api/..., not under /headsrescue/). A game tab opened on the old address before the move cannot
+# follow it there (another origin: the browser blocks it), so its ranking and stats just fail quietly, as when the server is down.
 [build]
-  command = "npm run build"
-  publish = "dist"
-
-[build.environment]
-  NODE_VERSION = "22"
-
-[functions]
-  directory = "netlify/functions"
-
-# Built code has a fingerprint in its name (index-XXXX.js), so browsers can keep it for good.
-[[headers]]
-  for = "/js/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# v75: the service worker and the manifest must never be kept for long, or a new version would not reach the phones.
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache"
-
-[[headers]]
-  for = "/manifest.webmanifest"
-  [headers.values]
-    Cache-Control = "no-cache"
-    Content-Type = "application/manifest+json"
-
-# v81: Santi's statistics page (public/admin.html) at /admin. Never indexed, never cached; it reads /api/admin/stats (netlify/functions/metrics.mts) with a password.
-[[redirects]]
-  from = "/admin"
-  to = "/admin.html"
-  status = 200
-
-[[headers]]
-  for = "/admin*"
-  [headers.values]
-    X-Robots-Tag = "noindex, nofollow, noarchive"
-    Cache-Control = "no-cache"
-    Referrer-Policy = "no-referrer"
-    X-Frame-Options = "DENY"
-
-# v82: the privacy page and the ranking rules (public/privacidad/index.html, English public/privacy/index.html). Public, no login: Google needs it to
-# publish the login. Served at /privacidad and /privacy (with or without the final slash); every link inside is relative, no domain.
-[[redirects]]
-  from = "/privacidad"
-  to = "/privacidad/index.html"
-  status = 200
+  command = "mkdir -p netlify-redirect && echo ok > netlify-redirect/index.html"
+  publish = "netlify-redirect"
 
 [[redirects]]
-  from = "/privacy"
-  to = "/privacy/index.html"
-  status = 200
+  from = "/api/*"
+  to = "https://goldenheads2021.com/api/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "https://goldenheads2021.com/headsrescue/:splat"
+  status = 301
+  force = true

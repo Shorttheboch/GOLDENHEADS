@@ -9,27 +9,35 @@
 //   POST /api/forget           Bearer: deletes the account: the player, all its runs and the Supabase Auth user (GDPR)
 //   GET  /api/admin/ranking    x-admin-key = ADMIN_PASSWORD: season top, recent and flagged runs, banned players (public/admin.html)
 //   POST /api/admin/ranking    x-admin-key: {action: hide|show, run} or {action: ban|unban, player, note}
-// Env (Netlify, scope Functions; Production, Deploy Previews and Branch deploys): SUPABASE_URL, SUPABASE_SECRET_KEY (sb_secret_..., server only),
-//   SUPABASE_PUBLISHABLE_KEY (sb_publishable_..., not secret: it goes to the browser through /api/auth), ADMIN_PASSWORD. RANK_SECRET optional (below).
+// Settings of the Worker (v85, Cloudflare; the same set for the real site and every preview): SUPABASE_URL, SUPABASE_SECRET_KEY (sb_secret_...,
+//   server only), SUPABASE_PUBLISHABLE_KEY (sb_publishable_..., not secret: it goes to the browser through /api/auth), ADMIN_PASSWORD, RANK_SECRET
+//   (optional: without it the run-token key comes from SUPABASE_SECRET_KEY, below).
 // Sessions: the browser signs in with Google through Supabase Auth (PKCE redirect) and sends its access token as Authorization: Bearer <token>.
 //   The token is checked here with Supabase Auth (auth.getUser): the player id is never taken from the body. Only Google accounts count.
-// Run tokens: `${start}.${id}.${hmac}` as before (v81 and earlier). The HMAC key is derived, so it also works on previews, where RANK_SECRET
-//   does not exist: key = HMAC-SHA256(RANK_SECRET if set, else SUPABASE_SECRET_KEY, "heads-run-token|v82|prod" or "|test").
-//   A token from a preview is therefore never valid on the real site, and the other way round.
-// Previews never pollute the real board: like the v81 metrics (context.deploy.context !== "production"), what a preview saves is a test run,
-//   and a preview's board shows only test runs; the real site shows only real ones. Nicknames are shared (one Supabase Auth for both).
+// Run tokens: `${start}.${id}.${hmac}` as before (v81 and earlier). The HMAC key is derived with a label for where it runs:
+//   key = HMAC-SHA256(RANK_SECRET if set, else SUPABASE_SECRET_KEY, "heads-run-token|v82|prod" on the real site or "|test" on a preview).
+//   On Netlify, RANK_SECRET existed only in Production; on Cloudflare one set of secrets serves every version, and the label alone keeps
+//   the guarantee: a token from a preview is never valid on the real site, and the other way round.
+// Real site or preview (c.preview, worker/index.ts): by the host name, PROD_HOSTS in wrangler.jsonc (Netlify: context.deploy.context).
+//   Previews never pollute the real board: like the v81 metrics, what a preview saves is a test run, and a preview's board shows only
+//   test runs; the real site shows only real ones. Nicknames are shared (one Supabase Auth for both).
 // Season 1 lives in Supabase (supabase/v82-cuentas.sql). The old board in Netlify Blobs (store "ranking", hand-typed names) is "Temporada 0":
-//   no longer read or written here, and not deleted.
-// Netlify's own limit is in config below (the Personal plan allows 2 rules per project: metrics.mts has the other one); on top of it,
-//   per-instance limits per IP in memory (bucket) for nicknames, saves, deletes and admin passwords. The IP is never stored.
+//   no longer read or written anywhere (Netlify Blobs is gone with v85), and not deleted.
+// Cloudflare's rate limit binding (RL_RANKING in wrangler.jsonc: 40 a minute per IP, worker/index.ts) comes first, like Netlify's rule did;
+//   on top of it, per-isolate limits per IP in memory (bucket) for nicknames, saves, deletes and admin passwords. The IP is never stored.
+// v85: the shared board (/api/scores without &me=1) is kept 20 s in Cloudflare's cache of the data centre (Cache API), as Netlify's CDN did.
 import { createClient } from "@supabase/supabase-js";
-import type { Config, Context } from "@netlify/functions";
-import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { buckets } from "./lib.ts";
+import type { ApiCtx, Env } from "./lib.ts";
+
+export const RANKING_PATHS = ["/api/auth", "/api/run", "/api/scores", "/api/me", "/api/nick", "/api/save", "/api/forget", "/api/admin/ranking"];
 
 const SEASON = 1, TOP_N = 10, MAX_N = 50, VERSION = "v82"; // MAX_N: rank_board in supabase/v82-cuentas.sql gives 50 lines at most
-const TERMS_VER = "2026-11-v82";              // the privacy page and ranking rules the player accepts with the nickname
+const TERMS_VER = "2026-11-v85";              // the privacy page and ranking rules the player accepts with the nickname (v85: Cloudflare hosts the site)
 const MAX_AGE_MS = 4 * 60 * 60 * 1000;        // a run token (and so a pending run kept by a guest during the login) is valid for 4 hours
 const MAX_BODY = 8_000;
+const BOARD_TTL = 20;                         // seconds the shared board is kept in the data centre's cache
 
 const json = (data: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(data), {
@@ -37,22 +45,13 @@ const json = (data: unknown, status = 200, headers: Record<string, string> = {})
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers },
   });
 
-// ---- limits per IP, per instance and in memory (the IP only hashed with a random salt, never stored) ----
-const SALT = randomBytes(16);
-const ipKey = (ip: string) => createHash("sha256").update(SALT).update(ip || "?").digest("base64url").slice(0, 22);
-const HITS = new Map<string, { n: number; t: number }>();
-function bucket(name: string, ip: string, windowMs: number) {
-  const k = name + ipKey(ip), now = Date.now();
-  if (HITS.size > 5000) for (const [key, v] of HITS) if (now - v.t > 3_600_000) HITS.delete(key);
-  let h = HITS.get(k);
-  if (!h || now - h.t > windowMs) { h = { n: 0, t: now }; HITS.set(k, h); }
-  return h;
-}
+// ---- limits per IP, per isolate and in memory (worker/lib.ts: the IP only hashed with a random salt, never stored) ----
+const bucket = buckets();
 const over = (name: string, ip: string, windowMs: number, max: number) => ++bucket(name, ip, windowMs).n > max;
 
 // ---- run tokens ----
-function tokenKey(preview: boolean) {
-  const base = Netlify.env.get("RANK_SECRET") || Netlify.env.get("SUPABASE_SECRET_KEY");
+function tokenKey(env: Env, preview: boolean) {
+  const base = env.RANK_SECRET || env.SUPABASE_SECRET_KEY;
   if (!base) return null;
   return createHmac("sha256", base).update("heads-run-token|v82|" + (preview ? "test" : "prod")).digest();
 }
@@ -95,12 +94,23 @@ function checkNick(raw: unknown): { nick: string } | { error: "format" | "bad" |
 }
 
 // ---- Supabase (server side only, secret key) ----
-let DB: ReturnType<typeof createClient> | null = null;
-function db() {
-  const url = Netlify.env.get("SUPABASE_URL"), key = Netlify.env.get("SUPABASE_SECRET_KEY");
+let DB: ReturnType<typeof createClient> | null = null, DBK = "";
+function db(env: Env) {
+  const url = env.SUPABASE_URL, key = env.SUPABASE_SECRET_KEY;
   if (!url || !key) return null;
-  return (DB ??= createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }));
+  if (!DB || DBK !== url + "\n" + key) { // one client per isolate (made again only if the settings change)
+    DB = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+    DBK = url + "\n" + key;
+  }
+  return DB;
 }
+
+// ---- the shared board in the data centre's cache (Cache API: caches.default; absent in Node and in some local runs: then no cache) ----
+function boardCache(): { match(k: Request): Promise<Response | undefined>; put(k: Request, r: Response): Promise<void> } | null {
+  try { return (globalThis as any).caches?.default ?? null; } catch { return null; }
+}
+// the cache key: this host (the real site and previews never share), the board, the number of lines (already cleaned)
+const boardKey = (req: Request, n: number) => new Request(new URL(req.url).origin + "/api/scores?n=" + n, { method: "GET" });
 async function rpc(sb: NonNullable<ReturnType<typeof db>>, fn: string, args: Record<string, unknown>) {
   const { data, error } = await sb.rpc(fn, args);
   if (error) throw new Error(fn + ": " + error.message);
@@ -132,14 +142,13 @@ const sha = (s: string) => createHash("sha256").update(s).digest();
 const lines = (v: unknown) => { const n = Math.round(Number(v)); return v === null || v === undefined || v === "" || !Number.isFinite(n) ? TOP_N : Math.min(MAX_N, Math.max(1, n)); };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default async (req: Request, context: Context) => {
-  const path = new URL(req.url).pathname, ip = context.ip || "";
-  const preview = !!context.deploy?.context && context.deploy.context !== "production";
+export async function ranking(req: Request, c: ApiCtx): Promise<Response> {
+  const path = new URL(req.url).pathname, ip = c.ip || "", env = c.env, preview = c.preview;
   try {
     // ---------- the browser's login settings ----------
     if (path === "/api/auth") {
       if (req.method !== "GET") return json({ error: "método no permitido" }, 405);
-      const url = Netlify.env.get("SUPABASE_URL"), key = Netlify.env.get("SUPABASE_PUBLISHABLE_KEY");
+      const url = env.SUPABASE_URL, key = env.SUPABASE_PUBLISHABLE_KEY;
       if (!url || !key || /^sb_secret_/.test(key)) return json({ error: "off" }, 503); // (never hand out a secret key by mistake)
       return json({ url, key }, 200, { "cache-control": "public, max-age=300" });
     }
@@ -147,7 +156,7 @@ export default async (req: Request, context: Context) => {
     // ---------- a new run ----------
     if (path === "/api/run") {
       if (req.method !== "POST") return json({ error: "método no permitido" }, 405);
-      const key = tokenKey(preview);
+      const key = tokenKey(env, preview);
       if (!key) return json({ error: "ranking no configurado" }, 503);
       return json({ token: makeToken(key) });
     }
@@ -155,12 +164,12 @@ export default async (req: Request, context: Context) => {
     // ---------- admin (Santi's /admin page, same password as the statistics) ----------
     if (path === "/api/admin/ranking") {
       if (req.method !== "GET" && req.method !== "POST") return json({ error: "método no permitido" }, 405);
-      const pass = Netlify.env.get("ADMIN_PASSWORD");
+      const pass = env.ADMIN_PASSWORD;
       if (!pass) return json({ error: "admin no configurado" }, 503);
       const fails = bucket("a:", ip, 15 * 60_000); // 8 wrong passwords from one IP = 15 minutes out
       if (fails.n >= 8) return json({ error: "demasiados intentos, espera unos minutos" }, 429);
       if (!timingSafeEqual(sha(req.headers.get("x-admin-key") || ""), sha(pass))) { fails.n++; return json({ error: "contraseña incorrecta" }, 401); }
-      const sb = db();
+      const sb = db(env);
       if (!sb) return json({ error: "ranking no configurado" }, 503);
       if (req.method === "GET") {
         const data = await rpc(sb, "rank_admin", { p_season: SEASON, p_test: preview, p_limit: 50 });
@@ -178,7 +187,7 @@ export default async (req: Request, context: Context) => {
       return json({ ok: true });
     }
 
-    const sb = db();
+    const sb = db(env);
     if (!sb) return json({ error: "ranking no configurado" }, 503);
 
     // ---------- the board, for everybody ----------
@@ -191,10 +200,18 @@ export default async (req: Request, context: Context) => {
         const b = await rpc(sb, "rank_board", { p_season: SEASON, p_test: preview, p_limit: n, p_player: u?.google ? u.id : null });
         return json({ season: SEASON, count: b?.count ?? 0, top: b?.top ?? [], me: b?.me ?? null });
       }
+      // the shared board: kept BOARD_TTL s in this data centre (Netlify: its CDN, s-maxage=20); the browser still gets no-store
+      const cache = boardCache(), ck = cache ? boardKey(req, n) : null;
+      if (cache && ck) {
+        const hit = await cache.match(ck).catch(() => undefined);
+        if (hit) return new Response(await hit.text(), { status: 200, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-heads-cache": "hit" } });
+      }
       const b = await rpc(sb, "rank_board", { p_season: SEASON, p_test: preview, p_limit: n, p_player: null });
-      return json({ season: SEASON, count: b?.count ?? 0, top: b?.top ?? [] }, 200, {
-        "netlify-cdn-cache-control": "public, durable, s-maxage=20, stale-while-revalidate=60",
-      });
+      const text = JSON.stringify({ season: SEASON, count: b?.count ?? 0, top: b?.top ?? [] });
+      if (cache && ck) {
+        try { c.waitUntil(cache.put(ck, new Response(text, { headers: { "content-type": "application/json; charset=utf-8", "cache-control": `public, max-age=${BOARD_TTL}` } })).catch(() => {})); } catch { /* no cache: fine */ }
+      }
+      return new Response(text, { status: 200, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
     }
 
     // ---------- everything below needs a Google session ----------
@@ -236,7 +253,7 @@ export default async (req: Request, context: Context) => {
     if (over("s:", ip, 10 * 60_000, 40)) return json({ error: "demasiadas peticiones" }, 429);
     const b = await body(req);
     if (!b) return json({ error: "datos no válidos" }, 400);
-    const key = tokenKey(preview);
+    const key = tokenKey(env, preview);
     const tok = key && readToken(key, b.token);
     if (!tok) return json({ error: "token" }, 400);
     const now = Date.now(), elapsed = (now - tok.start) / 1000;
@@ -273,10 +290,4 @@ export default async (req: Request, context: Context) => {
     console.error("ranking error", err);
     return json({ error: "ranking no disponible" }, 500);
   }
-};
-
-export const config: Config = {
-  path: ["/api/auth", "/api/run", "/api/scores", "/api/me", "/api/nick", "/api/save", "/api/forget", "/api/admin/ranking"],
-  // Netlify's limit, across all instances (the Personal plan allows 2 rules per project: metrics.mts has the other one)
-  rateLimit: { windowLimit: 40, windowSize: 60, aggregateBy: ["ip", "domain"] },
-};
+}

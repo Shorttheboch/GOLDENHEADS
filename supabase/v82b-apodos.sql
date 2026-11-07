@@ -5,9 +5,9 @@
 -- 1) Nicknames: Santi's decision, for Catalan / Valencian names: À È Ò Ï are allowed too (Ç already was). In the uniqueness key they fold to
 --    A E O I like the other accents («JÒRDI» = «JORDI» = «Jordi»). The key is a generated column, so it is rebuilt here (only if it is still
 --    the v82 one). No existing nickname can contain the new letters, so no key changes and no clash can appear.
---    The Netlify function (netlify/functions/ranking.mts, checkNick) and the game (src/game/40-cuentas.js) check the same letters.
+--    The Worker (worker/ranking.ts, checkNick) and the game (src/game/40-cuentas.js) check the same letters.
 -- 2) metrics_prune(): deletes the anonymous play events (public.events, v81) older than 2 years, as the privacy page says.
---    The function netlify/functions/metrics.mts calls it at most once a day, when Santi opens /admin (GET /api/admin/stats).
+--    The Worker (worker/metrics.ts) calls it at most once a day, when Santi opens /admin (GET /api/admin/stats).
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 1) players: the allowed letters and the uniqueness key

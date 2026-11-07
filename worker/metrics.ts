@@ -2,15 +2,21 @@
 // POST /api/m               one event or a small batch {e:[...]} from the game (src/game/39-metricas.js) -> Supabase table public.events
 // GET  /api/admin/stats     ?range=today|7d|30d|all&platform=all|pc|touch, for the admin page (public/admin.html, /admin).
 //                           Header x-admin-key must equal ADMIN_PASSWORD. Answers only totals (SQL function public.metrics_stats, supabase/schema.sql).
-// Env (Netlify, scope Functions; Production AND Deploy Previews): SUPABASE_URL, SUPABASE_SECRET_KEY (sb_secret_...), ADMIN_PASSWORD.
-// Deploy Previews and branch deploys store their events as tests (test = true): they show only in the test count of /admin, never in the numbers.
-// Privacy: the IP is only used here, in memory, hashed with a random salt for the rate limit, and never stored. Country / region / city come from Netlify geo.
+// Settings of the Worker (v85, Cloudflare; the same for the real site and every preview): SUPABASE_URL, SUPABASE_SECRET_KEY (sb_secret_...), ADMIN_PASSWORD.
+// Previews (any host that is not in PROD_HOSTS: workers.dev, preview URLs; worker/index.ts) store their events as tests (test = true):
+// they show only in the test count of /admin, never in the numbers (Netlify: Deploy Previews and branch deploys).
+// Privacy: the IP is only used here, in memory, hashed with a random salt for the rate limit, and never stored. Country / region / city come from
+// Cloudflare (request.cf: country, region, city; Netlify gave them in context.geo).
 // Every field is whitelisted and clamped; anything else is dropped. Paths are relative (/api/...): no domain anywhere.
-// v82b: events older than 2 years are deleted (public.metrics_prune(), supabase/v82b-apodos.sql), at most once a day per instance, when the admin
+// v82b: events older than 2 years are deleted (public.metrics_prune(), supabase/v82b-apodos.sql), at most once a day per isolate, when the admin
 // page asks for the stats. If that SQL has not been run yet, the stats still answer (the error is only logged).
+// Cloudflare's rate limit binding (RL_METRICS in wrangler.jsonc: 60 a minute per IP, worker/index.ts) comes first, like Netlify's rule did.
 import { createClient } from "@supabase/supabase-js";
-import type { Config, Context } from "@netlify/functions";
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { buckets } from "./lib.ts";
+import type { ApiCtx, Env, Geo } from "./lib.ts";
+
+export const METRICS_PATHS = ["/api/m", "/api/admin/stats"];
 
 const MAX_BODY = 16_000, MAX_EVENTS = 12;
 const json = (data: unknown, status = 200) =>
@@ -18,17 +24,8 @@ const json = (data: unknown, status = 200) =>
     status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
   });
 
-// ---- rate limit, per instance and in memory (Netlify's own limit in config below covers all instances) ----
-const SALT = randomBytes(16);
-const ipKey = (ip: string) => createHash("sha256").update(SALT).update(ip || "?").digest("base64url").slice(0, 22);
-const HITS = new Map<string, { n: number; t: number }>();
-function bucket(name: string, ip: string, windowMs: number) { // this IP's counter in this window
-  const k = name + ipKey(ip), now = Date.now();
-  if (HITS.size > 5000) for (const [key, v] of HITS) if (now - v.t > 3_600_000) HITS.delete(key);
-  let h = HITS.get(k);
-  if (!h || now - h.t > windowMs) { h = { n: 0, t: now }; HITS.set(k, h); }
-  return h;
-}
+// ---- rate limit, per isolate and in memory (worker/lib.ts; Cloudflare's binding in worker/index.ts covers all isolates of a data centre) ----
+const bucket = buckets();
 
 // ---- input cleaning: only these keys, these values, these ranges ----
 const ID = /^[0-9a-f]{16,32}$/;
@@ -60,7 +57,7 @@ const DATA: Record<string, [string, (v: unknown) => unknown][]> = {
 };
 const decode = (s: unknown) => { if (typeof s !== "string" || !s) return null; try { return decodeURIComponent(s); } catch { return s; } };
 
-function clean(e: any, geo: Context["geo"] | undefined, preview: boolean) {
+function clean(e: any, geo: Geo | undefined, preview: boolean) {
   if (!e || typeof e !== "object" || Array.isArray(e)) return null;
   const kind = oneOf(e.kind, ["visit", "end", "quit", "error"]);
   if (!kind || typeof e.sid !== "string" || !ID.test(e.sid)) return null;
@@ -74,25 +71,29 @@ function clean(e: any, geo: Context["geo"] | undefined, preview: boolean) {
     platform: oneOf(e.plat, ["pc", "touch"]), os: oneOf(e.os, OS) ?? "other", browser: oneOf(e.br, BR) ?? "other", lang: oneOf(e.lang, ["es", "en"]),
     game: play ? int(e.game, 1, 999) : null, round: play ? int(e.round, 1, 999) : null, secs: play ? int(e.secs, 0, 86_400) : null,
     cause: kind === "end" ? oneOf(e.cause, ["dead", "ship", "cargo"]) : null,
-    country: str(geo?.country?.code, 2), region: str(decode(geo?.subdivision?.name) ?? geo?.subdivision?.code, 80), city: str(decode(geo?.city), 80),
+    country: str(geo?.country, 2), region: str(decode(geo?.region), 80), city: str(decode(geo?.city), 80),
     data,
   };
 }
 
 // ---- Supabase (server side only, secret key) ----
-let DB: ReturnType<typeof createClient> | null = null;
-function db() {
-  const url = Netlify.env.get("SUPABASE_URL"), key = Netlify.env.get("SUPABASE_SECRET_KEY");
+let DB: ReturnType<typeof createClient> | null = null, DBK = "";
+function db(env: Env) {
+  const url = env.SUPABASE_URL, key = env.SUPABASE_SECRET_KEY;
   if (!url || !key) return null;
-  return (DB ??= createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }));
+  if (!DB || DBK !== url + "\n" + key) { // one client per isolate (made again only if the settings change)
+    DB = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+    DBK = url + "\n" + key;
+  }
+  return DB;
 }
 
 const sha = (s: string) => createHash("sha256").update(s).digest();
-let PRUNED = 0; // when metrics_prune last ran in this instance
+let PRUNED = 0; // when metrics_prune last ran in this isolate
 const RANGES = ["today", "7d", "30d", "all"], PLATS = ["all", "pc", "touch"];
 
-export default async (req: Request, context: Context) => {
-  const path = new URL(req.url).pathname, ip = context.ip || "";
+export async function metrics(req: Request, c: ApiCtx): Promise<Response> {
+  const path = new URL(req.url).pathname, ip = c.ip || "", env = c.env;
   try {
     if (path === "/api/m") {
       if (req.method !== "POST") return json({ error: "método no permitido" }, 405);
@@ -102,10 +103,9 @@ export default async (req: Request, context: Context) => {
       let body: any;
       try { body = JSON.parse(text); } catch { return json({ error: "datos no válidos" }, 400); }
       const list = Array.isArray(body?.e) ? body.e : [body];
-      const preview = !!context.deploy?.context && context.deploy.context !== "production";
-      const rows = list.slice(0, MAX_EVENTS).map((e: unknown) => clean(e, context.geo, preview)).filter(Boolean);
+      const rows = list.slice(0, MAX_EVENTS).map((e: unknown) => clean(e, c.geo, c.preview)).filter(Boolean);
       if (!rows.length) return json({ error: "datos no válidos" }, 400);
-      const sb = db();
+      const sb = db(env);
       if (!sb) return json({ error: "métricas no configuradas" }, 503);
       const { error } = await sb.from("events").insert(rows);
       if (error) { console.error("metrics insert", error.message); return json({ error: "no se pudo guardar" }, 500); }
@@ -114,7 +114,7 @@ export default async (req: Request, context: Context) => {
 
     if (path === "/api/admin/stats") {
       if (req.method !== "GET") return json({ error: "método no permitido" }, 405);
-      const pass = Netlify.env.get("ADMIN_PASSWORD");
+      const pass = env.ADMIN_PASSWORD;
       if (!pass) return json({ error: "admin no configurado" }, 503);
       const fails = bucket("a:", ip, 15 * 60_000); // 8 wrong passwords from one IP = 15 minutes out
       if (fails.n >= 8) return json({ error: "demasiados intentos, espera unos minutos" }, 429);
@@ -122,7 +122,7 @@ export default async (req: Request, context: Context) => {
       if (!timingSafeEqual(sha(given), sha(pass))) { fails.n++; return json({ error: "contraseña incorrecta" }, 401); }
       const q = new URL(req.url).searchParams;
       const range = oneOf(q.get("range"), RANGES) ?? "7d", platform = oneOf(q.get("platform"), PLATS) ?? "all";
-      const sb = db();
+      const sb = db(env);
       if (!sb) return json({ error: "métricas no configuradas" }, 503);
       if (Date.now() - PRUNED > 86_400_000) { // the privacy page promises 2 years at most
         PRUNED = Date.now();
@@ -138,10 +138,4 @@ export default async (req: Request, context: Context) => {
     console.error("metrics error", err);
     return json({ error: "métricas no disponibles" }, 500);
   }
-};
-
-export const config: Config = {
-  path: ["/api/m", "/api/admin/stats"],
-  // Netlify's limit, across all instances (the Personal plan allows 2 rules per project: ranking.mts has the other one)
-  rateLimit: { windowLimit: 60, windowSize: 60, aggregateBy: ["ip", "domain"] },
-};
+}

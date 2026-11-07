@@ -1,21 +1,25 @@
-// Anonymous metrics (v81): the Netlify function netlify/functions/metrics.mts in plain Node (22+, it strips the TypeScript types itself), no Netlify, no Supabase.
+// Anonymous metrics (v81; v85: on Cloudflare): the Worker (worker/index.ts -> worker/metrics.ts) in plain Node (22+, it strips the TypeScript types
+// itself), no Cloudflare, no Supabase (tools/tests/worker-lib.cjs: env, request.cf, CF-Connecting-IP, the host of the real site or of a preview).
 //   node tools/tests/metrics-fn.cjs
 // Supabase is replaced twice:
 //   mock  a fake @supabase/supabase-js that records what the function asks of it (always)
 //   real  the real @supabase/supabase-js with fetch replaced, to see the HTTP requests it makes (when the package is installed:
 //         after `npm install`, or HEADS_SB_DIR=<a folder whose node_modules has @supabase/supabase-js>)
 // What it checks:
-//   POST /api/m   a batch is cleaned key by key (unknown keys, kinds and values dropped, numbers clamped, texts trimmed), geo added (country, region, city),
+//   POST /api/m   a batch is cleaned key by key (unknown keys, kinds and values dropped, numbers clamped, texts trimmed), geo added (country, region, city
+//                 from request.cf),
 //                 the IP never stored, a single event and a sendBeacon text/plain body work, bad JSON / nothing valid -> 400, too big -> 413,
 //                 more than 12 events -> only 12, GET -> 405, rate limit per IP (31st request in a minute -> 429, another IP still fine),
-//                 no Supabase variables -> 503, a database error -> 500, events from a Deploy Preview stored as tests
+//                 no Supabase variables -> 503, a database error -> 500, events from a preview (any host but goldenheads2021.com / www) stored as tests
 //   GET /api/admin/stats   no ADMIN_PASSWORD -> 503, missing or wrong x-admin-key -> 401, right one -> 200 with the totals of metrics_stats (range and
 //                 platform whitelisted), 8 wrong tries from one IP -> 429 for that IP only, no raw rows or ids in the answer;
 //                 v82b: metrics_prune (events older than 2 years) runs with the first admin request, then not again for a day, and its failure never
 //                 stops the stats
-const path=require('path'),fs=require('fs'),{pathToFileURL}=require('url'),{register}=require('module');
+//   Worker (v85)  request.cf geo (region name, or its code when Cloudflare has no name; nothing when there is no cf), CF-Connecting-IP, the rate
+//                 limit binding RL_METRICS (60 a minute per IP and host -> 429 before the handler), real site / preview by host
+const path=require('path'),fs=require('fs');
+const {ROOT,WORKER,hookSupabase,makeEnv,ctx:ctx0,bind}=require('./worker-lib.cjs');
 let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefined&&!c?'  '+JSON.stringify(i).slice(0,600):''));if(!c)bad++;};
-const ROOT=path.join(__dirname,'../..'),FN=pathToFileURL(path.join(ROOT,'netlify/functions/metrics.mts')).href;
 const SAMPLE=JSON.parse(fs.readFileSync(path.join(__dirname,'metrics-stats-sample.json'),'utf8'));
 const MOCK=`export function createClient(url,key,opts){const L=globalThis.__sb;L.created.push({url,key,opts});return {
   from(t){return {insert(rows){L.inserts.push({t,rows});return Promise.resolve({error:L.fail?{message:'db down'}:null});}};},
@@ -24,15 +28,12 @@ const MOCK=`export function createClient(url,key,opts){const L=globalThis.__sb;L
 // where the real package is, if anywhere
 let SBDIR=process.env.HEADS_SB_DIR||'';
 if(!SBDIR){try{require.resolve('@supabase/supabase-js',{paths:[ROOT]});SBDIR=ROOT;}catch(_){}}
-register('data:text/javascript,'+encodeURIComponent(`import {pathToFileURL} from 'node:url';let DIR='';export function initialize(d){DIR=d.dir;}
-export async function resolve(spec,ctx,next){if(spec==='@supabase/supabase-js'){
-  if(ctx.parentURL&&ctx.parentURL.includes('sb=real')&&DIR)return next(spec,{...ctx,parentURL:pathToFileURL(DIR+'/x.mjs').href});
-  return {url:'data:text/javascript,'+encodeURIComponent(${JSON.stringify(MOCK)}),shortCircuit:true};}
- return next(spec,ctx);}`),{data:{dir:SBDIR}});
+hookSupabase(MOCK,SBDIR);
 
-const ENV={};globalThis.Netlify={env:{get:k=>ENV[k]}};
-const IP='203.0.113.77',GEO={city:'Val%C3%A8ncia',country:{code:'ES',name:'Spain'},subdivision:{code:'VC',name:'Valencia'},timezone:'Europe/Madrid'};
-const ctx=(ip=IP,dc='production')=>({ip,geo:GEO,params:{},deploy:{context:dc,id:'d1',published:dc==='production'}});
+const {cfg:CFG,env:ENV}=makeEnv(); // the Worker's settings: the tests add SUPABASE_URL, ADMIN_PASSWORD... on it
+// what Cloudflare puts in request.cf (plain text, not URL-encoded as Netlify's geo was)
+const IP='203.0.113.77',GEO={country:'ES',region:'Valencia',regionCode:'VC',city:'València',continent:'EU',timezone:'Europe/Madrid',colo:'MAD'};
+const ctx=(ip=IP,dc='production',cf=GEO)=>ctx0(ip,dc,cf);
 const SID='0123456789abcdef01234567',PID='fedcba9876543210fedcba98';
 const post=(fn,body,{ip,type='application/json'}={})=>fn(new Request('https://example.test/api/m',{method:'POST',headers:{'content-type':type},body:typeof body==='string'?body:JSON.stringify(body)}),ctx(ip));
 const admin=(fn,q,key,ip)=>fn(new Request('https://example.test/api/admin/stats'+q,{headers:key==null?{}:{'x-admin-key':key}}),ctx(ip));
@@ -41,7 +42,7 @@ const deepKeys=(o,out=new Set())=>{if(o&&typeof o==='object')for(const [k,v] of 
 
 (async()=>{
   console.log('1) mock Supabase client');
-  const fn=(await import(FN+'?sb=mock')).default;let L=freshL();
+  const fn=bind((await import(WORKER+'?sb=mock')).default,ENV);let L=freshL();
   // no variables yet
   let r=await post(fn,{e:[{kind:'visit',sid:SID}]});ok(r.status===503,'no SUPABASE_URL / SUPABASE_SECRET_KEY -> 503',r.status);
   Object.assign(ENV,{SUPABASE_URL:'https://abcdefgh.supabase.co',SUPABASE_SECRET_KEY:'sb_secret_TESTKEY_123'});
@@ -57,7 +58,7 @@ const deepKeys=(o,out=new Set())=>{if(o&&typeof o==='object')for(const [k,v] of 
   const [v,e,x,qt]=rows;
   const COLS=['kind','session_id','player_id','version','test','platform','os','browser','lang','game','round','secs','cause','country','region','city','data'].sort().join();
   ok(rows.every(o=>Object.keys(o).sort().join()===COLS),'every row has exactly the table columns',rows.map(o=>Object.keys(o)));
-  ok(v.country==='ES'&&v.region==='Valencia'&&v.city==='València','geo from Netlify: country, region, city (decoded)',{c:v.country,r:v.region,ci:v.city});
+  ok(v.country==='ES'&&v.region==='Valencia'&&v.city==='València','geo from request.cf: country, region, city',{c:v.country,r:v.region,ci:v.city});
   ok(!JSON.stringify(L.inserts).includes(IP)&&!JSON.stringify(L.inserts).includes('1.2.3.4'),'no IP stored anywhere (neither the real one nor one sent in the body)');
   ok(v.player_id===PID&&v.session_id===SID&&v.version==='v81'&&v.platform==='touch'&&v.lang==='en'&&v.test===false,'visit: ids, version, platform, language',v);
   ok(JSON.stringify(v.data)===JSON.stringify({scr:'phone',blang:'es',inst:true,go:true,ready:true,consent:'yes',load:8123,film:'skipped',filmS:7}),'visit data: whitelisted keys only, numbers rounded',v.data);
@@ -74,7 +75,7 @@ const deepKeys=(o,out=new Set())=>{if(o&&typeof o==='object')for(const [k,v] of 
   // limits
   // a Deploy Preview stores its events as tests
   L.inserts.length=0;r=await fn(new Request('https://example.test/api/m',{method:'POST',body:JSON.stringify({kind:'visit',sid:SID})}),ctx('198.51.100.3','deploy-preview'));
-  ok(r.status===204&&L.inserts[0].rows[0].test===true,'Deploy Preview: stored as a test (never in the numbers)',L.inserts[0]&&L.inserts[0].rows[0].test);
+  ok(r.status===204&&L.inserts[0].rows[0].test===true,'a preview (preview URL on workers.dev): stored as a test (never in the numbers)',L.inserts[0]&&L.inserts[0].rows[0].test);
   r=await post(fn,'{not json');ok(r.status===400,'bad JSON -> 400',r.status);
   r=await post(fn,{e:[{kind:'nope'}]});ok(r.status===400,'nothing valid -> 400',r.status);
   r=await post(fn,{e:[{kind:'error',sid:SID,msg:'x'.repeat(17000)}]});ok(r.status===413,'body over 16 KB -> 413',r.status);
@@ -109,6 +110,25 @@ const deepKeys=(o,out=new Set())=>{if(o&&typeof o==='object')for(const [k,v] of 
   r=await admin(fn,'','dorado-secreto-2026','192.0.2.10');ok(r.status===200,'another IP gets in',r.status);
   L.fail=true;r=await admin(fn,'','dorado-secreto-2026','192.0.2.10');ok(r.status===500,'database error -> 500',r.status);L.fail=false;
 
+  console.log('4) the Worker: request.cf, CF-Connecting-IP, rate limit binding, real site or preview');
+  const one=async(cf,dc='production',ip)=>{L.inserts.length=0;const r=await fn(new Request('https://x/api/m',{method:'POST',body:JSON.stringify({kind:'visit',sid:SID})}),ctx(ip||'198.51.100.'+(100+(++NIP)),dc,cf));return {r,row:L.inserts[0]&&L.inserts[0].rows[0]};};let NIP=0;
+  let o=await one({country:'FR',regionCode:'IDF',city:'Paris'});ok(o.r.status===204&&o.row.country==='FR'&&o.row.region==='IDF'&&o.row.city==='Paris','no region name from Cloudflare: its code',o.row);
+  o=await one({country:'US',region:'California',regionCode:'CA',city:'San José'});ok(o.row.region==='California'&&o.row.city==='San José','the region name first; accents as they come',o.row);
+  o=await one(null);ok(o.r.status===204&&o.row.country===null&&o.row.region===null&&o.row.city===null,'no request.cf (local run): no place, still saved',o.row);
+  o=await one({country:'XXL',region:'R'.repeat(200),city:'C\u0000ity'});ok(o.row.country==='XX'&&o.row.region.length===80&&o.row.city==='C ity','geo cleaned like any text (2 / 80 / 80, no control characters)',o.row);
+  for(const [dc,t] of [['www',false],['branch-deploy',true],['deploy-preview',true]]){o=await one(GEO,dc);ok(o.row.test===t,dc+' host -> test='+t,o.row.test);}
+  {const ipx='198.51.100.222';codes=[];for(let i=0;i<31;i++){L.inserts.length=0;codes.push((await fn(new Request('https://x/api/m',{method:'POST',headers:{'x-forwarded-for':'10.1.1.'+i},body:JSON.stringify({kind:'visit',sid:SID})}),ctx(ipx))).status);}
+   ok(codes.slice(0,30).every(c=>c===204)&&codes[30]===429,'the 30-a-minute limit counts CF-Connecting-IP (X-Forwarded-For changes nothing)',codes.join(','));}
+  {const b=CFG.ratelimits.find(x=>x.name==='RL_METRICS');ok(b&&b.simple.limit===60&&b.simple.period===60&&b.namespace_id!==CFG.ratelimits.find(x=>x.name==='RL_RANKING').namespace_id,'wrangler.jsonc: RL_METRICS 60 a minute, its own namespace',b);
+   const RL=ENV.RL_METRICS;RL.on=true;const ipr='192.0.2.150',n0=L.rpcs.length;codes=[];
+   for(let i=0;i<61;i++)codes.push((await admin(fn,'?range=7d','dorado-secreto-2026',ipr)).status);
+   ok(codes.slice(0,60).every(c=>c===200)&&codes[60]===429,'61st request in a minute from one IP -> 429 (Cloudflare\'s binding, before the handler)',codes.join(','));
+   const r6=await admin(fn,'?range=7d','dorado-secreto-2026',ipr),j6=await r6.json();ok(r6.status===429&&j6.error==='demasiadas peticiones'&&L.rpcs.length===n0+60,'429 {"error":"demasiadas peticiones"}, the handler never reached',{j6,n:L.rpcs.length-n0});
+   ok((await admin(fn,'?range=7d','dorado-secreto-2026','192.0.2.151')).status===200,'another IP: fine');
+   L.inserts.length=0;const rb=await post(fn,{kind:'visit',sid:SID},{ip:ipr});ok(rb.status===429&&L.inserts.length===0,'/api/m too, for that IP');
+   ok(RL.keys.every(k=>!k.includes(ipr))&&ENV.RL_RANKING.keys.length===0,'key = host + a hash of the IP; no metrics path goes through RL_RANKING');
+   RL.on=false;}
+
   console.log('3) real @supabase/supabase-js, fetch replaced');
   if(!SBDIR)console.log('  skipped: @supabase/supabase-js is not installed (npm install, or HEADS_SB_DIR=...)');
   else{
@@ -116,7 +136,7 @@ const deepKeys=(o,out=new Set())=>{if(o&&typeof o==='object')for(const [k,v] of 
     globalThis.fetch=async(u,o={})=>{const url=String(u&&u.url||u),h=new Headers(o.headers||(u&&u.headers)||{});calls.push({url,method:o.method||'GET',apikey:h.get('apikey'),auth:h.get('authorization'),prefer:h.get('prefer'),body:o.body?String(o.body):''});
       if(url.includes('/rest/v1/rpc/'))return new Response(JSON.stringify(SAMPLE),{status:200,headers:{'content-type':'application/json'}});
       return new Response(null,{status:201});};
-    const fr=(await import(FN+'?sb=real')).default;
+    const fr=bind((await import(WORKER+'?sb=real')).default,ENV);
     r=await post(fr,{e:[visit,end]},{ip:'198.51.100.50'});
     const c=calls[0]||{};
     ok(r.status===204&&/^https:\/\/abcdefgh\.supabase\.co\/rest\/v1\/events(\?|$)/.test(c.url)&&c.method==='POST','insert = POST '+String(c.url).split('?')[0],{status:r.status,c});

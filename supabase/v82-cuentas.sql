@@ -2,7 +2,7 @@
 -- Run it by hand in Supabase > SQL editor, after supabase/schema.sql (v81). It is idempotent: running it again changes nothing
 -- (tables and indexes are created only if missing; the functions are replaced).
 --
--- Who writes and reads: only the Netlify function netlify/functions/ranking.mts, with the secret key (SUPABASE_SECRET_KEY, Postgres role
+-- Who writes and reads: only the Worker (worker/ranking.ts; Netlify function until v84), with the secret key (SUPABASE_SECRET_KEY, Postgres role
 -- service_role). The game never talks to these tables: the browser only talks to Supabase Auth (Google login, publishable key), and sends
 -- its runs to the function, which checks the session (Authorization: Bearer <access token>) and the signed run token before saving anything.
 -- Everything is explicit, as in schema.sql:

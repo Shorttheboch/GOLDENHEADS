@@ -1,11 +1,10 @@
 {
-  "id": "/",
   "name": "HEADS Rescate Dorado",
   "short_name": "HEADS",
   "description": "Un astronauta dorado defiende su nave de las arañas rojas.",
   "lang": "es",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone"],
   "orientation": "landscape",

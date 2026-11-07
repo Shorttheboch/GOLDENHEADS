@@ -4,7 +4,8 @@
 //   - both pages load with no script at all (static: reachable without login, as Google asks), title, the controller «Golden Heads» and
 //     headsrescueadmin@gmail.com as the only email, no personal name, no fixed domain of the game anywhere (every link relative, apart from
 //     the email and the Spanish data protection agency)
-//   - what it must say: Google account id and email, nickname, runs, anonymous stats and consent, Supabase EU (Frankfurt), Netlify, Google,
+//   - what it must say: Google account id and email, nickname, runs, anonymous stats and consent, Supabase EU (Frankfurt), Cloudflare (v85: hosting),
+//     Netlify (only the old address now), Google,
 //     retention, rights, how to delete (in-game button and email), the rules with fair play, one account per person, cheating = removal,
 //     nickname rules, no official prizes; the rules have their own anchor (#normas / #rules) that the game links to
 //   - the links between the two languages and back to the game work; the game's fonts and logo load from the site itself
@@ -13,13 +14,15 @@ const {chromium}=require('playwright');
 const fs=require('fs'),path=require('path');
 const {BASE,ARGS,shot,ROOT}=require('./lib.cjs');
 let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefined&&!c?'  '+JSON.stringify(i).slice(0,600):''));if(!c)bad++;};
-const PAGES=[['es','privacidad','normas',['identificador de tu cuenta de Google y tu email','apodo','partidas guardadas','Estadísticas anónimas','Nunca guardamos tu IP','Supabase','Fráncfort','Netlify','Google','Cuánto tiempo','Borrar mi cuenta','Juego limpio','Una cuenta por persona','cuenta queda fuera del ranking','de 3 a 12 letras','no hay premios oficiales','aepd.es']],
-  ['en','privacy','rules',['Google account id and your email','nickname','saved runs','Anonymous stats','We never keep your IP','Supabase','Frankfurt','Netlify','Google','For how long','Delete my account','Fair play','One account per person','taken off the leaderboard','3 to 12 letters','no official prizes','aepd.es']]];
+const PAGES=[['es','privacidad','normas',['identificador de tu cuenta de Google y tu email','apodo','partidas guardadas','Estadísticas anónimas','Nunca guardamos tu IP','Supabase','Fráncfort','Cloudflare','Netlify','Google','Cuánto tiempo','Borrar mi cuenta','Juego limpio','Una cuenta por persona','cuenta queda fuera del ranking','de 3 a 12 letras','no hay premios oficiales','aepd.es']],
+  ['en','privacy','rules',['Google account id and your email','nickname','saved runs','Anonymous stats','We never keep your IP','Supabase','Frankfurt','Cloudflare','Netlify','Google','For how long','Delete my account','Fair play','One account per person','taken off the leaderboard','3 to 12 letters','no official prizes','aepd.es']]];
 
 (async()=>{
   const b=await chromium.launch({args:ARGS});
-  const toml=fs.readFileSync(path.join(ROOT,'netlify.toml'),'utf8');
-  ok(/from = "\/privacidad"\s+to = "\/privacidad\/index.html"\s+status = 200/.test(toml)&&/from = "\/privacy"\s+to = "\/privacy\/index.html"\s+status = 200/.test(toml),'netlify.toml: /privacidad and /privacy');
+  // v85, Cloudflare: /headsrescue/privacidad and /privacy (with or without the slash) by html_handling; the old root addresses redirect there
+  {const {REDIRECTS}=await import(require('url').pathToFileURL(path.join(ROOT,'tools/cloudflare/make-site.mjs')).href),W=require('./worker-lib.cjs').wranglerConfig();
+   ok(W.assets.html_handling==='auto-trailing-slash','wrangler.jsonc: html_handling auto-trailing-slash (/headsrescue/privacidad -> /headsrescue/privacidad/)',W.assets);
+   ok(/^\/privacidad\/\*\s+\/headsrescue\/privacidad\/:splat\s+301$/m.test(REDIRECTS)&&/^\/privacy\/\*\s+\/headsrescue\/privacy\/:splat\s+301$/m.test(REDIRECTS)&&/^\/privacidad\s+\/headsrescue\/privacidad\/\s+301$/m.test(REDIRECTS),'site/_redirects: /privacidad… and /privacy… at the root -> /headsrescue/…');}
   for(const [lang,dir,anchor,must] of PAGES){
     console.log(`${lang}: /${dir}/`);
     const ctx=await b.newContext({viewport:{width:1280,height:800}}),p=await ctx.newPage(),errs=[],outside=[];

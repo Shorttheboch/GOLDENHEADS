@@ -2,7 +2,7 @@
 // Run on dist-test:
 //   npm run build:test && PORT=8798 tools/run-test.sh dist-test tools/tests/cuentas-cartel.cjs
 //   HEADS_ONLY=pc | phone | timing | nag   only that part · HEADS_SHOTS=all   screenshots of every state at every size (default: the main ones)
-// No server: /api/* is answered by the test (a small fake of netlify/functions/ranking.mts with the board it is told to have).
+// No server: /api/* is answered by the test (a small fake of worker/ranking.ts with the board it is told to have).
 // 1) layout, every size (PC 960x540, 1280x720, 1366x768, 1600x900, 1920x1080, 2560x1440 · phones 844x390, 667x375, 932x430), ES and EN,
 //    a heavy game (ten stat lines), board states empty0 (score 0: «¡Sé el primero!», no button) · empty (TÚ #1) · short (TÚ #3) · full (TÚ #5) ·
 //    low (not in the top 5) · down (/api/scores 503: v44, no tabs, no chevrons):

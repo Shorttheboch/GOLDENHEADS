@@ -1,6 +1,6 @@
 /* ================= METRICS (v81) ================= */
 // Anonymous play metrics for Santi: how people play, how far they get and from where, to improve the game (no contest, no accounts yet).
-// Server: netlify/functions/metrics.mts (POST /api/m, relative path: no domain anywhere) -> Supabase (supabase/schema.sql). Santi reads them at /admin (public/admin.html).
+// Server: worker/metrics.ts (POST /api/m, relative path: no domain anywhere) -> Supabase (supabase/schema.sql). Santi reads them at /admin (public/admin.html).
 // Events, about 3 requests a game (Netlify bills every call):
 //   visit · once per page load, when the first game starts (just after JUGAR, or after the opening film when it plays) or on page hide if no game started:
 //           PC/touch, OS, browser, language, screen class, installed, load time until JUGAR was enabled, film watched / skipped

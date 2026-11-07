@@ -7,16 +7,16 @@
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#05050a">
 <title>HEADS · Estadísticas y ranking</title>
-<!-- v81: Santi's page for the anonymous play metrics (served at /admin, see netlify.toml). Not part of the game bundle, Spanish only, no outside libraries.
-     It asks GET /api/admin/stats (netlify/functions/metrics.mts) with the password in the x-admin-key header; the password lives in sessionStorage only.
+<!-- v81: Santi's page for the anonymous play metrics (served at /headsrescue/admin on goldenheads2021.com; v85: its own files are relative, the API absolute). Not part of the game bundle, Spanish only, no outside libraries.
+     It asks GET /api/admin/stats (worker/metrics.ts) with the password in the x-admin-key header; the password lives in sessionStorage only.
      Every number arrives already added up by the SQL function metrics_stats (supabase/schema.sql); test games (?ronda=N) are left out there.
-     v82: a second tab, Ranking (Season 1 of the Google accounts): GET /api/admin/ranking (netlify/functions/ranking.mts -> rank_admin in
+     v82: a second tab, Ranking (Season 1 of the Google accounts): GET /api/admin/ranking (worker/ranking.ts -> rank_admin in
      supabase/v82-cuentas.sql) with the same password; hide / show a run, ban / unban a player (POST /api/admin/ranking). Never an email. -->
 <style>
-@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f600.woff2) format('woff2');font-weight:600;font-display:swap}
-@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f700.woff2) format('woff2');font-weight:700;font-display:swap}
-@font-face{font-family:TitilliumH;src:url(/assets/ui/menuui/f900.woff2) format('woff2');font-weight:900;font-display:swap}
-@font-face{font-family:TekturE;src:url(/assets/ui/endui/font.woff2) format('woff2');font-weight:400 900;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(assets/ui/menuui/f600.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(assets/ui/menuui/f700.woff2) format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:TitilliumH;src:url(assets/ui/menuui/f900.woff2) format('woff2');font-weight:900;font-display:swap}
+@font-face{font-family:TekturE;src:url(assets/ui/endui/font.woff2) format('woff2');font-weight:400 900;font-display:swap}
 :root{color-scheme:dark;
   --void:#05050a;--panel:rgba(8,8,12,.88);--line:rgba(232,182,74,.55);--gold:#e8b64a;--gold-hi:#ffe39a;--ink:#f4ecd8;--ink2:#cfc4a8;--ink3:#8f8670;--track:rgba(255,255,255,.06);
   --pc:#c08a1e;--mo:#1f9fbf;--c3:#d65a44;--c4:#8f72d6;--bad:#ff6b57;
@@ -149,7 +149,7 @@ i.mo{background:var(--mo)!important}
 </head>
 <body>
 <div class="wrap">
-  <header><img src="/assets/ui/menuui/logo.webp" alt="HEADS Rescue"><div><h1 class="g3">Estadísticas</h1><div class="sub">Métricas anónimas y ranking del juego · solo para Santi</div></div></header>
+  <header><img src="assets/ui/menuui/logo.webp" alt="HEADS Rescue"><div><h1 class="g3">Estadísticas</h1><div class="sub">Métricas anónimas y ranking del juego · solo para Santi</div></div></header>
 
   <form id="login" class="box" hidden autocomplete="on">
     <h2 class="g3">Acceso</h2>

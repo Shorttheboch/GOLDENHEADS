@@ -30,7 +30,8 @@ const VO_LINES={
   inc_beam:['P','¡Cuidado con el láser! ¡Muévete!'],
   inc_dead:['P','¡La Incineradora ha caído! ¡Increíble, capitán!'],
   cloud:['P','¡Una nube de tricomas! ¡Recógela, la necesitamos!'],
-  tank_full:['P','¡Tanque lleno! Vuelve a la bodega a descargar.']}; // v86 (42-tanque.js)
+  tank_full:['P','¡Tanque lleno! Vuelve a la bodega a descargar.'], // v86 (42-tanque.js)
+  top1:['P','¡Número uno, capitán! ¡Nadie lo ha hecho mejor!']}; // v87 (43-numero-uno.js)
 const ZONE_VO={MOTORES:'zn_eng_hit',REACTOR:'zn_rea_hit',BODEGA:'zn_hold_hit',CABINA:'zn_cock_hit'};
 let VOB=null,voBus=null,voOn=true,voSrc=null;
 const VOQ={until:0,prio:0,lastEnd:-99,cool:{},lastVar:{},queue:[]};

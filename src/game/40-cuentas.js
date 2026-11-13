@@ -54,9 +54,13 @@ const accBestLine=b=>b?`Tu mejor de la temporada: ${fmtN(b.score)} · ronda ${b.
 const accPlace=(pos,count)=>count===1?`Puesto #${pos} de 1 capitán`:`Puesto #${pos} de ${fmtN(count)} capitanes`;
 const accPlaceLine=j=>j&&j.me?accPlace(j.me.pos,j.count):'';
 // a saved run on the end plate: ¡NUEVO RÉCORD! or the season best, the place, the top
-function accPlateSaved(j){if(j.status==='flagged')accMsg(['Partida guardada · en revisión',accBestLine(j.best)]);
-  else accMsg([j.newBest?'¡NUEVO RÉCORD!':accBestLine(j.best),accPlaceLine(j)],j.newBest?'new':'');
-  $('rankAll').hidden=!rankRender($('rankList'),j,{fill:true}).has;}
+// v87: a new season #1 (n1Is: ok, new best, place 1) -> «¡NUEVO Nº1 DE LA TEMPORADA!» and the celebration (43-numero-uno.js) once the plate is in;
+// o = {token, score} of the run, or {quiet:true} when the celebration goes over the account screen instead (accResult)
+function accPlateSaved(j,o={}){const n1=n1Is(j);
+  if(j.status==='flagged')accMsg(['Partida guardada · en revisión',accBestLine(j.best)]);
+  else accMsg([n1?'¡NUEVO Nº1 DE LA TEMPORADA!':j.newBest?'¡NUEVO RÉCORD!':accBestLine(j.best),accPlaceLine(j)],j.newBest?'new':'');
+  $('rankAll').hidden=!rankRender($('rankList'),j,{fill:true}).has;
+  if(n1&&!o.quiet)n1Fire('saved',{token:o.token,score:j.best&&j.best.score||o.score,nick:j.nick,over:'end'});}
 async function accEnd(){const seq=++ACC.seq,pend=RANK.pending,box=$('rankBox'),live=()=>seq===ACC.seq&&!$('end').hidden;ACC.nagged=false;ACC.qual=null;
   if(accSigned()){accBar();box.hidden=false;
     if(pend){accMsg('Guardando tu partida…');fitEndPlate();return accEndSave(pend,seq);}
@@ -73,11 +77,13 @@ async function accEndGuest(pend,seq){const box=$('rankBox'),live=()=>seq===ACC.s
   const can=!!(pend&&cfg),R=rankRender($('rankList'),d,{fill:true,ghost:can?pend:null});
   if(can){const top=Array.isArray(d.top)?d.top:[],pos=1+top.filter(e=>e.score>=pend.score).length;ACC.qual=pos<=AC_FULL&&(pos<=top.length||top.length<AC_FULL)?pos:null;}
   $('rankAll').hidden=!R.has;
-  if(can){$('saveBtn').hidden=false;accSaveBtn(false);accPreload();accMsg(!R.ghost?'Guarda tu puntuación con tu apodo de capitán':R.has?`Con esta partida entrarías en el puesto #${R.ghost}`:'¡Guárdala y serás el primero del ranking!');}
+  if(can){$('saveBtn').hidden=false;accSaveBtn(false);accPreload();
+    if(R.ghost===1){accMsg(['¡SERÍAS EL Nº1!','Guárdala con Google para quedarte el Nº1'],'new');n1Fire('guest',{token:pend.token,score:pend.score,over:'end'});} // v87: it would be #1 (43-numero-uno.js)
+    else accMsg(!R.ghost?'Guarda tu puntuación con tu apodo de capitán':`Con esta partida entrarías en el puesto #${R.ghost}`);}
   accBar();box.hidden=false;fitEndPlate();}
 async function accEndSave(pend,seq){const live=()=>seq===ACC.seq&&!$('end').hidden;
   const r=await accSave(pend);if(!live())return;
-  if(r.s===200&&r.j.saved){accSetNick(r.j.nick);accBar();accPlateSaved(r.j);}
+  if(r.s===200&&r.j.saved){accSetNick(r.j.nick);accBar();accPlateSaved(r.j,{token:pend.token,score:pend.score});}
   else if(r.s===401||r.j.error==='google'){accForgetLocal();$('acctBar').hidden=true;return accEndGuest(pend,seq);} // the session is gone: back to the guest box (the run can still be saved)
   else if(r.j.error==='nick'){accPendSet(pend);accMsg('Elige tu apodo para guardar la partida');accOpen('nick');}
   else if(r.j.error==='banned')accMsg('Esta cuenta está fuera del ranking.');
@@ -160,11 +166,13 @@ $('acSave').addEventListener('click',e=>{e.stopPropagation();accClose();accStart
 $('acct').addEventListener('click',e=>e.stopPropagation());
 
 // a result screen from the server's answer to /api/save (also updates the end plate if it is open behind)
-function accResult(r){acLS(ACC_K.pend,null); // claimed once, whatever the server said (only a network error keeps it)
+function accResult(r,p){acLS(ACC_K.pend,null); // claimed once, whatever the server said (only a network error keeps it)
   const j=r.j||{};
-  if(r.s===200&&j.saved){accSetNick(j.nick);if(!$('end').hidden)accPlateSaved(j);
-    const res={l1:j.status==='flagged'?accBestLine(j.best):j.newBest?'¡NUEVO RÉCORD!':accBestLine(j.best),l2:accPlaceLine(j),cls:j.newBest&&j.status!=='flagged'?'new':'',board:j};
-    return accOpen(j.status==='flagged'?'flagged':'saved',{res,cap:true,big:true});} // the full ranking (top 50, my line, my place)
+  if(r.s===200&&j.saved){accSetNick(j.nick);const n1=n1Is(j);if(!$('end').hidden)accPlateSaved(j,{quiet:true});
+    const res={l1:j.status==='flagged'?accBestLine(j.best):n1?'¡NUEVO Nº1 DE LA TEMPORADA!':j.newBest?'¡NUEVO RÉCORD!':accBestLine(j.best),l2:accPlaceLine(j),cls:j.newBest&&j.status!=='flagged'?'new':'',board:j};
+    accOpen(j.status==='flagged'?'flagged':'saved',{res,cap:true,big:true}); // the full ranking (top 50, my line, my place)
+    if(n1)n1Fire('saved',{token:p&&p.token,score:j.best&&j.best.score||p&&p.score,nick:j.nick,over:'acct'}); // v87: over it, the «¡NUEVO Nº1!» celebration
+    return;}
   if(j.error==='used')return accOpen('used',{cap:true});
   if(j.error==='expired')return accOpen('expired',{cap:true});
   if(j.error==='banned')return accOpen('banned');
@@ -186,17 +194,17 @@ async function accClaim(player){const p=accPendGet();
   if(r.s===0||r.s>=500||r.s===429)return accOpen('neterr',{go:()=>accClaim(player),no:accDrop});
   if(r.s===401){accForgetLocal();return accOpen('fail',{go:accRelogin});}
   if(r.j.error==='nick')return accOpen('nick',{no:accDrop});
-  return accResult(r);}
+  return accResult(r,p);}
 // «¿GUARDAMOS TU PUNTUACIÓN?»: retrying (REINTENTAR, Enter, R) before the ranking slide was ever shown, as a guest with a run that can be saved and
 // that would make the top 50 or is a new record on this device. At most once a browser session (saying no counts). Never waits for anything:
 // everything it needs is already known when the plate is up; if it is not, there is no reminder. Answers true when it is showing.
-function accNag(){if(!RANK.on||!ENDV.on||ENDV.seen||accSigned()||ACC.nagged||ACC.scr)return false;
+function accNag(){if(!RANK.on||!ENDV.on||(ENDV.seen&&!N1.guest)||accSigned()||ACC.nagged||ACC.scr)return false; // v87: a run that would be #1 is asked about even after the ranking was seen
   const p=RANK.pending;if(!p||$('saveBtn').hidden)return false;
   let done=false;try{done=!!sessionStorage.getItem('heads_save_nag');}catch(_){done=true;}if(done)return false;
   if(!ACC.qual&&!RANK.newRec)return false;
   try{sessionStorage.setItem('heads_save_nag','1');}catch(_){}ACC.nagged=true;
   const retry=()=>{accClose();endRetry();};
-  accOpen('nag',{go:retry,esc:retry,res:{l1:fmtN(p.score),l2:ACC.qual?`Entrarías en el puesto #${ACC.qual}`:'¡Es tu nuevo récord!',cls:'score'}});
+  accOpen('nag',{go:retry,esc:retry,res:{l1:fmtN(p.score),l2:N1.guest?'¡Serías el Nº1 del ranking!':ACC.qual?`Entrarías en el puesto #${ACC.qual}`:'¡Es tu nuevo récord!',cls:'score'}});
   return true;}
 // VER RANKING COMPLETO: the full screen without the saved header (with my line and place when signed in)
 async function accBoard(){if(ACC.scr)return;accOpen('loading');const signed=accSigned();

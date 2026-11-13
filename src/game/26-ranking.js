@@ -29,7 +29,8 @@ function rankRender(ol,d,o={}){const n=o.n||RANK.show,top=(d&&Array.isArray(d.to
 function rankLoading(){$('rankList').innerHTML=Array.from({length:RANK.show},(_,i)=>`<li class="ph load"><i>${i+1}</i><span>· · ·</span><em></em><b>—</b></li>`).join('');}
 // the ranking does not answer: exactly v44 (the stats only)
 function rankOff(){endTabs(false);fitEndPlate();}
-function rankShow(total,st){$('rankMsg').textContent='';$('saveBtn').hidden=true;$('acctBar').hidden=true;$('rankAll').hidden=true;
+function rankShow(total,st){n1Reset(); // v87: «¡NUEVO Nº1!» (43-numero-uno.js)
+  $('rankMsg').textContent='';$('saveBtn').hidden=true;$('acctBar').hidden=true;$('rankAll').hidden=true;
   RANK.pending=null;endTabs(RANK.on);
   if(!RANK.on){$('rankList').innerHTML='';fitEndPlate();return;}
   if(RANK.token&&total>0)RANK.pending={token:RANK.token,score:Math.round(total),round:wave+1,stats:st,secs:Math.round(playT),plat:isTouch?'touch':'pc',
@@ -112,6 +113,6 @@ $('endNext').addEventListener('click',e=>{e.stopPropagation();endSlide(1,'manual
 // ←/→ on PC (Enter still retries, 21-input-pc.js)
 addEventListener('keydown',e=>{if(!ENDV.on||$('end').hidden||state!=='dead'||document.body.classList.contains('acctOn'))return;
   if(e.code==='ArrowRight'||e.code==='ArrowLeft'){e.preventDefault();endSlide(e.code==='ArrowRight'?1:0,'manual');}});
-function endRetry(){tcFull();endStop();cancelAnimationFrame(ENDP.raf);$('end').hidden=true;$('end').classList.remove('go');reset();state='play';musicStart();
+function endRetry(){n1Reset();tcFull();endStop();cancelAnimationFrame(ENDP.raf);$('end').hidden=true;$('end').classList.remove('go');reset();state='play';musicStart();
   if(!isTouch&&canvas.requestPointerLock){try{const r=canvas.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(_){}}}
 $('again').addEventListener('click',()=>{if(accNag())return;endRetry();}); // accNag (40-cuentas.js): «¿GUARDAMOS TU PUNTUACIÓN?», at most once a session

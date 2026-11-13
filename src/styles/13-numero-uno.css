@@ -1,0 +1,72 @@
+/* ===== v87: «¡NUEVO Nº1!» (src/game/43-numero-uno.js) ===== */
+/* over everything (the end plate is 30, the account screens 55); --u is the end plate's unit, so it scales the same way on PC and phones */
+#n1{--u:min(1vh,.5625vw);--ef:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;cursor:pointer;font-family:var(--ef);-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:none}
+#n1[hidden]{display:none}
+#n1::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 62% at 50% 45%,rgba(52,30,2,.62),rgba(6,3,0,.86) 72%);opacity:0}
+#n1.go::before{animation:n1Dim .35s ease-out both}
+#n1Fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+/* slow gold rays behind the title */
+.n1Rays{position:absolute;left:50%;top:44%;width:240vmax;height:240vmax;margin:-120vmax 0 0 -120vmax;pointer-events:none;opacity:0;
+  background:repeating-conic-gradient(from 0deg,rgba(255,206,90,.17) 0deg 5deg,rgba(255,206,90,0) 5deg 15deg);
+  -webkit-mask:radial-gradient(circle,#000 0,rgba(0,0,0,.9) 7%,transparent 34%);mask:radial-gradient(circle,#000 0,rgba(0,0,0,.9) 7%,transparent 34%)}
+#n1.go .n1Rays{animation:n1RaysIn .9s .1s ease-out both,n1Spin 16s linear infinite}
+.n1Flash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 44%,rgba(255,252,228,.95),rgba(255,206,90,.5) 22%,rgba(255,160,30,0) 58%)}
+#n1.go .n1Flash{animation:n1Flash .8s .14s ease-out both}
+.n1In{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;margin-top:calc(var(--u)*-5);pointer-events:none}
+#n1.go .n1In{animation:n1Shake .42s .5s linear both}
+.n1Crown{width:calc(var(--u)*17);height:auto;overflow:visible;filter:drop-shadow(0 0 calc(var(--u)*2.2) rgba(255,190,40,.85)) drop-shadow(0 calc(var(--u)*.5) calc(var(--u)*.8) rgba(0,0,0,.75))}
+#n1.go .n1Crown{animation:n1Crown .75s cubic-bezier(.2,1.5,.45,1) both,n1Float 2.6s 1s ease-in-out infinite alternate}
+.n1Tl{--g3glow:rgba(255,170,30,.9);font-size:calc(var(--u)*15);margin-top:calc(var(--u)*.3)}
+.n1Tl .ln{display:block;transform:scaleX(1.12)}
+#n1.go .n1Tl{animation:n1Slam .6s .14s cubic-bezier(.3,1.45,.5,1) both}
+#n1.go .n1Tl .g3>i{animation:eShine 2.2s .75s ease-in-out both}
+.n1Ts{display:flex;align-items:center;gap:calc(var(--u)*1.6);margin-top:calc(var(--u)*1.7);font:800 calc(var(--u)*2.4)/1 var(--ef);letter-spacing:.38em;white-space:nowrap;
+  color:#ffe9a6;text-shadow:0 0 .4em rgba(255,170,30,.7),0 2px 5px rgba(0,0,0,.85)}
+.n1Ts::before,.n1Ts::after{content:'';flex:none;width:calc(var(--u)*5.5);height:max(2px,calc(var(--u)*.22));background:#ffd659;box-shadow:0 0 6px rgba(255,190,40,.9)}
+.n1Who{display:flex;align-items:baseline;gap:calc(var(--u)*1.1);margin-top:calc(var(--u)*1.8);font:800 calc(var(--u)*3.4)/1 var(--ef);letter-spacing:.14em;white-space:nowrap;
+  color:#f6e1a2;text-shadow:0 2px 6px rgba(0,0,0,.9)}
+.n1Who b{color:#ffd659;font-weight:900;text-shadow:0 0 .35em rgba(255,190,40,.8),0 2px 6px rgba(0,0,0,.9)}
+.n1Who em{font-style:normal;color:rgba(246,225,162,.55)}
+.n1Who i{font-style:normal;color:#fff3cf;font-variant-numeric:tabular-nums}
+.n1Hint{margin-top:calc(var(--u)*1.4);font:700 calc(var(--u)*2.2)/1.2 var(--ef);letter-spacing:.16em;color:#f3e7c6;text-shadow:0 2px 5px rgba(0,0,0,.9);white-space:nowrap}
+#n1.guest .n1Hint{color:#9fdcff;text-shadow:0 0 .5em rgba(60,200,255,.6),0 2px 5px rgba(0,0,0,.9)}
+.n1Ts,.n1Who,.n1Hint{opacity:0}
+#n1.go .n1Ts{animation:n1Up .45s .7s ease-out both}
+#n1.go .n1Who{animation:n1Up .45s .95s ease-out both}
+#n1.go .n1Hint{animation:n1Up .45s 1.2s ease-out both}
+#n1.out{animation:n1Out var(--n1out,.45s) ease-in both}
+body.touch .n1Crown{width:calc(var(--u)*15)}
+body.touch .n1Tl{font-size:calc(var(--u)*14.5)}
+body.touch .n1Ts{font-size:max(11px,calc(var(--u)*2.6));letter-spacing:.24em}
+body.touch .n1Who{font-size:max(14px,calc(var(--u)*3.8))}
+body.touch .n1Hint{font-size:max(12px,calc(var(--u)*2.9));letter-spacing:.08em}
+@keyframes n1Dim{from{opacity:0}to{opacity:1}}
+@keyframes n1RaysIn{from{opacity:0}to{opacity:1}}
+@keyframes n1Spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes n1Flash{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+@keyframes n1Crown{0%{opacity:0;transform:translateY(-120%) scale(.6) rotate(-8deg)}60%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes n1Float{from{transform:translateY(0)}to{transform:translateY(calc(var(--u)*-.8))}}
+@keyframes n1Slam{0%{opacity:0;transform:scale(2.3);filter:blur(10px)}55%{opacity:1;transform:scale(.94);filter:blur(0)}78%{transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+@keyframes n1Shake{0%,100%{transform:none}15%{transform:translate(calc(var(--u)*-.6),calc(var(--u)*.4))}30%{transform:translate(calc(var(--u)*.5),calc(var(--u)*-.3))}
+  45%{transform:translate(calc(var(--u)*-.35),calc(var(--u)*.2))}60%{transform:translate(calc(var(--u)*.2),0)}80%{transform:translate(calc(var(--u)*-.1),0)}}
+@keyframes n1Up{from{opacity:0;transform:translateY(.6em)}to{opacity:1;transform:none}}
+@keyframes n1Out{from{opacity:1;transform:none}to{opacity:0;transform:scale(1.04)}}
+@keyframes n1Fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  #n1.go .n1Rays{animation:n1RaysIn .4s both}
+  #n1.go .n1In,#n1.go .n1Crown,#n1.go .n1Tl,#n1.go .n1Ts,#n1.go .n1Who,#n1.go .n1Hint{animation:n1Fade .4s both}
+  #n1.go .n1Tl .g3>i{animation:none}#n1.go .n1Flash{animation:none}}
+/* the #1 line, on the end plate and in the full ranking: a gold glow and a crown instead of the 1 */
+#rankList li.n1,.rkList li.n1{background:linear-gradient(90deg,rgba(255,214,89,.34),rgba(255,214,89,.1));box-shadow:inset 0 0 0 1px rgba(255,226,130,.85),0 0 14px rgba(255,190,40,.45);
+  animation:n1Row 1.1s ease-in-out infinite alternate}
+#rankList li.n1 span,#rankList li.n1 b,.rkList li.n1 span,.rkList li.n1 b{color:#ffe08a}
+#rankList li.n1 i,.rkList li.n1 i{position:relative;color:transparent!important} /* (over the podium colour) */
+#rankList li.n1 i::before,.rkList li.n1 i::before{content:'';position:absolute;left:50%;top:50%;width:1.4em;height:1.05em;transform:translate(-50%,-58%);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 88'%3E%3Cpath d='M12 70 6 24l26 22L60 10l28 36 26-22-6 46Z' fill='%23ffd659' stroke='%236e3c06' stroke-width='5' stroke-linejoin='round'/%3E%3Crect x='9' y='68' width='102' height='15' rx='3' fill='%23e29a16' stroke='%236e3c06' stroke-width='5'/%3E%3Ccircle cx='60' cy='54' r='8' fill='%233ff0ff'/%3E%3C/svg%3E") center/contain no-repeat;
+  filter:drop-shadow(0 0 4px rgba(255,190,40,.9))}
+@keyframes n1Row{from{box-shadow:inset 0 0 0 1px rgba(255,226,130,.7),0 0 8px rgba(255,190,40,.3)}to{box-shadow:inset 0 0 0 1px rgba(255,236,160,1),0 0 18px rgba(255,190,40,.65)}}
+/* a guest's GUARDAR MI PUNTUACIÓN after a #1 run: it breathes in gold */
+#saveBtn.n1{animation:n1Save 1s ease-in-out infinite alternate}
+@keyframes n1Save{from{filter:drop-shadow(0 0 2px rgba(255,200,60,.4)) brightness(1)}to{filter:drop-shadow(0 0 14px rgba(255,200,60,.95)) brightness(1.12)}}
+@media (prefers-reduced-motion:reduce){#rankList li.n1,.rkList li.n1,#saveBtn.n1{animation:none}}

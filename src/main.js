@@ -12,6 +12,7 @@ import './styles/09-huevo.css'; // v76: first-egg cinematic title and egg marker
 import './styles/10-metricas.css'; // v81: the anonymous-stats question on the start menu
 import './styles/11-cuentas.css'; // v82: Google accounts (end plate button, nickname and result screens)
 import './styles/12-tanque.css'; // v86: «TANQUE LLENO» (big title, short notice, hold marker)
+import './styles/13-numero-uno.css'; // v87: «¡NUEVO Nº1!» (the celebration over the end plate, the #1 line)
 // v62: phone HUD (Santi's design) and its font, bundled so it works without internet
 import '@fontsource/saira-condensed/latin-600.css';
 import '@fontsource/saira-condensed/latin-700.css';

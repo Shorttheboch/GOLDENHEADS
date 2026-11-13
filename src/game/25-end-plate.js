@@ -1,5 +1,5 @@
 // ---- end plate (v44, Santi's design): live gold-3D lettering so every title and language stays sharp ----
-const ENDP={t0:0,raf:0};
+const ENDP={t0:0,raf:0,at:0};
 const escH=s=>String(s).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
 function g3(t){t=escH(t);return `<div class="g3" data-t="${t}"><i data-t="${t}">${t}</i></div>`;}
 function setG3(el,t){const g=el.querySelector('.g3'),i=g&&g.firstElementChild;if(!i)return;t=String(t);if(i.textContent===t)return;i.textContent=t;i.dataset.t=t;g.dataset.t=t;}
@@ -14,7 +14,7 @@ function showEndPlate(o){ // o: {title, sub, total, round, cargo, combat, rows:[
   $('endRound').innerHTML=`RONDA <b>${o.round}</b><em>·</em>CARGA <b>${escH(o.cargo)}</b><em>·</em>COMBATE <b>${escH(o.combat)}</b>`;
   $('endStats').innerHTML=o.rows.map(([a,b],i)=>`<span style="--i:${i}">${escH(a)}</span><span style="--i:${i}">${escH(b)}</span>`).join('');
   const rec=$('record');rec.innerHTML=o.recHTML;rec.classList.toggle('new',!!o.isNew);
-  end.classList.remove('go');end.hidden=false;void end.offsetWidth;end.classList.add('go');
+  end.classList.remove('go');end.hidden=false;void end.offsetWidth;end.classList.add('go');ENDP.at=performance.now(); // (v87: the «¡NUEVO Nº1!» celebration waits for this entrance, 43-numero-uno.js)
   fitEndPlate();
   // the score counts up once it has landed, then pops
   cancelAnimationFrame(ENDP.raf);const t0=performance.now()+950,el=$('bigScore');

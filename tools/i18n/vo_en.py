@@ -61,6 +61,8 @@ VO_EN={
 'cloud':('P','excited, urgent',"A trichome cloud! Grab it, we need it!"),
 # v86: the tank is full (42-tanque.js)
 'tank_full':('P','urgent, clear',"Tank full! Head back to the hold and unload."),
+# v87: a new #1 of the Season 1 ranking (43-numero-uno.js)
+'top1':('P','thrilled, triumphant, proud',"Number one, Captain! Nobody's done better!"),
 }
 if __name__=='__main__':
     print(len(VO_EN),'lines',sum(len(v[2]) for v in VO_EN.values()),'chars')

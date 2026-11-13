@@ -249,6 +249,10 @@ H.update({'Al guardar aceptas la <a data-priv="priv" href="privacidad/" target="
 EN.update({'¡TANQUE LLENO!':'TANK FULL!','TANQUE LLENO · ve a la bodega':'TANK FULL · go to the hold','Toca BODEGA y te lleva':'Tap HOLD and it takes you there',
  'LLENO · DESCARGAR':'FULL · UNLOAD'})
 H.update({'Llévalo a la <b>BODEGA</b> de la nave':"Take it to the ship's <b>HOLD</b>",'Toca <b>BODEGA</b> y te lleva':'Tap <b>HOLD</b> and it takes you there'})
+# ---- v87: «¡NUEVO Nº1!» (src/game/43-numero-uno.js: the celebration #n1, the end plate and account screen lines, the reminder) ----
+EN.update({'¡NUEVO Nº1!':'NEW #1!','RANKING DE CAPITANES · TEMPORADA 1':'CAPTAINS LEADERBOARD · SEASON 1','Guárdala con Google para quedarte el Nº1':'Save it with Google to keep the #1 spot',
+ 'Nadie lo ha hecho mejor esta temporada':'Nobody has done better this season','¡SERÍAS EL Nº1!':"YOU'D BE #1!",'¡NUEVO Nº1 DE LA TEMPORADA!':'NEW SEASON #1!',
+ '¡Serías el Nº1 del ranking!':"You'd be #1 on the leaderboard!"})
 # sanity: every tutorial line must exist verbatim in the game code
 for k in H:
     if k not in b: print('TUT NOT FOUND:',k[:60])

@@ -1,0 +1,38 @@
+/* ===== v86: «TANQUE LLENO» (src/game/42-tanque.js) ===== */
+/* the big title, the first time on a device: the end plate's 3D lettering (.g3) in the hold's cyan, a bit above the crosshair (PC: between the round
+   message line, which ends near 33 %, and the crosshair; phone: under the alert line), drawn UNDER the markers (z-index 5 < 6) so the hold marker stays on top */
+#tkT{--u:min(1vh,.5625vw);--g3glow:rgba(40,215,255,.7);position:fixed;left:0;right:0;top:41%;z-index:5;pointer-events:none;transform:translateY(-50%);
+  display:flex;justify-content:center;font-family:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif}
+#tkT .tkIn{display:flex;flex-direction:column;align-items:center;opacity:0}
+#tkT .tkTl{font-size:calc(var(--u)*8.8);transform:scaleX(1.16)}
+#tkT .tkTs{display:flex;align-items:center;gap:calc(var(--u)*1.5);margin-top:calc(var(--u)*1.4);font:800 calc(var(--u)*2.3)/1 'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;letter-spacing:.22em;white-space:nowrap;
+  color:#d8fbff;text-shadow:0 0 .12em rgba(60,225,255,.95),0 0 .5em rgba(20,170,255,.7),0 2px 5px rgba(0,0,0,.85)}
+#tkT .tkTs b{color:#3ff0ff;font-weight:900}
+#tkT .tkTs::before,#tkT .tkTs::after{content:'';flex:none;width:calc(var(--u)*4.5);height:max(2px,calc(var(--u)*.22));background:#5ff3ff;box-shadow:0 0 6px rgba(60,230,255,.9)}
+#tkT.go .tkIn{animation:tkTo 3.1s both}
+#tkT.go .g3>i{animation:eShine 2.4s .35s ease-in-out both}
+@keyframes tkTo{0%{opacity:0;transform:scale(1.6);filter:blur(8px)}9%{opacity:1;transform:scale(1);filter:blur(0)}14%{transform:scale(1.045)}19%{transform:scale(1)}
+  82%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-.5em) scale(.98);filter:blur(1px)}}
+body.touch #tkT{top:38%}
+body.touch #tkT .tkTl{font-size:calc(var(--u)*9.6)}
+body.touch #tkT .tkTs{font-size:max(11px,calc(var(--u)*2.9));letter-spacing:.16em}
+body.ended #tkT,body.cine #tkT,body.mtut #tkT,body:has(#menu:not([hidden])) #tkT{display:none}
+/* cyan .g3 (same layers as the gold one in 01-end-plate.css: back / rim / face / inner edge) */
+.g3.cy::before{color:#06384c;-webkit-text-stroke:.085em #052f40;
+  text-shadow:0 .016em 0 #0b5d7a,0 .032em 0 #094d66,0 .048em 0 #073e53,0 .064em 0 #053040,0 .1em .14em rgba(0,0,0,.7),0 0 .22em var(--g3glow,rgba(40,215,255,.6)),0 0 .7em rgba(20,190,255,.3)}
+.g3.cy::after{color:#0eb4d6;-webkit-text-stroke:.05em #0aa3c4;text-shadow:0 -.012em 0 #d2fdff,0 .012em 0 #05506a}
+.g3.cy>i{background:linear-gradient(105deg,transparent 0 40%,rgba(240,255,255,.95) 48%,rgba(220,255,255,0) 56%,transparent 100%) 160% 0/320% 100% no-repeat,
+    linear-gradient(180deg,#f4ffff 0%,#c4fcff 12%,#5ff3ff 32%,#22dcf7 50%,#0fa8cc 57%,#0b84a6 63%,#16b6d9 76%,#62f4ff 90%,#cdfdff 100%);
+  -webkit-background-clip:text;background-clip:text}
+.g3.cy>i::after{-webkit-text-stroke:.012em rgba(215,255,255,.7)}
+/* the short notice (following fills and the reminder): PC on the round-message line, phone on the v63 alert line; cyan, a little smaller */
+#msg.tk{color:#5ff3ff;font-size:clamp(16px,2.6vw,23px);letter-spacing:.16em;text-shadow:0 0 14px rgba(20,180,255,.55),0 0 24px rgba(0,0,0,.9)}
+#mAlert.tk .t{color:#5ff3ff;text-shadow:0 1px 0 #000,0 0 10px rgba(0,0,0,.9),0 0 12px rgba(40,200,255,.45)}
+/* the hold marker: «LLENO · DESCARGAR» while full; after a notice it grows and pulses (the whole marker, so h4declutter measures its real size) */
+.mk.bod b{font-weight:inherit}
+.mk.bod.lleno b{color:#eaffff;text-shadow:0 1px 2px #000,0 0 8px rgba(40,220,255,.9)}
+#hBod.tk{animation:tkBod .42s ease-in-out infinite alternate;z-index:7}
+#hBod.tk .ic{filter:drop-shadow(0 0 12px rgba(80,245,255,1)) drop-shadow(0 0 3px #fff)}
+@keyframes tkBod{from{transform:translate(-50%,-50%) scale(1.35)}to{transform:translate(-50%,-50%) scale(1.7)}}
+@keyframes tkFade{0%,100%{opacity:0}8%,85%{opacity:1}}
+@media (prefers-reduced-motion:reduce){#tkT.go .tkIn{animation:tkFade 3.1s both}#tkT.go .g3>i{animation:none}#hBod.tk{animation:none;transform:translate(-50%,-50%) scale(1.5)}}

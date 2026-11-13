@@ -209,5 +209,9 @@ export default {
 "xp_on": [
 "assets/vo/es/xp_on_0.mp3",
 "assets/vo/es/xp_on_1.mp3"
+],
+"tank_full": [
+"assets/vo/es/tank_full_0.mp3",
+"assets/vo/es/tank_full_1.mp3"
 ]
 };

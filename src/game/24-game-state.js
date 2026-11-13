@@ -67,8 +67,8 @@ function dropNear(s){const hp=hullParam(P.pos);s.z=THREE.MathUtils.clamp(hp.z+(M
 function workLeft(){return PATCHES.some(p=>p.hp<CFG.patchHp)||looseCount()>3||P.carry>0;}
 function planBursts(n){WB.spitQ=[];const G=wave<1?1:wave<5?2:3,a=[];let r=n;for(let k=0;k<G;k++){const c=k===G-1?r:Math.round(n/G);a.push(c);r-=c;}
   WB.groups=a;WB.gi=0;WB.left=a[0];WB.calm=false;WB.lull=0;WB.spit=false;}
-function showMsg(t,sub='',dur=2.5){if(mhudMsg(t,sub,dur,'msg'))return; // v63: phones route it (alert or side feed)
-  $('msg').innerHTML=t+(sub?`<small>${sub}</small>`:'');$('msg').style.opacity=1;msgT=dur;}
+function showMsg(t,sub='',dur=2.5,cls=''){if(mhudMsg(t,sub,dur,cls==='tk'?'tk':'msg'))return; // v63: phones route it (alert or side feed) · v86: cls 'tk' = the cyan «TANQUE LLENO» notice (42-tanque.js)
+  $('msg').innerHTML=t+(sub?`<small>${sub}</small>`:'');$('msg').classList.toggle('tk',cls==='tk');$('msg').style.opacity=1;msgT=dur;}
 function crossHit(){const c=$('cross');c.classList.add('hit');clearTimeout(crossHit.t);crossHit.t=setTimeout(()=>c.classList.remove('hit'),120);}
 function crossCrit(){const c=$('cross');c.classList.add('crit');clearTimeout(crossCrit.t);crossCrit.t=setTimeout(()=>c.classList.remove('crit'),180);}
 function damagePlayer(d,dir){if(P.inv>0||state!=='play')return;P.hp=Math.max(0,P.hp-d);P.inv=0.9;P.lastHit=playT;xpBreak();
@@ -100,9 +100,9 @@ function reset(){TC.ap=null;if(TC.paused)tcSetPause(false);setTimeout(tcOrient,0
   for(const b of bullets)scene.remove(b.m);bullets.length=0;
   for(const g of gibs)scene.remove(g.m);gibs.length=0;
   P.pos.set(10,1.2,9);P.vel.set(0,0,0);P.yaw=Math.PI/2+0.35;P.pitch=0.12;P.hp=CFG.hpMax;P.thrust=null;AN.init=false;P.inv=0;P.lastHit=-99;P.dashCD=0;P.jam=0;
-  P.carry=0;P.depAcc=0;P.depBatch=0;P.depActive=false;P.depDone=0;P.depLeft=0;P.fullWarn=0;P.intake=0;camYaw=P.yaw;camPitch=P.pitch;camOrbit=0;showcaseT=0;
+  P.carry=0;P.depAcc=0;P.depBatch=0;P.depActive=false;P.depDone=0;P.depLeft=0;P.intake=0;camYaw=P.yaw;camPitch=P.pitch;camOrbit=0;showcaseT=0;
   cargo=CFG.cargo;leakBrakeReset();score=0;repairs=0;lostN=0;for(const k in stats)stats[k]=0;spitFirstW=-1;eggLastW=-9;cloudPlan=-1;cloudLastW=-9;CB_.last=undefined;CB_.warned=0;xpEnd(true);XP.streak=0;xpPips();P.ammo=CFG.gunCap;P.gunLock=0;lastCallW=-1;for(const e of EGGS)scene.remove(e.g);EGGS.length=0;eggPlan=[];eggCineEnd();playT=0;R.pa=null;R.on=false;hitStop=0;
   pts=0;PU.dbl=0;PU.over=0;PU.weld=0;PU.pack=0;bulletMat.color.setRGB(3,2.2,0.9);for(const d of [...DROPS])removeDrop(d);lastDrop=-99;CB.n=0;CB.hs=0;CB.heads=0;CB.t=-9;MAG.on=false;EXP.n=0;dMag.fill(0);
   for(const pa of PATCHES){pa.hp=CFG.patchHp;pa.prog=0;pa.leak=0;pa.noPerf=false;}TUT.q.length=0;for(const a of ACID){scene.remove(a.m);for(const q of a.drops)scene.remove(q.d);}ACID.length=0;P.burn=0;spitN=0;incN=0;WB.incT=0;WB.incSp=0;for(const e of INCS)scene.remove(e.B.g);INCS.length=0;incBeamSnd(false);for(const p of MIST){p.life=0;p.s.visible=false;}for(const Z of ZONES){Z.nest=false;Z.alarmT=0;Z.eaters=0;}
   fxLayer.innerHTML='';document.body.classList.remove('ended');
-  resetDust();mtStart();if(RONDA.n)rondaStart();else{startWave(0);introStart();}resumeTut();rankStart();} // v80: ?ronda=N starts at round N (38-ronda.js) · v81: mtStart/mtRound = metrics (39-metricas.js)
+  resetDust();mtStart();if(RONDA.n)rondaStart();else{startWave(0);introStart();}resumeTut();rankStart();tankReset();} // v86: tankReset = the full-tank notice (42-tanque.js) · v80: ?ronda=N starts at round N (38-ronda.js) · v81: mtStart/mtRound = metrics (39-metricas.js)

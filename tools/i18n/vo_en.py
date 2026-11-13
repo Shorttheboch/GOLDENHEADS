@@ -59,6 +59,8 @@ VO_EN={
 'inc_beam':('P','shouting a quick warning',"Watch the laser! Move!"),
 'inc_dead':('P','amazed, triumphant',"The Incinerator is down! Incredible, Captain!"),
 'cloud':('P','excited, urgent',"A trichome cloud! Grab it, we need it!"),
+# v86: the tank is full (42-tanque.js)
+'tank_full':('P','urgent, clear',"Tank full! Head back to the hold and unload."),
 }
 if __name__=='__main__':
     print(len(VO_EN),'lines',sum(len(v[2]) for v in VO_EN.values()),'chars')

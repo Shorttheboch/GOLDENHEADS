@@ -231,5 +231,9 @@ export default {
 "zn_sealed": [
 "assets/vo/en/zn_sealed_0.mp3",
 "assets/vo/en/zn_sealed_1.mp3"
+],
+"tank_full": [
+"assets/vo/en/tank_full_0.mp3",
+"assets/vo/en/tank_full_1.mp3"
 ]
 };

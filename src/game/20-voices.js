@@ -29,7 +29,8 @@ const VO_LINES={
   xp_on:['P','¡Extra Power! ¡Arma pesada lista, capitán!'],
   inc_beam:['P','¡Cuidado con el láser! ¡Muévete!'],
   inc_dead:['P','¡La Incineradora ha caído! ¡Increíble, capitán!'],
-  cloud:['P','¡Una nube de tricomas! ¡Recógela, la necesitamos!']};
+  cloud:['P','¡Una nube de tricomas! ¡Recógela, la necesitamos!'],
+  tank_full:['P','¡Tanque lleno! Vuelve a la bodega a descargar.']}; // v86 (42-tanque.js)
 const ZONE_VO={MOTORES:'zn_eng_hit',REACTOR:'zn_rea_hit',BODEGA:'zn_hold_hit',CABINA:'zn_cock_hit'};
 let VOB=null,voBus=null,voOn=true,voSrc=null;
 const VOQ={until:0,prio:0,lastEnd:-99,cool:{},lastVar:{},queue:[]};
@@ -37,7 +38,7 @@ let voSeen={};try{voSeen=JSON.parse(localStorage.getItem('heads_vo_seen')||'{}')
 async function loadVO(){if(VOB||!AC)return;VOB={};
   try{let m;if(I18N.lang==='en'){try{m=await loadMod('assets/vo_en.js');}catch(e){console.warn('English voices not available yet: using Spanish',e);}}
     if(!m)m=await loadMod('assets/vo_es.js');
-    const F=assetBufs(m.default);for(const id of Object.keys(F))VOB[id]=await Promise.all(F[id].map(q=>q.then(b=>AC.decodeAudioData(b))));}
+    const F=assetBufs(m.default);for(const id of Object.keys(F)){try{VOB[id]=await Promise.all(F[id].map(q=>q.then(b=>AC.decodeAudioData(b))));}catch(e){console.warn('voice unavailable',id,e);}}} // v86: one missing line no longer leaves the ones after it silent
   catch(e){console.warn('voices unavailable',e);}}
 function voChain(){if(voBus)return voBus;
   // comms radio: band-limited, a little grit, short squelch on key-up/down

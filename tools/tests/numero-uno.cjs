@@ -74,7 +74,7 @@ const fit=p=>p.evaluate(()=>{const W=innerWidth,H=innerHeight,R=e=>{const r=e.ge
   const S=server();
   for(const lang of ['es','en'])for(const [phone,sizes] of [[0,[[960,540],[1280,720],[1366,768],[1920,1080],[2560,1440]]],[1,[[844,390],[667,375],[932,430]]]]){
    const p=await open(b,S,{w:sizes[0][0],h:sizes[0][1],phone:!!phone,lang,game:false});
-   await p.evaluate(()=>{window.__noRender=1;}); // (the 3D behind the menu is not what is measured here)
+   await p.evaluate(()=>{window.__noRender=1;__n1.N1_CFG.dur=600000;}); // (the 3D behind the menu is not what is measured here; it stays up while measured)
    for(const [w,h] of sizes){await p.setViewportSize({width:w,height:h});await p.waitForTimeout(200);
     for(const kind of ['saved','guest']){
       await p.evaluate(k=>__n1.show(k,{score:9999999,nick:'WWWWWWWWWWWW',over:'acct',after:()=>{}}),kind);
@@ -91,7 +91,7 @@ const fit=p=>p.evaluate(()=>{const W=innerWidth,H=innerHeight,R=e=>{const r=e.ge
     ok(p.errs.length===0,'  no page errors',p.errs);await p.context().close();}}
  // ---------- 2) guest
  if(!ONLY||ONLY==='guest'){console.log('2) guest');
-  const S=server();let p=await open(b,S,{w:1920,h:1080});
+  const S=server();let p=await open(b,S,{w:1600,h:900}); // (1920x1080 runs the software GPU out of memory with the game behind)
   await finish(p,20000);
   let s=await n1(p);ok(!s.shown,'not straight away: the plate comes in first',s);
   await p.waitForFunction(()=>__n1.N1.on,null,{timeout:15000}).catch(()=>{});s=await n1(p);
@@ -99,7 +99,7 @@ const fit=p=>p.evaluate(()=>{const W=innerWidth,H=innerHeight,R=e=>{const r=e.ge
   ok(s.t0-s.endAt>=2500,`  after the plate's entrance (+${Math.round(s.t0-s.endAt)} ms, wanted >= 2600)`,s);
   ok(s.title==='¡NUEVO Nº1!'&&s.hint==='Guárdala con Google para quedarte el Nº1'&&/20\.000/.test(s.who),'  title, score and «Guárdala con Google para quedarte el Nº1»',s);
   await p.waitForTimeout(900);s=await n1(p);ok(s.sparks>40&&s.raf,'  gold sparks flying ('+s.sparks+')',s);
-  await snap(p,'n1_guest_1920x1080_es.png');
+  await snap(p,'n1_guest_1600x900_es.png');
   let P=await plate(p);ok(P.msg[0]==='¡SERÍAS EL Nº1!'&&P.msg[1]==='Guárdala con Google para quedarte el Nº1','  the plate behind: «¡SERÍAS EL Nº1!»',P);
   await p.keyboard.press('Enter');await p.waitForTimeout(500);P=await plate(p);s=await n1(p);
   ok(P.end&&P.state==='dead','  Enter does not retry while it is up',P);
@@ -107,10 +107,10 @@ const fit=p=>p.evaluate(()=>{const W=innerWidth,H=innerHeight,R=e=>{const r=e.ge
   await p.waitForTimeout(900);P=await plate(p);s=await n1(p);
   ok(!s.shown&&P.slide===1&&P.n1row&&/ghost/.test(P.n1rowKind)&&P.savePulse,'  then the ranking: the TÚ line crowned, GUARDAR pulsing',P);
   ok(!s.raf&&s.sparks===0,'  the sparks are gone',s);
-  await snap(p,'n1_guest_after_1920x1080_es.png');
+  await snap(p,'n1_guest_after_1600x900_es.png');
   await p.click('#again');await p.waitForTimeout(400);P=await plate(p);
   ok(P.acct&&P.acctS==='nag'&&P.l2==='¡Serías el Nº1 del ranking!'&&P.state==='dead','REINTENTAR: «¿GUARDAMOS TU PUNTUACIÓN?» with «¡Serías el Nº1 del ranking!» (the ranking was seen)',P);
-  await snap(p,'n1_guest_nag_1920x1080_es.png');
+  await snap(p,'n1_guest_nag_1600x900_es.png');
   await p.click('#acGo');await p.waitForFunction(()=>__T.state==='play',null,{timeout:30000});await p.evaluate(()=>{window.__noSpawn=1;});
   // a second run at #2: nothing
   await finish(p,12000);await p.waitForTimeout(4500);s=await n1(p);P=await plate(p);

@@ -13,10 +13,12 @@
 #tkT.go .g3>i{animation:eShine 2.4s .35s ease-in-out both}
 @keyframes tkTo{0%{opacity:0;transform:scale(1.6);filter:blur(8px)}9%{opacity:1;transform:scale(1);filter:blur(0)}14%{transform:scale(1.045)}19%{transform:scale(1)}
   82%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-.5em) scale(.98);filter:blur(1px)}}
-body.touch #tkT{top:38%}
+body.touch #tkT{top:38.5%}
 body.touch #tkT .tkTl{font-size:calc(var(--u)*9.6)}
-body.touch #tkT .tkTs{font-size:max(11px,calc(var(--u)*2.9));letter-spacing:.16em}
+body.touch #tkT .tkTs{font-size:max(13px,calc(var(--u)*3.4));letter-spacing:.12em;margin-top:calc(var(--u)*1.8)}
+body.touch #tkT .tkTs::before,body.touch #tkT .tkTs::after{width:calc(var(--u)*3.2)}
 body.ended #tkT,body.cine #tkT,body.mtut #tkT,body:has(#menu:not([hidden])) #tkT{display:none}
+body:has(#xpT.go) #tkT{visibility:hidden} /* (it waits for the EXTRA POWER title; if that one comes in on top, it gives way) */
 /* cyan .g3 (same layers as the gold one in 01-end-plate.css: back / rim / face / inner edge) */
 .g3.cy::before{color:#06384c;-webkit-text-stroke:.085em #052f40;
   text-shadow:0 .016em 0 #0b5d7a,0 .032em 0 #094d66,0 .048em 0 #073e53,0 .064em 0 #053040,0 .1em .14em rgba(0,0,0,.7),0 0 .22em var(--g3glow,rgba(40,215,255,.6)),0 0 .7em rgba(20,190,255,.3)}
@@ -34,5 +36,6 @@ body.ended #tkT,body.cine #tkT,body.mtut #tkT,body:has(#menu:not([hidden])) #tkT
 #hBod.tk{animation:tkBod .42s ease-in-out infinite alternate;z-index:7}
 #hBod.tk .ic{filter:drop-shadow(0 0 12px rgba(80,245,255,1)) drop-shadow(0 0 3px #fff)}
 @keyframes tkBod{from{transform:translate(-50%,-50%) scale(1.35)}to{transform:translate(-50%,-50%) scale(1.7)}}
+body.touch #hBod.tk{animation-name:tkBodT}@keyframes tkBodT{from{transform:translate(-50%,-50%) scale(1.2)}to{transform:translate(-50%,-50%) scale(1.5)}} /* (a small screen: a little less) */
 @keyframes tkFade{0%,100%{opacity:0}8%,85%{opacity:1}}
 @media (prefers-reduced-motion:reduce){#tkT.go .tkIn{animation:tkFade 3.1s both}#tkT.go .g3>i{animation:none}#hBod.tk{animation:none;transform:translate(-50%,-50%) scale(1.5)}}

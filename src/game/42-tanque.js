@@ -84,8 +84,8 @@ const TKT={on:false,t:0,dur:3.6,K:24,N:56,p:new Float32Array(25*3),s:new Float32
 {const N=TKT.N;TKT.pos=new Float32Array(N*3).fill(-9999);TKT.col=new Float32Array(N*3);
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(TKT.pos,3).setUsage(THREE.DynamicDrawUsage));g.setAttribute('color',new THREE.BufferAttribute(TKT.col,3).setUsage(THREE.DynamicDrawUsage));
  const tex=glowTex('rgba(235,255,255,1)','rgba(70,225,255,.6)');
- TKT.core=new THREE.Points(g,new THREE.PointsMaterial({size:isTouch?0.22:0.18,map:tex,vertexColors:true,color:new THREE.Color(0.55,2.3,2.6),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
- TKT.halo=new THREE.Points(g,new THREE.PointsMaterial({size:isTouch?0.8:0.66,map:tex,vertexColors:true,color:new THREE.Color(0.08,0.62,0.8),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+ TKT.core=new THREE.Points(g,new THREE.PointsMaterial({size:isTouch?0.17:0.18,map:tex,vertexColors:true,color:new THREE.Color(0.55,2.3,2.6),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+ TKT.halo=new THREE.Points(g,new THREE.PointsMaterial({size:isTouch?0.55:0.66,map:tex,vertexColors:true,color:new THREE.Color(0.08,0.62,0.8),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
  for(const o of [TKT.core,TKT.halo]){o.frustumCulled=false;o.visible=false;o.renderOrder=4;scene.add(o);}TKT.geo=g;}
 function tkTrailStart(){TKT.on=true;TKT.t=0;TKT.core.visible=true;TKT.halo.visible=QA.lvl<4;}
 function tkTrailOff(){TKT.on=false;TKT.core.visible=false;TKT.halo.visible=false;}
@@ -111,7 +111,7 @@ function tkTrailTick(dt){const T=TKT;if(!T.on)return;
   T.t+=dt;if((P.depActive||P.carry<CFG.tankCap)&&T.t<T.dur-0.5)T.t=T.dur-0.5; // at the hold (or the tank emptied another way): it goes now
   if(T.t>=T.dur){tkTrailOff();return;}
   const ss=THREE.MathUtils.smoothstep,g=Math.min(1,T.t/0.25)*(1-ss(T.t,T.dur-1.0,T.dur));
-  const L=tkTrailPath(),N=T.N,sp=Math.max(0.36,L/N),ph=(T.t*4.2)%sp;let k=0;
+  const L=tkTrailPath(),N=T.N,sp=Math.max(isTouch?0.45:0.36,L/N),ph=(T.t*4.2)%sp;let k=0;
   for(let i=0;i<N;i++){const s=ph+i*sp,j=i*3;
     if(s>L){T.pos[j]=0;T.pos[j+1]=-9999;T.pos[j+2]=0;T.col[j]=T.col[j+1]=T.col[j+2]=0;continue;}
     while(k<T.K-1&&T.s[k+1]<s)k++;

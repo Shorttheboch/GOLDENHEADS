@@ -26,7 +26,7 @@ function pageLib(){
     // no spiders and none to come, and the round stays open (a spitter «queued» for ever): no round messages, no bosses, no cinematics while the test runs
     clear(){const H=__heads;window.__noSpawn=1;__T.toSpawn=3;H.WB.bossT=0;H.WB.incT=0;H.WB.incSp=0;H.WB.spitQ=[1e9];for(const s of [...H.spiders])H.killSpider(s);H.P.hp=100;H.P.inv=1e9;},
     // 9 m out to the side of the hold and a bit above, looking at it: the trail and the hold marker in frame
-    place(){const P=__heads.P,h=__T.HATCH;P.pos.set(h.x+9,h.y+3.5,h.z+9);P.vel.set(0,0,0);const d=h.clone().sub(P.pos);P.yaw=Math.atan2(-d.x,-d.z);P.pitch=Math.atan2(d.y,Math.hypot(d.x,d.z));},
+    place(turn){const P=__heads.P,h=__T.HATCH;P.pos.set(h.x+9,h.y+3.5,h.z+9);P.vel.set(0,0,0);const d=h.clone().sub(P.pos);P.yaw=Math.atan2(-d.x,-d.z)-(turn||0);P.pitch=Math.atan2(d.y,Math.hypot(d.x,d.z));},
     // far from the hold (nothing unloads), looking away from the ship
     far(){const P=__heads.P;P.pos.set(0,20,34);P.vel.set(0,0,0);P.yaw=0;P.pitch=0;},
     st(){const t=document.getElementById('tkT'),m=document.getElementById('msg'),a=document.getElementById('mAlert'),b=document.getElementById('hBod'),tut=document.getElementById('tut'),K=__tank.TK,TT=__tank.TKT;
@@ -45,6 +45,13 @@ function pageLib(){
       try{for(let k=1;k<=K;k++){a.fromArray(p,k*3-3);b.fromArray(p,k*3);for(let s=0;s<4;s++){q.lerpVectors(a,b,s/4);if(k===1&&s<2)continue;if(k===K&&s>1)continue;n++;if(__cam.camSolid(q,0.15)){hits++;worst=worst||q.toArray().map(v=>+v.toFixed(2));}}}}
       finally{__heads.ROCKS.push(...R);}
       return {L:+L.toFixed(1),hits,n,worst,end:+b.fromArray(p,K*3).distanceTo(__T.HATCH).toFixed(2)};},
+    // where the title sits once it is fully in (its animation frozen at 1.1 s), against the crosshair the player sees and the message / alert line above it
+    titleBox(){const t=document.getElementById('tkT'),i=t.querySelector('.tkIn'),had=t.classList.contains('go');t.classList.add('go');i.style.animationDelay='-1.1s';i.style.animationPlayState='paused';
+      const e=i.getBoundingClientRect(),c=document.getElementById(document.body.classList.contains('hm')?'hud-xh':'cross').getBoundingClientRect();
+      const m=document.getElementById('msg'),mt=parseFloat(getComputedStyle(m).top)||0,a=document.getElementById('mAlert'),at=a?parseFloat(getComputedStyle(a).top):0;
+      i.style.animationDelay='';i.style.animationPlayState='';if(!had)t.classList.remove('go');
+      return {top:Math.round(e.top),bot:Math.round(e.bottom),l:Math.round(e.left),r:Math.round(e.right),crossTop:Math.round(c.top),W:innerWidth,H:innerHeight,
+        msgTop:Math.round(mt),alertBot:document.body.classList.contains('hm')?Math.round((a?at:94)+30):0};}, // (the alert line: 94 px down, ~30 px tall with its second line)
     nozzle(){const P=__heads.P;return P.bones.Hose_Grip.localToWorld(new __THREE.Vector3(0,0.17,0));},
   };
 }
@@ -99,6 +106,7 @@ function pageLib(){
   ok(r.flash>0,'the backpack screen flashes (uFlash)',{flash:r.flash});
   ok(!/Tanque lleno/i.test(r.tut),'no tutorial card «Tanque lleno» on top of it',{tut:r.tut});
   ok(r.seen==='1','remembered on the device (heads_tank_seen)',{seen:r.seen});
+  {const q=await ev(p,()=>__tkLib.titleBox());ok(q.bot<=q.crossTop+2&&q.top>=q.msgTop+40&&q.l>=0&&q.r<=q.W,'the title sits under the message line and above the crosshair',q);}
   r0=r;await step(p,0.5);r=await st(p);
   ok(!r.cine&&r.playT-r0.playT>0.4,'the game is not paused (play time runs)',{dPlay:+(r.playT-r0.playT).toFixed(2)});
   r=await ev(p,()=>{const o={},T=__THREE,P=__heads.P,p0=P.pos.clone();
@@ -110,7 +118,7 @@ function pageLib(){
   ok(!r.trail&&r.big===0&&!r.bodTk,'about 4 s later: trail gone, title time over, marker back to its usual pulse',{trail:r.trail,big:r.big,bodTk:r.bodTk,pulse:r.pulse});
   await p.waitForTimeout(3300);r=await st(p);ok(!r.go,'the title has gone (animation over)',{go:r.go});
   await snapFirst(p,'tanque_pc_primera.png');
-  await ev(p,()=>__tkLib.place());await step(p,0.3);await snap(p,'tanque_pc_marcador.png');
+  await ev(p,()=>__tkLib.place(-0.35));await step(p,0.6);await snap(p,'tanque_pc_marcador.png');
   console.log('3) the nozzle refuses while full');
   await ev(p,()=>{__tkLib.far();});await step(p,0.2);
   r0=await ev(p,()=>{const n=__tkLib.nozzle(),P=__heads.P;__heads.spawnLoose(n.clone().addScaledVector(P._nd,1.0),24,0.1);__heads.inp.suck=true;return __tkLib.st();});
@@ -157,17 +165,17 @@ function pageLib(){
   r=await fill(p);
   ok(r.log==='big'&&r.go&&r.tl==='¡TANQUE LLENO!'&&r.ts==='Toca BODEGA y te lleva','first time: title + the touch line «Toca BODEGA y te lleva»',{log:r.log,tl:r.tl,ts:r.ts});
   ok(r.say===1&&r.bodTk&&r.trail&&r.lit>=8&&r.flash>0&&r.seen==='1','voice, marker pulse, trail, flash, remembered',{say:r.say,bodTk:r.bodTk,trail:r.trail,lit:r.lit,flash:r.flash,seen:r.seen});
-  r=await ev(p,()=>{const e=document.getElementById('tkT').querySelector('.tkIn').getBoundingClientRect(),c=document.getElementById('cross').getBoundingClientRect();return {top:e.top,bot:e.bottom,l:e.left,r:e.right,crossTop:c.top,W:innerWidth};});
-  ok(r.bot<=r.crossTop+2&&r.l>=0&&r.r<=r.W,'the title sits above the crosshair and inside the screen',r);
+  r=await ev(p,()=>__tkLib.titleBox());
+  ok(r.bot<=r.crossTop+2&&r.l>=0&&r.r<=r.W&&r.top>=r.alertBot-2,'the title sits between the alert line and the crosshair, inside the screen',r);
   await step(p,0.4);r=await st(p);
   console.log('tap BODEGA: the reminder clock stops while it flies you there');
   const bx=await ev(p,()=>{const e=document.getElementById('hBod'),q=e.getBoundingClientRect();return e.hidden?null:{x:q.left+q.width/2,y:q.top+q.height/2};});
   if(bx){await p.touchscreen.tap(bx.x,bx.y);await step(p,0.1);}
-  r=await ev(p,()=>({ap:!!(__TC.ap&&__TC.ap.hatch),remT:__tank.TK.remT}));ok(r.ap,'tapping the marker starts the flight to the hold',r);
-  await step(p,0.8);r=await ev(p,()=>({ap:!!(__TC.ap&&__TC.ap.hatch),remT:__tank.TK.remT,dep:__heads.P.depActive}));ok(r.remT===0,'no reminder time counted while flying there',r);
+  r0=await ev(p,()=>({ap:!!(__TC.ap&&__TC.ap.hatch),remT:__tank.TK.remT}));ok(r0.ap,'tapping the marker starts the flight to the hold',r0);
+  await step(p,0.8);r=await ev(p,()=>({ap:!!(__TC.ap&&__TC.ap.hatch),remT:__tank.TK.remT,dep:__heads.P.depActive}));ok(r.ap&&r.remT===r0.remT,'no reminder time counted while flying there',{before:r0.remT,after:r.remT,ap:r.ap});
   await ev(p,()=>{__TC.ap=null;__tkLib.far();});await step(p,3.5);
   await snapFirst(p,'tanque_phone_primera.png');
-  await ev(p,()=>__tkLib.place());await step(p,0.3);await snap(p,'tanque_phone_marcador.png');
+  await ev(p,()=>__tkLib.place(-0.35));await step(p,0.6);await snap(p,'tanque_phone_marcador.png');
   await ev(p,()=>__tkLib.far());
   console.log('auto-suction near trichomes is refused');
   r0=await ev(p,()=>{const P=__heads.P;__heads.spawnLoose(P.pos.clone().add(new __THREE.Vector3(1.5,0,-1.5)),20,0.1);return __tkLib.st();});

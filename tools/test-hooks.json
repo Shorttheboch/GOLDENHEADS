@@ -148,5 +148,10 @@
   "a": "const RANK={on:",
   "b": "const RANK={on:window.__rankOn===1||",
   "file": "game"
+ },
+ {
+  "a": "window.__n1={N1,",
+  "b": "window.__acc={result:(r,p)=>accResult(r,p),plate:(j,o)=>accPlateSaved(j,o)};window.__n1={N1,",
+  "file": "game"
  }
 ]

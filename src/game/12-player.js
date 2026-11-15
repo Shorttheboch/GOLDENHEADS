@@ -65,9 +65,9 @@ function setupAstronaut(gltf){
    // v64 (Santi): charge screen in the recessed panel under the glass (Blender "backpack": x -0.1015..0.1222, y 0.3486, z 1.0984..1.2407, facing +Y = backwards).
    // A simple load bar (load, not a battery): black when the tank is empty, the blue bar fills left to right and the light grows with the load;
    // full = all lit and pulsing. Soft glow around the bar (off on the lowest quality levels; the bloom adds more where the device can afford it). PC and phone.
-   {const sm=new THREE.ShaderMaterial({uniforms:{uLevel:{value:0},uTime:{value:0},uSuck:{value:0},uGlow:{value:1}},
+   {const sm=new THREE.ShaderMaterial({uniforms:{uLevel:{value:0},uTime:{value:0},uSuck:{value:0},uGlow:{value:1},uFlash:{value:0}},
       vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader:`uniform float uLevel,uTime,uSuck,uGlow;varying vec2 vUv;
+      fragmentShader:`uniform float uLevel,uTime,uSuck,uGlow,uFlash;varying vec2 vUv;
         float sdBox(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
         void main(){vec2 p=(vUv-0.5)*vec2(1.6,1.);float lv=clamp(uLevel,0.,1.),full=step(0.985,lv),pulse=full*(0.5+0.5*sin(uTime*4.));
           vec3 blue=vec3(0.04,0.36,1.);float light=lv*(0.85+0.15*uSuck)+0.4*pulse;
@@ -80,6 +80,7 @@ function setupAstronaut(gltf){
           col+=blue*fill*(0.55+0.5*lv)*sheen*(1.+0.6*pulse);
           col+=vec3(0.45,0.82,1.)*inside*smoothstep(0.03,0.,abs(fx-lv))*step(0.01,lv)*(1.-full)*0.7; // brighter leading edge
           col+=blue*exp(-max(tr,0.)*13.)*(0.22*lv+0.35*pulse)*0.65*uGlow;      // soft glow around the bar
+          col+=vec3(0.45,0.92,1.)*uFlash*(0.3+inside*1.6);                       // v86: the «TANQUE LLENO» flash (42-tanque.js)
           gl_FragColor=vec4(col,1.);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>

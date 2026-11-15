@@ -57,7 +57,7 @@ function mhudMsg(t,sub,dur,kind){if(!MHUD.on)return false;MHUD.pend.push({t:t||'
 function mhudEl(id,cls){let e=$(id);if(!e){e=document.createElement('div');e.id=id;if(cls)e.className=cls;document.body.appendChild(e);}return e;}
 function mhudLine(el,t,s){el.innerHTML='';if(t){const a=document.createElement('div');a.className='t';a.textContent=t;el.appendChild(a);}
   if(s){const b=document.createElement('div');b.className='s';b.textContent=s;el.appendChild(b);}}
-function mhudAlert(m){const el=mhudEl('mAlert');mhudLine(el,m.t,m.sub);el.classList.add('on');clearTimeout(MHUD.alertT);
+function mhudAlert(m){const el=mhudEl('mAlert');mhudLine(el,m.t,m.sub);el.classList.toggle('tk',m.kind==='tk');el.classList.add('on');clearTimeout(MHUD.alertT);
   MHUD.alertT=setTimeout(()=>el.classList.remove('on'),Math.max(1.6,m.dur)*1000);}
 function mhudFeed(m,cls){const box=mhudEl('mFeed'),e=document.createElement('div');e.className='fe '+(cls||'');mhudLine(e,m.t,m.sub);box.prepend(e);
   while(box.children.length>3)box.lastChild.remove();
@@ -70,5 +70,6 @@ function mhudMsgs(show){if(!MHUD.pend.length)return;const now=performance.now();
     if(/^RONDA \d+$/.test(m.t)){if(m.sub)mhudFeed({t:m.sub,sub:'',dur:m.dur});continue;} // the big RONDA n is the HUD's banner
     if(MSG_TOUCH_SUB[m.sub])m.sub=MSG_TOUCH_SUB[m.sub];
     const danger=MSG_ALERT.test(m.t);
-    if(m.kind==='combo')mhudFeed(m,'cb');else if(danger&&!voice)mhudAlert(m);else mhudFeed(m,danger?'dg':'');}
+    if(m.kind==='combo')mhudFeed(m,'cb');else if(m.kind==='tk')mhudAlert(m); // v86: «TANQUE LLENO» always takes the alert line (cyan), even while the pilot says it
+    else if(danger&&!voice)mhudAlert(m);else mhudFeed(m,danger?'dg':'');}
   MHUD.pend=keep;}

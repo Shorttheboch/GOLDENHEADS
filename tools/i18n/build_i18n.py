@@ -245,6 +245,14 @@ P.extend([[r'^Tu mejor de la temporada: ([\d.,]+) · ronda (\d+)$','Your season 
  [r'^Con esta partida entrarías en el puesto #(\d+)$',"With this run you'd be #$1"],[r'^Entrarías en el puesto #(\d+)$',"You'd be #$1"]])
 H.update({'Al guardar aceptas la <a data-priv="priv" href="privacidad/" target="_blank" rel="noopener">privacidad</a> y las <a data-priv="normas" href="privacidad/#normas" target="_blank" rel="noopener">normas del ranking</a>.':
   'By saving you accept the <a data-priv="priv" href="privacy/" target="_blank" rel="noopener">privacy policy</a> and the <a data-priv="normas" href="privacy/#rules" target="_blank" rel="noopener">leaderboard rules</a>.'})
+# ---- v86: «TANQUE LLENO» (src/game/42-tanque.js: big title #tkT, short notice, hold marker label) ----
+EN.update({'¡TANQUE LLENO!':'TANK FULL!','TANQUE LLENO · ve a la bodega':'TANK FULL · go to the hold','Toca BODEGA y te lleva':'Tap HOLD and it takes you there',
+ 'LLENO · DESCARGAR':'FULL · UNLOAD'})
+H.update({'Llévalo a la <b>BODEGA</b> de la nave':"Take it to the ship's <b>HOLD</b>",'Toca <b>BODEGA</b> y te lleva':'Tap <b>HOLD</b> and it takes you there'})
+# ---- v87: «¡NUEVO Nº1!» (src/game/43-numero-uno.js: the celebration #n1, the end plate and account screen lines, the reminder) ----
+EN.update({'¡NUEVO Nº1!':'NEW #1!','RANKING DE CAPITANES · TEMPORADA 1':'CAPTAINS LEADERBOARD · SEASON 1','Guárdala con Google para quedarte el Nº1':'Save it with Google to keep the #1 spot',
+ 'Nadie lo ha hecho mejor esta temporada':'Nobody has done better this season','¡SERÍAS EL Nº1!':"YOU'D BE #1!",'¡NUEVO Nº1 DE LA TEMPORADA!':'NEW SEASON #1!',
+ '¡Serías el Nº1 del ranking!':"You'd be #1 on the leaderboard!"})
 # sanity: every tutorial line must exist verbatim in the game code
 for k in H:
     if k not in b: print('TUT NOT FOUND:',k[:60])

@@ -51,7 +51,7 @@ async function loadSfx(){if(SFXB||!AC)return;SFXB={};
 function playTake(k,i,vol,rate=1){const s=AC.createBufferSource(),g=AC.createGain();s.buffer=SFXB[k][i];s.playbackRate.value=rate;g.gain.value=vol;s.connect(g).connect(master);s.start();return {s,g};}
 function playS(k,vol,rate=1){const vs=SFXB&&SFXB[k];if(!vs||!vs.length)return null;let i=Math.floor(Math.random()*vs.length);if(vs.length>1&&i===SFXLAST[k])i=(i+1)%vs.length;SFXLAST[k]=i;
   return playTake(k,i,vol,rate*PJ);}
-const MUSICAL=new Set(['alarm','repaired','perfect','win','deposit','full','alert','combo','power','reload','drop']);
+const MUSICAL=new Set(['alarm','repaired','perfect','win','deposit','full','alert','combo','power','reload','drop','n1']);
 function sfx(k,pos){if(!AC)return;const v=pos?Math.max(0.15,1-pos.distanceTo(P.pos)/30):1;PJ=MUSICAL.has(k)?1:1+(Math.random()-0.5)*0.09;{const M=SFXMAP[k];if(M&&playS(M[0],M[1]*Math.max(v,M[4]||0),M[2])&&!M[3])return;}
   switch(k){
     case 'shot':noise(0.014,0.14,6500,'highpass');toneF('sawtooth',1500,190,0.1,0.07,7000,700);tone('sine',150,46,0.11,0.17);noiseQ(0.16,0.035,1900,1.4,0.01);break;
@@ -79,6 +79,11 @@ function sfx(k,pos){if(!AC)return;const v=pos?Math.max(0.15,1-pos.distanceTo(P.p
     case 'leap':tone('sawtooth',90,240,0.25,0.06*v);break;
     case 'hurt':tone('square',140,60,0.25,0.2);break;
     case 'win':[523,659,784,1046].forEach((f,i)=>tone('triangle',f,f*1.01,0.4,0.13,i*0.13));break;
+    case 'n1': // v87: «¡NUEVO Nº1!» (43-numero-uno.js): a low hit, a brass run up (filtered saws), a held major chord and a sparkle on top
+      tone('sine',120,38,0.9,0.3);noise(0.6,0.16,700,'lowpass');noise(0.35,0.06,5200,'highpass',0.02);
+      [392,523,659,784].forEach((f,i)=>toneF('sawtooth',f,f,0.34,0.07,3200,900,0.08+i*0.075));
+      [523,659,784,1046].forEach(f=>toneF('sawtooth',f,f*1.003,1.7,0.055,3600,700,0.42));tone('triangle',262,262,1.6,0.08,0.42);
+      [1568,2093,2637,3136].forEach((f,i)=>tone('triangle',f,f,0.5,0.028,0.55+i*0.08));break;
     case 'deposit':{const k=P.depStart?1-P.carry/Math.max(1,P.depStart):0.5;tone('sine',620+k*520,900+k*600,0.07,0.045);break;}
     case 'full':tone('square',880,880,0.09,0.06);tone('square',660,660,0.12,0.06,0.11);break;
     case 'spill':tone('sawtooth',600,90,0.45,0.12);break;

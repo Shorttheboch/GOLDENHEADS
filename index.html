@@ -48,7 +48,7 @@
 <div id="lbT"></div><div id="lbB"><span>CLIC O ENTER PARA SALTAR</span></div>
 <div id="eggT" aria-hidden="true"><b>¡LAS ARAÑAS ESTÁN PONIENDO HUEVOS!</b><i></i><small>Destrúyelos antes de que eclosionen</small></div><div id="eggFade"></div>
 <div class="hud" id="rep"><div id="repLbl"></div><div class="track"><div id="repBand"></div><div id="repFill"></div></div></div>
-<div class="hud" id="cross"></div><div class="hud" id="xpS"><b>RACHA</b><i></i><i></i><i></i><i></i><i></i></div><div id="xpFlash"></div><div id="xpT"><div class="xpTl"></div><div class="xpTs"></div></div><div class="hud" id="ammo"><img class="eb" data-k="energia-base" alt=""><i></i><span>RECARGANDO</span></div>
+<div class="hud" id="cross"></div><div class="hud" id="xpS"><b>RACHA</b><i></i><i></i><i></i><i></i><i></i></div><div id="xpFlash"></div><div id="xpT"><div class="xpTl"></div><div class="xpTs"></div></div><div id="tkT"><div class="tkIn"><div class="tkTl"></div><div class="tkTs"></div></div></div><div class="hud" id="ammo"><img class="eb" data-k="energia-base" alt=""><i></i><span>RECARGANDO</span></div>
 <div class="hud" id="msg"></div>
 <div class="hud" id="hint"></div>
 <div class="hud h4" id="hTop"><div id="hTopT">TRICOMAS · <b id="hCargoN">1.000</b></div>
@@ -61,7 +61,7 @@
 <div class="hud h4 h4p" id="hTank"><img class="bg" data-k="panel-mochila" alt=""><div class="k1">TANQUE</div><div class="k2" id="hTankN">0 / 60</div><div class="k3" id="hTankS">TRICOMAS RECOGIDOS</div><div class="seg kb" id="hTankB"><img data-k="barra-recurso-relleno" alt=""></div></div>
 <div class="hud h4" id="hTk"><div class="tkR"><b id="hTkN">0 / 60</b><div class="tkT"><div class="seg" id="hTkB"><img data-k="barra-recurso-relleno" alt=""></div></div></div><div class="tkIc"><img data-k="mochila" alt="Tanque"></div></div>
 <div id="h4m"></div><div id="eMk"></div>
-<div class="mk bod" id="hBod" hidden><img class="ar" data-k="flecha-bodega" alt=""><img class="ic" data-k="icono-bodega" alt=""><span>BODEGA<br>DEPOSITAR</span></div>
+<div class="mk bod" id="hBod" hidden><img class="ar" data-k="flecha-bodega" alt=""><img class="ic" data-k="icono-bodega" alt=""><span>BODEGA<br><b>DEPOSITAR</b></span></div>
 <div id="flare" aria-hidden="true"><i class="fs"></i><i class="fc"></i><i class="fg"></i><i class="fg"></i><i class="fg"></i><i class="fg"></i></div>
 
 <div id="tZone" hidden></div><div id="tStick"><i id="tKnob"></i></div><div id="bMk"></div>
@@ -201,6 +201,24 @@
     </form>
     <div id="acRes" hidden><p id="acL1"></p><p id="acL2"></p><ol class="rkList" id="acList" data-noi18n></ol></div>
     <div id="acBtns"><button type="button" id="acSave" class="sbBtn" hidden><i class="sbL"></i><span class="sbT"><b>GUARDAR MI PUNTUACIÓN</b><small>con Google</small></span><i class="sbL r"></i></button><button type="button" id="acGo"><span></span></button><button type="button" id="acNo"></button></div>
+  </div>
+</div>
+
+<div id="n1" hidden role="status" aria-live="assertive"><!-- v87: «¡NUEVO Nº1!», a new #1 of the Season 1 ranking, over the end plate or the account screen (logic: src/game/43-numero-uno.js, look: src/styles/13-numero-uno.css) -->
+  <canvas id="n1Fx" aria-hidden="true"></canvas><div class="n1Rays" aria-hidden="true"></div><div class="n1Flash" aria-hidden="true"></div>
+  <div class="n1In">
+    <svg class="n1Crown" viewBox="0 0 120 88" aria-hidden="true"><defs><linearGradient id="n1Gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6cc"/><stop offset=".3" stop-color="#ffd659"/><stop offset=".62" stop-color="#e29a16"/><stop offset="1" stop-color="#8a4a05"/></linearGradient>
+      <linearGradient id="n1Band" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe9a0"/><stop offset=".5" stop-color="#d98b0e"/><stop offset="1" stop-color="#6e3c06"/></linearGradient></defs>
+      <path d="M12 70 6 24l26 22L60 10l28 36 26-22-6 46Z" fill="url(#n1Gold)" stroke="#6e3c06" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M22 62 18 40l16 13L60 22l26 31 16-13-4 22Z" fill="none" stroke="#fff3c4" stroke-opacity=".55" stroke-width="1.6" stroke-linejoin="round"/>
+      <rect x="9" y="68" width="102" height="15" rx="3" fill="url(#n1Band)" stroke="#6e3c06" stroke-width="3"/>
+      <circle cx="6" cy="22" r="5.5" fill="url(#n1Gold)" stroke="#6e3c06" stroke-width="2.4"/><circle cx="60" cy="8" r="6.5" fill="url(#n1Gold)" stroke="#6e3c06" stroke-width="2.4"/><circle cx="114" cy="22" r="5.5" fill="url(#n1Gold)" stroke="#6e3c06" stroke-width="2.4"/>
+      <circle cx="60" cy="54" r="7.5" fill="#3ff0ff" stroke="#05506a" stroke-width="2.4"/><circle cx="57.5" cy="51.5" r="2.4" fill="#e9ffff"/>
+      <circle cx="33" cy="75.5" r="4" fill="#ff3b2a" stroke="#5a0d06" stroke-width="1.8"/><circle cx="60" cy="75.5" r="4" fill="#3ff0ff" stroke="#05506a" stroke-width="1.8"/><circle cx="87" cy="75.5" r="4" fill="#ff3b2a" stroke="#5a0d06" stroke-width="1.8"/></svg>
+    <div class="n1Tl"></div>
+    <div class="n1Ts"><span></span></div>
+    <div class="n1Who"></div>
+    <div class="n1Hint"></div>
   </div>
 </div>
 

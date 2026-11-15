@@ -298,7 +298,7 @@ const HELPERS=()=>{window.__keep=()=>{const P=__heads.P;const d=Math.max(0,100-P
  console.log('body shots to kill',JSON.stringify(kill));
  // 7) death on a rock: a new one lands on rock 4, dies there (Death_Collapse, attached to the drifting rock), then it is removed as usual
  await step(5);
- await p.evaluate(()=>{window.__noSpawn=1;window.__inc=__heads.spawnInc(false);window.__inc.cds.leap=999;window.__hold=null;}); // no hull-to-hull leap while it settles
+ await p.evaluate(()=>{window.__noSpawn=1;window.__inc=__heads.spawnInc(false);window.__inc.cds.leap=999;window.__inc.cds.hop=999;window.__hold=null;}); // no hull-to-hull leap or hop while it settles (v91: with the random numbers shifted by v90, it hopped just then)
  await p.evaluate(()=>{window.__go(300,()=>__inc.st==='stalk');});
  const dead=await p.evaluate(()=>{const H=__heads,P=H.P,e=__inc,R=H.ROCKS[4];if(e.st!=='stalk')return {ready:false,st:e.st};window.__hide();const [q,n]=window.__put(4,4,1.57,12);__step(2);
    e.pos.copy(q);e.n.copy(n);e.z=4;e.th=1.57;e.face.set(1,0,0).addScaledVector(n,-n.x).normalize();e.roam=null;e.rk=null;e.rockStops=0;e.lastRock=null;e.cds.leap=0;e.cds.melee=0;e.cds.beam=99;

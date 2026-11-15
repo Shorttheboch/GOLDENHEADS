@@ -37,25 +37,29 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
     const sk=[];for(let i=0;i<pa.count;i++){const q=new THREE.Vector3();patch.getVertexPosition(i,q);sk.push(q);}
     const uvA=g.attributes.uv,inn=sk.filter((q,i)=>Math.hypot(uvA.getX(i)-0.5,uvA.getY(i)-0.5)<0.35),cs=inn.reduce((a,q)=>a.add(q),new THREE.Vector3()).divideScalar(inn.length);
     let A=inn[0];for(const q of inn)if(q.distanceTo(cs)>A.distanceTo(cs))A=q;let B=inn[0],bs=0;for(const q of inn){const x=q.clone().sub(cs).cross(A.clone().sub(cs)).length();if(x>bs){bs=x;B=q;}}
-    const nrm=A.clone().sub(cs).cross(B.clone().sub(cs)).normalize();
-    let drift=0,driftN=0,pairs=0;const s=P.model.scale.x,bi0=new THREE.Vector3(),bj=new THREE.Vector3(),si=new THREE.Vector3(),sj=new THREE.Vector3();
+    const nrm=A.clone().sub(cs).cross(B.clone().sub(cs)).normalize(),spl=patch.worldToLocal(P.bones.Spine2.getWorldPosition(new THREE.Vector3()));if(nrm.dot(cs.clone().sub(spl))<0)nrm.negate(); // (outwards)
+    let drift=0,driftN=0,sink=0,lift=0,pairs=0;const s=P.model.scale.x,bi0=new THREE.Vector3(),bj=new THREE.Vector3(),si=new THREE.Vector3(),sj=new THREE.Vector3();
     for(let i=0;i<pa.count;i++){bi0.fromBufferAttribute(pa,i);let best=1e9,jb=-1;for(const j of cand){const d=u.fromBufferAttribute(sa,j).distanceTo(bi0);if(d<best){best=d;jb=j;}}
       if(jb<0||best>0.015)continue;pairs++;bj.fromBufferAttribute(sa,jb);patch.getVertexPosition(i,si);suit.getVertexPosition(jb,sj);
-      const dv=si.sub(bi0).sub(sj.sub(bj));drift=Math.max(drift,dv.length()*s);driftN=Math.max(driftN,Math.abs(dv.dot(nrm))*s);}
+      const dv=si.sub(bi0).sub(sj.sub(bj)),dn=dv.dot(nrm)*s;drift=Math.max(drift,dv.length()*s);driftN=Math.max(driftN,Math.abs(dn));sink=Math.max(sink,-dn);lift=Math.max(lift,dn);}
     // ripples: how far each inside vertex (UV within 0.33 of the centre) moves from the average move of its mesh neighbours. A patch that
     // bends smoothly has next to nothing there; one that ripples (weights jumping from vertex to vertex) does
     const uvR=g.attributes.uv,ix=g.index,nb=new Map();for(let k=0;k<ix.count;k+=3){const t=[ix.getX(k),ix.getX(k+1),ix.getX(k+2)];for(const x of t)for(const y of t)if(x!==y){if(!nb.has(x))nb.set(x,new Set());nb.get(x).add(y);}}
+    // only the patch itself: the largest connected piece (the swoosh tips are small pieces of suit)
+    const seen=new Set();let big=[];for(const st of nb.keys()){if(seen.has(st))continue;const comp=[st];seen.add(st);for(let h=0;h<comp.length;h++)for(const y of nb.get(comp[h]))if(!seen.has(y)){seen.add(y);comp.push(y);}if(comp.length>big.length)big=comp;}
+    const inPatch=new Set(big);
     const disp=i=>{const q=new THREE.Vector3();patch.getVertexPosition(i,q);return q.sub(u.fromBufferAttribute(pa,i));};
-    let warp=0,ins=0;for(const [i,ns] of nb){if(Math.hypot(uvR.getX(i)-0.5,uvR.getY(i)-0.5)>=0.33)continue;ins++;const m=new THREE.Vector3();for(const j of ns)m.add(disp(j));m.divideScalar(ns.size);
+    let warp=0,ins=0;for(const [i,ns] of nb){if(!inPatch.has(i)||Math.hypot(uvR.getX(i)-0.5,uvR.getY(i)-0.5)>=0.33)continue;ins++;const m=new THREE.Vector3();for(const j of ns)m.add(disp(j));m.divideScalar(ns.size);
       warp=Math.max(warp,disp(i).sub(m).length()*s);}
-    return {c:c.toArray(),blackNear:near,drift,driftN,pairs,warp,ins};});
+    return {c:c.toArray(),blackNear:near,drift,driftN,sink,lift,pairs,warp,ins,patchV:big.length};});
   const w0=await where();
   ok(w0.blackNear===0,`${plat}: the old black circle is gone (black triangle corners within 5 cm: ${w0.blackNear})`,w0);
-  ok(w0.pairs>60&&w0.driftN<0.0025,`${plat}: the patch stays on the suit (${w0.pairs} vertices checked against the suit next to them: at most ${(w0.driftN*1000).toFixed(1)} mm into or off it, ${(w0.drift*1000).toFixed(1)} mm in all)`,w0);
+  // (the patch is 2.5 mm over the suit with a 4 mm skirt under its edge: it may sink a little less than 2.5 mm and lift a little less than 4)
+  ok(w0.pairs>60&&w0.sink<0.002&&w0.lift<0.0035,`${plat}: the patch stays on the suit (${w0.pairs} vertices checked against the suit next to them: at most ${(w0.sink*1000).toFixed(1)} mm into it, ${(w0.lift*1000).toFixed(1)} mm off it, ${(w0.drift*1000).toFixed(1)} mm in all)`,w0);
   ok(w0.ins>100&&w0.warp<0.0005,`${plat}: it does not ripple (${w0.ins} vertices inside, at most ${(w0.warp*1000).toFixed(2)} mm off the move of their neighbours)`,w0);
   await p.evaluate(()=>{const P=__heads.P;P.pos.x+=1.5;P.pos.y+=0.7;});await p.waitForTimeout(700);
   const w1=await where();const moved=Math.hypot(w1.c[0]-w0.c[0],w1.c[1]-w0.c[1],w1.c[2]-w0.c[2]);
-  ok(moved>1&&w1.driftN<0.0025&&w1.warp<0.0005,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m, at most ${(w1.driftN*1000).toFixed(1)} mm into or off the suit, ripples ${(w1.warp*1000).toFixed(2)} mm)`,w1);
+  ok(moved>1&&w1.sink<0.002&&w1.lift<0.0035&&w1.warp<0.0005,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m, ${(w1.sink*1000).toFixed(1)} mm into the suit, ${(w1.lift*1000).toFixed(1)} mm off it, ripples ${(w1.warp*1000).toFixed(2)} mm)`,w1);
   // pictures: front view (Q on PC, VER on the phone), then a close-up from the patch's own normal
   await p.evaluate(()=>{__heads.inp.view=true;});await p.waitForTimeout(2200);
   await p.screenshot({path:shot(`parche_${plat}_frente.png`)});

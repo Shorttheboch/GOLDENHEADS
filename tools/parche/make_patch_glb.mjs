@@ -11,10 +11,12 @@
 //     primitive; the meshopt data stays as it is, the puck's vertices are just no longer used). In its place goes a thin patch mesh (RINGS x
 //     SEGS) that follows the chest THICK above the suit, with a short skirt at the edge and skin weights blended from the nearest suit
 //     vertices, so it bends like the suit around it;
-//  2) every front-facing suit triangle inside the texture square is rasterised on a 512 grid with its height along the patch normal, the patch
-//     mesh too; a suit triangle is kept if it is frontmost at some texel the texture covers (alpha >= 0.5): under the three swoosh tips;
-//  3) all that goes into one more primitive of the body mesh (same skin; the suit copies lifted 0.5 mm along their normals), with planar UVs
-//     (the patch's edge and skirt clamped just inside the circle: they show the stitched border) and its own small material M_Patch (512 px
+//     Outside the circle a few more rings carry the three swoosh tips (only the triangles under them are kept), so the tips are part of the
+//     patch and never come away from it;
+//  2) the suit and the patch are rasterised on a 512 grid with their height along the patch normal: every textured texel must have the patch
+//     on top (no hole, no suit coming through);
+//  3) the patch goes into one more primitive of the body mesh (same skin), with planar UVs (the circle's edge and skirt clamped just inside
+//     the circle: they show the stitched border) and its own small material M_Patch (512 px
 //     WebP, alpha MASK, not metallic, a little of the texture as emission so it reads in the dark); EXT_texture_webp is required (the game
 //     already needs WebP for its menus and HUD).
 // No existing byte of the binary changes: the new data is appended. By default it starts from the astronaut of v88
@@ -33,7 +35,7 @@ const PRISTINE='bcde206';                          // v88: the last astronaut wi
 const OUT=path.resolve(ROOT,opt('out','public/assets/models/astronaut.glb')),CHECK=args.includes('--check');
 const TEX=path.join(HERE,'parche.webp'),META=JSON.parse(fs.readFileSync(path.join(HERE,'parche.json'),'utf8'));
 const DISC_AT=new THREE.Vector3(0.115,1.443,0.079); // the black circle on the left of the chest (mesh space of NEW_body, Blender export)
-const LIFT=0.0005,TIPLIFT=0.0012,PATCH_FIT=1.3,EDGE_BLEND=[0.6,0.95],THICK=0.0025,SKIRT=0.004,RINGS=6,SEGS=40,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62,emissive:0.3};
+const PATCH_FIT=1.3,EDGE_BLEND=[0.6,0.95],TIP_RINGS=5,THICK=0.0025,SKIRT=0.004,RINGS=6,SEGS=40,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62,emissive:0.3};
 
 const src=opt('src',null);
 const glb=src?fs.readFileSync(path.resolve(src)):execSync(`git show ${PRISTINE}:public/assets/models/astronaut.glb`,{cwd:ROOT,maxBuffer:64<<20});
@@ -123,8 +125,9 @@ raster([[gSuit,'suit'],[gBlack,'black']]);
  console.log(`visible black edge: ${rays[0].toFixed(4)} .. ${rays[rays.length-1].toFixed(4)} m, median ${RV.toFixed(4)}: the patch's circle`);
  SIDE=RV/META.r;}
 // the patch mesh: polar rings over the circle, THICK above the suit (the suit's height under each point interpolated from the front-facing
-// suit vertices around and inside the hole: 8 nearest in the plane, inverse squared distance), and a skirt down to SKIRT below the suit at the
-// edge (the patch's thickness, in the black of its border)
+// suit vertices around and inside the hole: 8 nearest in the plane, inverse squared distance), a skirt down to SKIRT below the suit at the
+// edge (the patch's thickness, in the black of its border), and outside the circle a few more rings, kept only where the swoosh tips are:
+// the tips are part of the patch (same height, same weights), so they never come away from the circle
 const sP=gSuit.attributes.position,sN=gSuit.attributes.normal,sJ=gSuit.attributes.skinIndex,sW=gSuit.attributes.skinWeight,near=[];
 for(let i=0;i<sP.count;i++){v.fromBufferAttribute(sP,i);if(v.distanceTo(disc.c)<0.12&&w.fromBufferAttribute(sN,i).dot(N)>0.2)near.push(i);}
 const RC=META.r*SIDE,samples=[];for(const i of near){const q=pl(v.fromBufferAttribute(sP,i));if(Math.hypot(q[0],q[1])<RC+0.015&&Math.abs(q[2])<0.03)samples.push(q);}
@@ -134,8 +137,7 @@ function suitH(x,y){const d=samples.map(q=>[q[2],(q[0]-x)**2+(q[1]-y)**2]).sort(
 // field bent it out of shape); one set of weights for the whole patch kept it flat but let the suit come through it or leave it by 1 cm.
 // So each joint's weight is a plane over the patch (least squares on the suit vertices within PATCH_FIT circle radii): the middle follows
 // the suit's overall bend and slope with no ripples; towards the edge (EDGE_BLEND, in circle radii) it turns into the weights of the nearest
-// suit vertices (8, inverse squared distance), so the edge stays on the suit around it. Top 4 joints, normalised. The swoosh tips (copies of
-// suit triangles) take that field near the circle, so they stay joined to it, and their own exact weights further out.
+// suit vertices (8, inverse squared distance), so the edge and the swoosh tips stay on the suit around them. Normalised.
 const _sw=new THREE.Vector3();
 const top4=acc=>{const top=[...acc].sort((a,b)=>b[1]-a[1]).slice(0,4),sum=top.reduce((s,x)=>s+x[1],0);while(top.length<4)top.push([0,0]);return {j:top.map(x=>x[0]),w:top.map(x=>x[1]/sum)};};
 function exactWeights(i){const acc=new Map();for(let k=0;k<4;k++){const j=sJ.getComponent(i,k),x=sW.getComponent(i,k);if(x>0)acc.set(j,(acc.get(j)||0)+x);}return acc;}
@@ -161,42 +163,54 @@ function patchWeights(q){const p2=pl(q),x=p2[0]/RC,y=p2[1]/RC,e=smoothstep(EDGE_
 const smoothstep=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
 {const names=json.skins[0].joints.map(j=>json.nodes[j].name);for(const [nm,x,y] of [['centre',0,0],['top',0,1],['right',1,0],['bottom',0,-1],['left',-1,0]]){
    const t=top4(patchWeights(at(x*RC,y*RC,0)));console.log(`  ${nm}: `+t.j.map((j,k)=>t.w[k]>0.005?names[j]+' '+t.w[k].toFixed(2):'').filter(Boolean).join(', '));}}
-const dPos=[at(0,0,suitH(0,0)+THICK)],dIdx=[];
-for(let r=1;r<=RINGS;r++)for(let k=0;k<SEGS;k++){const an=k/SEGS*Math.PI*2,rr=RC*r/RINGS,x=Math.cos(an)*rr,y=Math.sin(an)*rr;dPos.push(at(x,y,suitH(x,y)+THICK));}
+// where there is suit under the patch (around the hole and under the tips) its real top is used: the suit alone is rasterised and each
+// vertex takes the highest suit within 3 mm (the interpolation left folds of the suit above the tips, or reached up to the collar); over the
+// hole, the interpolation
+raster([[gSuit,'suit']]);const hS=zbuf.slice();
+function suitTop(x,y){const cu=0.5+x/SIDE,cv=0.5-y/SIDE,rad=Math.ceil(0.003/SIDE*GRID);let best=-1e9;
+  for(let yy=Math.floor(cv*GRID)-rad;yy<=Math.floor(cv*GRID)+rad;yy++)for(let xx=Math.floor(cu*GRID)-rad;xx<=Math.floor(cu*GRID)+rad;xx++){if(xx<0||yy<0||xx>=GRID||yy>=GRID)continue;best=Math.max(best,hS[yy*GRID+xx]);}return best;}
+const surf=(x,y)=>{const t=suitTop(x,y);return t>-1e8?t:suitH(x,y);};
+const dPos=[at(0,0,surf(0,0)+THICK)],dIdx=[];
+for(let r=1;r<=RINGS;r++)for(let k=0;k<SEGS;k++){const an=k/SEGS*Math.PI*2,rr=RC*r/RINGS,x=Math.cos(an)*rr,y=Math.sin(an)*rr;dPos.push(at(x,y,surf(x,y)+THICK));}
 const ring=(r,k)=>1+(r-1)*SEGS+(k%SEGS);
 for(let k=0;k<SEGS;k++)dIdx.push(0,ring(1,k),ring(1,k+1));
 for(let r=1;r<RINGS;r++)for(let k=0;k<SEGS;k++)dIdx.push(ring(r,k),ring(r+1,k),ring(r+1,k+1),ring(r,k),ring(r+1,k+1),ring(r,k+1));
 const sk0=dPos.length;for(let k=0;k<SEGS;k++){const an=k/SEGS*Math.PI*2,x=Math.cos(an)*RC,y=Math.sin(an)*RC;dPos.push(at(x,y,suitH(x,y)-SKIRT));}
 for(let k=0;k<SEGS;k++){const a=ring(RINGS,k),b=ring(RINGS,k+1),c=sk0+k,d=sk0+(k+1)%SEGS;dIdx.push(a,c,d,a,d,b);}
+// the tips: rings from the circle out to the farthest tip pixel (their own vertices: their UVs are not clamped to the circle)
+let TIP_OUT=1;for(let k=0;k<GRID*GRID;k++)if(alphaPx[k]>=64)TIP_OUT=Math.max(TIP_OUT,Math.hypot((k%GRID+0.5)/GRID-0.5,((k/GRID|0)+0.5)/GRID-0.5)/META.r);TIP_OUT+=0.02;
+const an0=dPos.length,TR=TIP_RINGS,tring=(r,k)=>an0+r*SEGS+(k%SEGS);
+for(let r=0;r<=TR;r++)for(let k=0;k<SEGS;k++){const an=k/SEGS*Math.PI*2,rr=RC*(1+(TIP_OUT-1)*r/TR),x=Math.cos(an)*rr,y=Math.sin(an)*rr;dPos.push(at(x,y,surf(x,y)+THICK));}
+const tipTris=[];for(let r=0;r<TR;r++)for(let k=0;k<SEGS;k++)tipTris.push([tring(r,k),tring(r+1,k),tring(r+1,k+1)],[tring(r,k),tring(r+1,k+1),tring(r,k+1)]);
+const uvOf=i=>toUV(dPos[i]);
+const coversTip=t=>{const uv=t.map(uvOf),[a,b,c]=uv,den=(b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1]);if(Math.abs(den)<1e-12)return false;
+  const x0=Math.max(0,Math.floor(Math.min(a[0],b[0],c[0])*GRID)-1),x1=Math.min(GRID-1,Math.ceil(Math.max(a[0],b[0],c[0])*GRID)+1),y0=Math.max(0,Math.floor(Math.min(a[1],b[1],c[1])*GRID)-1),y1=Math.min(GRID-1,Math.ceil(Math.max(a[1],b[1],c[1])*GRID)+1);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const px=(x+0.5)/GRID,py=(y+0.5)/GRID,l1=((b[1]-c[1])*(px-c[0])+(c[0]-b[0])*(py-c[1]))/den,l2=((c[1]-a[1])*(px-c[0])+(a[0]-c[0])*(py-c[1]))/den;
+    if(l1<-0.05||l2<-0.05||1-l1-l2<-0.05)continue;if(alphaPx[y*GRID+x]>=64)return true;}return false;}; // (a little margin: no tip pixel lost at a triangle edge)
+const tipKeep=tipTris.filter(coversTip);for(const t of tipKeep)dIdx.push(...t);
 const gDisc=new THREE.BufferGeometry();gDisc.setAttribute('position',new THREE.Float32BufferAttribute(dPos.flatMap(q=>q.toArray()),3));gDisc.setIndex(dIdx);gDisc.computeVertexNormals();
 // (the skirt takes the normals of the rim above it: shaded like the patch's edge, not like a wall facing sideways)
 for(let k=0;k<SEGS;k++){const n=new THREE.Vector3().fromBufferAttribute(gDisc.attributes.normal,ring(RINGS,k));gDisc.attributes.normal.setXYZ(sk0+k,n.x,n.y,n.z);}
-{const fr=[...Array(dPos.length).keys()].filter(i=>!(i>=sk0)).map(i=>pl(dPos[i])[2]);
- console.log(`patch mesh: ${dPos.length} vertices, ${dIdx.length/3} triangles, ${(THICK*1000).toFixed(1)} mm over the suit (its face ${Math.min(...fr).toFixed(4)}..${Math.max(...fr).toFixed(4)} m on the old puck's normal; the puck went up to 0.0054)`);}
+{const fr=[...Array(an0).keys()].filter(i=>i<sk0).map(i=>pl(dPos[i])[2]);
+ console.log(`patch mesh: ${dIdx.length/3} triangles (${tipKeep.length} of them for the tips, out to ${TIP_OUT.toFixed(2)} radii), ${(THICK*1000).toFixed(1)} mm over the suit (its face ${Math.min(...fr).toFixed(4)}..${Math.max(...fr).toFixed(4)} m on the old puck's normal; the puck went up to 0.0054)`);}
 raster([[gSuit,'suit'],[gDisc,'patch']]);
 console.log(`the texture covers ${SIDE.toFixed(4)} m (the patch is ${(2*RC*100).toFixed(1)} cm across in the model, ${(2*RC*88).toFixed(1)} cm in the game)`);
 let covered=0,holes=0,poke=0;
-for(let k=0;k<GRID*GRID;k++){if(alphaPx[k]<128)continue;covered++;if(owner[k]<0){holes++;continue;}const c=cand[owner[k]];c.hit++;
-  const x=(k%GRID+0.5)/GRID-0.5,y=((k/GRID|0)+0.5)/GRID-0.5;if(c.tag==='suit'&&Math.hypot(x,y)<META.r*0.97)poke++;}
-const keep=cand.filter(c=>c.tag==='suit'&&c.hit>0);
-console.log(`suit triangles: ${cand.filter(c=>c.tag==='suit').length} in the square, ${keep.length} carry the tips; textured texels ${covered}, with nothing under them ${holes}, circle texels where the suit is above the patch ${poke}`);
-if(holes>covered*0.002)throw new Error('the patch does not sit on the model: '+holes+' texels without surface');
+for(let k=0;k<GRID*GRID;k++){if(alphaPx[k]<128)continue;covered++;if(owner[k]<0){holes++;continue;}if(cand[owner[k]].tag==='suit')poke++;}
+console.log(`textured texels ${covered}: with nothing under them ${holes}, where the suit is above the patch ${poke}`);
+if(holes>covered*0.002)throw new Error('the patch does not cover its texture: '+holes+' texels without surface');
 if(poke>covered*0.003)throw new Error('the suit comes through the patch at '+poke+' texels: raise THICK');
-for(let t=0;t<dIdx.length/3;t++)keep.push({g:gDisc,tag:'patch',id:[dIdx[t*3],dIdx[t*3+1],dIdx[t*3+2]]});
+const keep=[];for(let t=0;t<dIdx.length/3;t++)keep.push({g:gDisc,tag:'patch',id:[dIdx[t*3],dIdx[t*3+1],dIdx[t*3+2]]});
 const RMAX=0.985*META.r;
 
 // 3) the new primitive's vertices (one per source vertex, lifted along its normal) and the black primitive without the puck
 const vmap=new Map(),pos=[],nor=[],uvs=[],jnt=[],wgt=[],idx=[];
-for(const c of keep){const g=c.g,mine=c.tag==='patch',tri=[];
-  for(const i of c.id){const key=(mine?'p':'s')+i;let o=vmap.get(key);
-    if(o===undefined){o=pos.length/3;vmap.set(key,o);v.fromBufferAttribute(g.attributes.position,i);w.fromBufferAttribute(g.attributes.normal,i);
-      const q=toUV(v),rp=Math.hypot(q[0]-0.5,q[1]-0.5)/META.r,tj=1-smoothstep(1.05,1.3,rp); // (rp: distance from the centre in circle radii; tj: how much a tip vertex follows the patch)
-      if(!mine)v.addScaledVector(w,LIFT+TIPLIFT*tj);pos.push(v.x,v.y,v.z);nor.push(w.x,w.y,w.z);
-      let sw;
-      if(mine){const du=q[0]-0.5,dv=q[1]-0.5,r=Math.hypot(du,dv),f=r>RMAX?RMAX/r:1;uvs.push(0.5+du*f,0.5+dv*f); // (the edge and the skirt: just inside the circle, the stitched border)
-        sw=top4(patchWeights(v));}
-      else{uvs.push(q[0],q[1]);sw=top4(tj>0?mixWeights(patchWeights(v),exactWeights(i),tj):exactWeights(i));}
-      jnt.push(...sw.j);wgt.push(...sw.w);}
+for(const c of keep){const g=c.g,tri=[];
+  for(const i of c.id){let o=vmap.get(i);
+    if(o===undefined){o=pos.length/3;vmap.set(i,o);v.fromBufferAttribute(g.attributes.position,i);w.fromBufferAttribute(g.attributes.normal,i);
+      pos.push(v.x,v.y,v.z);nor.push(w.x,w.y,w.z);
+      const q=toUV(v),du=q[0]-0.5,dv=q[1]-0.5,r=Math.hypot(du,dv),f=i<an0&&r>RMAX?RMAX/r:1;uvs.push(0.5+du*f,0.5+dv*f); // (the circle's edge and skirt: just inside the circle, the stitched border)
+      const sw=top4(patchWeights(v));jnt.push(...sw.j);wgt.push(...sw.w);}
     tri.push(o);}
   idx.push(...tri);}
 const nV=pos.length/3;if(nV>65535)throw new Error('too many vertices');

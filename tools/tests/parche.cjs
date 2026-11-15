@@ -1,6 +1,6 @@
 // v89: the HEADS patch on the astronaut's chest (tools/parche/, public/assets/models/astronaut.glb). Checks that the model brings it (a skinned
-// mesh on the body's skeleton, material M_Patch with the 512 px texture, alpha mask, not metallic, a faint emission), that the old black circle is gone
-// and the patch bends with the suit around it, and takes pictures: the front view (Q / VER) and a close-up, on PC and phone (tools/tests/out/parche_*.png).
+// mesh on the body's skeleton, material M_Patch with the 512 px texture, alpha mask, not metallic, a faint emission), that the old black circle is gone,
+// that the suit never comes through the patch in the game's pose and that it bends in one smooth piece, and takes pictures: the front view (Q / VER) and a close-up, on PC and phone (tools/tests/out/parche_*.png).
 //   npm run build:test && tools/run-test.sh dist-test tools/tests/parche.cjs
 const {chromium}=require('playwright');
 const {BASE,ARGS,shot}=require('./lib.cjs');
@@ -25,41 +25,55 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
   ok(m.patch&&m.skinned&&m.sameSkel,`${plat}: the patch is a skinned mesh on the astronaut's skeleton`,m);
   ok(m.img&&m.img[0]===512&&m.img[1]===512&&m.srgb==='srgb'&&m.emis,`${plat}: its texture is the 512 px WebP (sRGB), also a faint emission`,m);
   ok(m.alphaTest===0.5&&m.metal===0&&!m.transparent&&m.tris<700,`${plat}: alpha mask 0.5, not metallic, opaque pass, ${m.tris} triangles`,m);
-  // where it is and how it bends: the old black puck is gone from the black mesh (no black triangle left near the patch), and every patch vertex
-  // moves like the suit next to it (skinned offset from the bind pose compared with the nearest suit vertex within 1.5 cm), now and after moving
+  // where it is and how it bends, in the pose the game has just now: the old black puck is gone from the black mesh (no black triangle left
+  // near the patch); the suit never comes through the patch (rays from each face vertex of the patch, along the patch normal, against the posed
+  // suit triangles around it: the gap, 2.5 mm in the bind pose, must stay above -0.5 mm; the skirt must stay under the suit); and it bends in
+  // one smooth piece (a quadratic map from its flat bind layout to the posed one fits the middle of the patch to a fraction of a millimetre)
   const where=()=>p.evaluate(()=>{const THREE=__THREE,P=__heads.P;let patch=null,black=null,suit=null;
     P.model.traverse(o=>{if(!o.isMesh)return;const n=o.material.name;if(n==='M_Patch')patch=o;if(n==='M_Glove_Black'&&o.isSkinnedMesh)black=o;if(n==='M_Suit_Gold'&&o.isSkinnedMesh&&!suit)suit=o;});
-    const g=patch.geometry,pa=g.attributes.position,c=new THREE.Vector3(),cb=new THREE.Vector3(),v=new THREE.Vector3(),u=new THREE.Vector3();
-    for(let i=0;i<pa.count;i++){patch.getVertexPosition(i,v);patch.localToWorld(v);c.add(v);cb.add(u.fromBufferAttribute(pa,i));}c.divideScalar(pa.count);cb.divideScalar(pa.count);
-    const bg=black.geometry,bi=bg.index;let near=0;for(let k=0;k<bi.count;k++){u.fromBufferAttribute(bg.attributes.position,bi.getX(k));if(u.distanceTo(cb)<0.05)near++;}
-    const sg=suit.geometry,sa=sg.attributes.position,cand=[];for(let j=0;j<sa.count;j++){u.fromBufferAttribute(sa,j);if(u.distanceTo(cb)<0.1)cand.push(j);}
-    // the patch's own plane, skinned (centre and two far-apart vertices), for the part of the drift across the suit (in or out of it)
-    const sk=[];for(let i=0;i<pa.count;i++){const q=new THREE.Vector3();patch.getVertexPosition(i,q);sk.push(q);}
-    const uvA=g.attributes.uv,inn=sk.filter((q,i)=>Math.hypot(uvA.getX(i)-0.5,uvA.getY(i)-0.5)<0.35),cs=inn.reduce((a,q)=>a.add(q),new THREE.Vector3()).divideScalar(inn.length);
-    let A=inn[0];for(const q of inn)if(q.distanceTo(cs)>A.distanceTo(cs))A=q;let B=inn[0],bs=0;for(const q of inn){const x=q.clone().sub(cs).cross(A.clone().sub(cs)).length();if(x>bs){bs=x;B=q;}}
-    const nrm=A.clone().sub(cs).cross(B.clone().sub(cs)).normalize(),spl=patch.worldToLocal(P.bones.Spine2.getWorldPosition(new THREE.Vector3()));if(nrm.dot(cs.clone().sub(spl))<0)nrm.negate(); // (outwards)
-    let drift=0,driftN=0,sink=0,lift=0,pairs=0;const s=P.model.scale.x,bi0=new THREE.Vector3(),bj=new THREE.Vector3(),si=new THREE.Vector3(),sj=new THREE.Vector3();
-    for(let i=0;i<pa.count;i++){bi0.fromBufferAttribute(pa,i);let best=1e9,jb=-1;for(const j of cand){const d=u.fromBufferAttribute(sa,j).distanceTo(bi0);if(d<best){best=d;jb=j;}}
-      if(jb<0||best>0.015)continue;pairs++;bj.fromBufferAttribute(sa,jb);patch.getVertexPosition(i,si);suit.getVertexPosition(jb,sj);
-      const dv=si.sub(bi0).sub(sj.sub(bj)),dn=dv.dot(nrm)*s;drift=Math.max(drift,dv.length()*s);driftN=Math.max(driftN,Math.abs(dn));sink=Math.max(sink,-dn);lift=Math.max(lift,dn);}
-    // ripples: how far each inside vertex (UV within 0.33 of the centre) moves from the average move of its mesh neighbours. A patch that
-    // bends smoothly has next to nothing there; one that ripples (weights jumping from vertex to vertex) does
-    const uvR=g.attributes.uv,ix=g.index,nb=new Map();for(let k=0;k<ix.count;k+=3){const t=[ix.getX(k),ix.getX(k+1),ix.getX(k+2)];for(const x of t)for(const y of t)if(x!==y){if(!nb.has(x))nb.set(x,new Set());nb.get(x).add(y);}}
-    // only the patch itself: the largest connected piece (the swoosh tips are small pieces of suit)
+    const s=P.model.scale.x,g=patch.geometry,pa=g.attributes.position,uv=g.attributes.uv,ix=g.index,u=new THREE.Vector3();
+    const bind=i=>new THREE.Vector3().fromBufferAttribute(pa,i),posed=i=>{const q=new THREE.Vector3();patch.getVertexPosition(i,q);return q;};
+    // the patch itself = the largest connected piece of the primitive (the swoosh tips are small pieces of suit)
+    const nb=new Map();for(let k=0;k<ix.count;k+=3){const t=[ix.getX(k),ix.getX(k+1),ix.getX(k+2)];for(const x of t)for(const y of t)if(x!==y){if(!nb.has(x))nb.set(x,new Set());nb.get(x).add(y);}}
     const seen=new Set();let big=[];for(const st of nb.keys()){if(seen.has(st))continue;const comp=[st];seen.add(st);for(let h=0;h<comp.length;h++)for(const y of nb.get(comp[h]))if(!seen.has(y)){seen.add(y);comp.push(y);}if(comp.length>big.length)big=comp;}
-    const inPatch=new Set(big);
-    const disp=i=>{const q=new THREE.Vector3();patch.getVertexPosition(i,q);return q.sub(u.fromBufferAttribute(pa,i));};
-    let warp=0,ins=0;for(const [i,ns] of nb){if(!inPatch.has(i)||Math.hypot(uvR.getX(i)-0.5,uvR.getY(i)-0.5)>=0.33)continue;ins++;const m=new THREE.Vector3();for(const j of ns)m.add(disp(j));m.divideScalar(ns.size);
-      warp=Math.max(warp,disp(i).sub(m).length()*s);}
-    return {c:c.toArray(),blackNear:near,drift,driftN,sink,lift,pairs,warp,ins,patchV:big.length};});
+    const cb=big.reduce((a,i)=>a.add(bind(i)),new THREE.Vector3()).divideScalar(big.length),c=patch.localToWorld(big.reduce((a,i)=>a.add(posed(i)),new THREE.Vector3()).divideScalar(big.length));
+    const bg=black.geometry,bi=bg.index;let near=0;for(let k=0;k<bi.count;k++){u.fromBufferAttribute(bg.attributes.position,bi.getX(k));if(u.distanceTo(cb)<0.05)near++;}
+    // plane of a set of points (PCA by power iteration), normal pointing away from the spine
+    const plane=(pts,out)=>{const m=pts.reduce((a,q)=>a.add(q),new THREE.Vector3()).divideScalar(pts.length),C=[[0,0,0],[0,0,0],[0,0,0]];
+      for(const q of pts){const d=q.clone().sub(m).toArray();for(let a=0;a<3;a++)for(let b=0;b<3;b++)C[a][b]+=d[a]*d[b];}
+      const mul=x=>new THREE.Vector3(C[0][0]*x.x+C[0][1]*x.y+C[0][2]*x.z,C[1][0]*x.x+C[1][1]*x.y+C[1][2]*x.z,C[2][0]*x.x+C[2][1]*x.y+C[2][2]*x.z);
+      let e1=new THREE.Vector3(1,0.3,0.2);for(let i=0;i<100;i++)e1=mul(e1).normalize();let e2=new THREE.Vector3(0.2,1,0.3);for(let i=0;i<100;i++){e2=mul(e2);e2.addScaledVector(e1,-e2.dot(e1)).normalize();}
+      const n=new THREE.Vector3().crossVectors(e1,e2).normalize();if(n.dot(m.clone().sub(out))<0)n.negate();return {m,e1,e2,n};};
+    const spl=patch.worldToLocal(P.bones.Spine2.getWorldPosition(new THREE.Vector3())),spb=new THREE.Vector3(0,1.3,-0.1);
+    const PB=plane(big.map(bind),spb),PP=plane(big.map(posed),spl);
+    // posed suit triangles around the patch
+    const sg=suit.geometry,sa=sg.attributes.position,si=sg.index,sk=new Map(),tri=[];const sp=j=>{if(!sk.has(j)){const q=new THREE.Vector3();suit.getVertexPosition(j,q);sk.set(j,q);}return sk.get(j);};
+    for(let k=0;k<si.count;k+=3){const t=[si.getX(k),si.getX(k+1),si.getX(k+2)];if(t.every(j=>u.fromBufferAttribute(sa,j).distanceTo(cb)<0.09))tri.push(t);}
+    const ray=new THREE.Ray(),hit=new THREE.Vector3();
+    const gapAt=(o,n,posedPose)=>{let best=null;ray.set(o.clone().addScaledVector(n,0.03),n.clone().negate());
+      for(const t of tri){const [A,B,C]=posedPose?t.map(sp):t.map(j=>new THREE.Vector3().fromBufferAttribute(sa,j));if(ray.intersectTriangle(A,B,C,false,hit)){const d=0.03-hit.distanceTo(ray.origin);if(Math.abs(d)<0.02&&(best===null||d<best))best=d;}}
+      return best;}; // (distance from the suit up to the point, along n; the suit surface nearest to the point's side)
+    let minGap=1e9,skirtUp=-1e9,faces=0;
+    for(const i of big){const gb=gapAt(bind(i),PB.n,false);if(gb===null)continue;const gp=gapAt(posed(i),PP.n,true);if(gp===null)continue;
+      if(gb>0.001){faces++;minGap=Math.min(minGap,gp*s);}else if(gb<-0.002)skirtUp=Math.max(skirtUp,gp*s);}
+    // ripples: quadratic fit, posed position as a function of the flat bind coordinates, over the middle (UV within 0.22 of the centre)
+    const mid=big.filter(i=>Math.hypot(uv.getX(i)-0.5,uv.getY(i)-0.5)<0.22),X=[],Y=[];
+    for(const i of mid){const d=bind(i).sub(PB.m),x=d.dot(PB.e1)*20,y=d.dot(PB.e2)*20;X.push([1,x,y,x*x,x*y,y*y]);Y.push(posed(i).toArray());}
+    const M=Array.from({length:6},()=>Array(6).fill(0)),R=[0,1,2].map(()=>Array(6).fill(0));
+    for(let n=0;n<X.length;n++)for(let a=0;a<6;a++){for(let b=0;b<6;b++)M[a][b]+=X[n][a]*X[n][b];for(let k=0;k<3;k++)R[k][a]+=X[n][a]*Y[n][k];}
+    const solve=(A,bv)=>{const m=A.map((r,i)=>[...r,bv[i]]);for(let cc=0;cc<6;cc++){let pv=cc;for(let r=cc+1;r<6;r++)if(Math.abs(m[r][cc])>Math.abs(m[pv][cc]))pv=r;[m[cc],m[pv]]=[m[pv],m[cc]];
+      for(let r=0;r<6;r++)if(r!==cc){const f=m[r][cc]/m[cc][cc];for(let k=cc;k<7;k++)m[r][k]-=f*m[cc][k];}}return m.map((r,i)=>r[6]/r[i]);};
+    const th=[0,1,2].map(k=>solve(M,R[k]));let warp=0;
+    for(let n=0;n<X.length;n++){let e=0;for(let k=0;k<3;k++){const f=th[k].reduce((acc,t,a)=>acc+t*X[n][a],0);e+=(f-Y[n][k])**2;}warp=Math.max(warp,Math.sqrt(e)*s);}
+    return {c:c.toArray(),blackNear:near,minGap,skirtUp,faces,warp,mid:mid.length,patchV:big.length,suitTris:tri.length};});
   const w0=await where();
   ok(w0.blackNear===0,`${plat}: the old black circle is gone (black triangle corners within 5 cm: ${w0.blackNear})`,w0);
-  // (the patch is 2.5 mm over the suit with a 4 mm skirt under its edge: it may sink a little less than 2.5 mm and lift a little less than 4)
-  ok(w0.pairs>60&&w0.sink<0.002&&w0.lift<0.0035,`${plat}: the patch stays on the suit (${w0.pairs} vertices checked against the suit next to them: at most ${(w0.sink*1000).toFixed(1)} mm into it, ${(w0.lift*1000).toFixed(1)} mm off it, ${(w0.drift*1000).toFixed(1)} mm in all)`,w0);
-  ok(w0.ins>100&&w0.warp<0.0005,`${plat}: it does not ripple (${w0.ins} vertices inside, at most ${(w0.warp*1000).toFixed(2)} mm off the move of their neighbours)`,w0);
+  ok(w0.faces>60&&w0.minGap>-0.0005,`${plat}: the suit never comes through the patch (${w0.faces} points over the suit: the closest is ${(w0.minGap*1000).toFixed(1)} mm over it; 2.2 mm in the bind pose)`,w0);
+  ok(w0.skirtUp<0.0005,`${plat}: the skirt stays under the suit (highest ${(w0.skirtUp*1000).toFixed(1)} mm)`,w0);
+  ok(w0.mid>40&&w0.warp<0.0006,`${plat}: it bends in one smooth piece (${w0.mid} vertices in the middle, at most ${(w0.warp*1000).toFixed(2)} mm off a smooth bend)`,w0);
   await p.evaluate(()=>{const P=__heads.P;P.pos.x+=1.5;P.pos.y+=0.7;});await p.waitForTimeout(700);
   const w1=await where();const moved=Math.hypot(w1.c[0]-w0.c[0],w1.c[1]-w0.c[1],w1.c[2]-w0.c[2]);
-  ok(moved>1&&w1.sink<0.002&&w1.lift<0.0035&&w1.warp<0.0005,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m, ${(w1.sink*1000).toFixed(1)} mm into the suit, ${(w1.lift*1000).toFixed(1)} mm off it, ripples ${(w1.warp*1000).toFixed(2)} mm)`,w1);
+  ok(moved>1&&w1.minGap>-0.0005&&w1.skirtUp<0.0005&&w1.warp<0.0006,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m; closest ${(w1.minGap*1000).toFixed(1)} mm over the suit, skirt ${(w1.skirtUp*1000).toFixed(1)} mm, ${(w1.warp*1000).toFixed(2)} mm off a smooth bend)`,w1);
   // pictures: front view (Q on PC, VER on the phone), then a close-up from the patch's own normal
   await p.evaluate(()=>{__heads.inp.view=true;});await p.waitForTimeout(2200);
   await p.screenshot({path:shot(`parche_${plat}_frente.png`)});

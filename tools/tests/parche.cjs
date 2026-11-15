@@ -43,9 +43,11 @@ const PLAT={pc:{viewport:{width:1600,height:900}},phone:{viewport:{width:844,hei
   await p.evaluate(()=>{const THREE=__THREE,P=__heads.P;let patch=null;P.model.traverse(o=>{if(o.isMesh&&o.material.name==='M_Patch')patch=o;});
     const g=patch.geometry,v=new THREE.Vector3(),c=new THREE.Vector3();let n=0;
     for(let i=0;i<g.attributes.position.count;i++){patch.getVertexPosition(i,v);patch.localToWorld(v);c.add(v);n++;}c.divideScalar(n);
-    // facing: the mean normal of the patch in bind pose, turned by the model (close enough for a picture)
-    const nrm=new THREE.Vector3();const nl=g.attributes.normal;for(let i=0;i<n;i++){v.fromBufferAttribute(nl,i);nrm.add(v);}nrm.normalize().transformDirection(patch.matrixWorld);
-    const eye=c.clone().addScaledVector(nrm,0.55).add(new THREE.Vector3(0,0.12,0));
+    // facing: the plane of the skinned patch (two far-apart vertices around the centre), pointing away from the spine
+    let A=null,B=null,da=0;const tmp=[];for(let i=0;i<n;i++){const q=new THREE.Vector3();patch.getVertexPosition(i,q);patch.localToWorld(q);tmp.push(q);const d=q.distanceTo(c);if(d>da&&d<0.06){da=d;A=q;}}
+    let db=0;for(const q of tmp){const d1=q.distanceTo(c);if(d1>0.03&&d1<0.06){const s=Math.abs(q.clone().sub(c).normalize().cross(A.clone().sub(c).normalize()).length());if(s>db){db=s;B=q;}}}
+    const nrm=A.clone().sub(c).cross(B.clone().sub(c)).normalize();const sp=P.bones.Spine2.getWorldPosition(new THREE.Vector3());if(nrm.dot(c.clone().sub(sp))<0)nrm.negate();
+    const eye=c.clone().addScaledVector(nrm,0.5);
     window.__camOv=eye.sub(P.pos);window.__camLook=c.clone().sub(P.pos);});
   await p.waitForTimeout(900);
   await p.screenshot({path:shot(`parche_${plat}_cerca.png`)});

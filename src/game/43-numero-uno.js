@@ -14,7 +14,7 @@
 // 'top1' line (queued after the game-over line). A click, a tap or any key after 0.5 s skips it (a key never reaches REINTENTAR meanwhile).
 // Then the panel goes to the ranking slide with the #1 line glowing with a crown (li.n1) and, for a guest, GUARDAR MI PUNTUACIÓN pulsing; a guest who
 // retries without saving still gets «¿GUARDAMOS TU PUNTUACIÓN?» (once a session) with «¡Serías el Nº1 del ranking!», even after seeing the ranking.
-// Reduced motion: no rays turning, no sparks, no shake (a fade). Test hooks: window.__n1.
+// Reduced motion: no rays turning, no sparks, no shake (a fade). Test hooks: window.__n1; window.__noN1=1 switches it off (cuentas-cartel).
 const N1={on:false,run:null,seq:0,timer:0,t0:0,kind:'',after:null,guest:false,log:[]};
 const N1_CFG={wait:2600,dur:3700,out:450,skip:500,burst:isTouch?90:150,side:isTouch?40:64,glitter:isTouch?36:64};
 const n1Is=j=>!!(j&&j.status==='ok'&&j.newBest&&j.me&&j.me.pos===1);
@@ -22,7 +22,7 @@ function n1Log(k){N1.log.push(k);if(N1.log.length>20)N1.log.shift();}
 // a new end plate (rankShow) or a retry: nothing left over from the last run
 function n1Reset(){N1.seq++;N1.guest=false;clearTimeout(N1.timer);n1Close('abort');$('saveBtn').classList.remove('n1');}
 // kind 'saved' | 'guest'; o = {token, score, nick, over: 'end' (wait for the plate) | 'acct' (now, over the account screen), after}
-function n1Fire(kind,o){if(!o||(o.token&&N1.run===o.token))return false;N1.run=o.token||null;if(kind==='guest')N1.guest=true;n1Log('fire:'+kind+':'+o.over);
+function n1Fire(kind,o){if(window.__noN1||!o||(o.token&&N1.run===o.token))return false; // (__noN1: the end plate tests that click through it)N1.run=o.token||null;if(kind==='guest')N1.guest=true;n1Log('fire:'+kind+':'+o.over);
   if(o.over==='acct'){n1Show(kind,o);return true;}
   const seq=N1.seq;endStop(); // (the plate's own swap waits for the celebration)
   clearTimeout(N1.timer);N1.timer=setTimeout(()=>{if(seq!==N1.seq||$('end').hidden||state!=='dead')return;n1Show(kind,o);},Math.max(0,(ENDP.at||0)+N1_CFG.wait-performance.now()));

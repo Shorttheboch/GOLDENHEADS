@@ -37,8 +37,10 @@ function tkPillEl(){if(!isTouch)return $('hFull');let el=document.getElementById
   if(!el&&row){row.insertAdjacentHTML('beforeend',`<div id="hud-full" class="hp off">${TK_ICON}<span>${TR('TANQUE LLENO')}</span></div>`);el=document.getElementById('hud-full');}
   return el;}
 function tkPill(on,pop){TK.pill=on;const el=tkPillEl();if(!el)return;
+  if(!el._tk){el._tk=1;el.addEventListener('animationend',()=>el.classList.remove('pop'));}
   if(isTouch)el.classList.toggle('off',!on);else el.hidden=!on;
-  if(on&&pop){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');}}
+  if(!on)el.classList.remove('pop');
+  else if(pop){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');}}
 // the big title (first time)
 function tkTitle(){const el=$('tkT');if(!el)return;
   if(!el._tk){el._tk=1;el.addEventListener('animationend',e=>{if(e.target===el.firstElementChild)el.classList.remove('go');});}

@@ -70,3 +70,7 @@ body.touch .n1Hint{font-size:max(12px,calc(var(--u)*2.9));letter-spacing:.08em}
 #saveBtn.n1{animation:n1Save 1s ease-in-out infinite alternate}
 @keyframes n1Save{from{filter:drop-shadow(0 0 2px rgba(255,200,60,.4)) brightness(1)}to{filter:drop-shadow(0 0 14px rgba(255,200,60,.95)) brightness(1.12)}}
 @media (prefers-reduced-motion:reduce){#rankList li.n1,.rkList li.n1,#saveBtn.n1{animation:none}}
+/* while it is up, the plate (or the account screen) behind steps back, so its lines never show through the celebration's lines
+   (a filter, not opacity: the plate's own fade-in animation holds its opacity) */
+#end,#acct{transition:filter .3s ease}
+body.n1On #end,body.n1On #acct{filter:brightness(.18)}

@@ -1,6 +1,6 @@
 // v89: the HEADS patch on the astronaut's chest (tools/parche/, public/assets/models/astronaut.glb). Checks that the model brings it (a skinned
-// mesh on the body's skeleton, material M_Patch with the 1024x512 texture: disc | tips, alpha mask, not metallic), that it follows the body when it moves and that
-// it sits over the black circle, and takes pictures: the front view (Q / VER) and a close-up, on PC and phone (tools/tests/out/parche_*.png).
+// mesh on the body's skeleton, material M_Patch with the 512 px texture, alpha mask, not metallic, a faint emission), that the old black circle is gone
+// and the patch bends with the suit around it, and takes pictures: the front view (Q / VER) and a close-up, on PC and phone (tools/tests/out/parche_*.png).
 //   npm run build:test && tools/run-test.sh dist-test tools/tests/parche.cjs
 const {chromium}=require('playwright');
 const {BASE,ARGS,shot}=require('./lib.cjs');
@@ -23,20 +23,27 @@ const PLAT={pc:{viewport:{width:1600,height:900}},phone:{viewport:{width:844,hei
     return {patch:true,skinned:patch.isSkinnedMesh,sameSkel:!!body&&patch.skeleton===body.skeleton,img:img?[img.width,img.height]:null,alphaTest:mt.alphaTest,metal:mt.metalness,rough:mt.roughness,
       tris:patch.geometry.index.count/3,srgb:mt.map&&mt.map.colorSpace,transparent:mt.transparent,emis:!!mt.emissiveMap&&mt.emissiveMap.image===mt.map.image&&mt.emissive.r>0.1&&mt.emissive.r<0.6};});
   ok(m.patch&&m.skinned&&m.sameSkel,`${plat}: the patch is a skinned mesh on the astronaut's skeleton`,m);
-  ok(m.img&&m.img[0]===1024&&m.img[1]===512&&m.srgb==='srgb'&&m.emis,`${plat}: its texture is the 1024x512 WebP (sRGB), also a faint emission`,m);
+  ok(m.img&&m.img[0]===512&&m.img[1]===512&&m.srgb==='srgb'&&m.emis,`${plat}: its texture is the 512 px WebP (sRGB), also a faint emission`,m);
   ok(m.alphaTest===0.5&&m.metal===0&&!m.transparent&&m.tris<200,`${plat}: alpha mask 0.5, not metallic, opaque pass, ${m.tris} triangles`,m);
-  // where it is: over the black circle (the black disc's centre, skinned, in world space) and it moves with the chest
-  const where=()=>p.evaluate(()=>{const THREE=__THREE,P=__heads.P;let patch=null,black=null;P.model.traverse(o=>{if(o.isMesh&&o.material.name==='M_Patch')patch=o;if(o.isMesh&&o.material.name==='M_Glove_Black')black=o;});
-    const c=new THREE.Vector3(),v=new THREE.Vector3();let n=0;const g=patch.geometry;
-    for(let i=0;i<g.attributes.position.count;i++){patch.getVertexPosition(i,v);patch.localToWorld(v);c.add(v);n++;}c.divideScalar(n);
-    // the black disc: black vertices within 7 cm of the patch centre
-    const bc=new THREE.Vector3();let bn=0;const bg=black.geometry;for(let i=0;i<bg.attributes.position.count;i++){black.getVertexPosition(i,v);black.localToWorld(v);if(v.distanceTo(c)<0.07){bc.add(v);bn++;}}
-    if(bn)bc.divideScalar(bn);return {c:c.toArray(),d:bn?c.distanceTo(bc):null,bn};});
+  // where it is and how it bends: the old black puck is gone from the black mesh (no black triangle left near the patch), and every patch vertex
+  // moves like the suit next to it (skinned offset from the bind pose compared with the nearest suit vertex within 1.5 cm), now and after moving
+  const where=()=>p.evaluate(()=>{const THREE=__THREE,P=__heads.P;let patch=null,black=null,suit=null;
+    P.model.traverse(o=>{if(!o.isMesh)return;const n=o.material.name;if(n==='M_Patch')patch=o;if(n==='M_Glove_Black'&&o.isSkinnedMesh)black=o;if(n==='M_Suit_Gold'&&o.isSkinnedMesh&&!suit)suit=o;});
+    const g=patch.geometry,pa=g.attributes.position,c=new THREE.Vector3(),cb=new THREE.Vector3(),v=new THREE.Vector3(),u=new THREE.Vector3();
+    for(let i=0;i<pa.count;i++){patch.getVertexPosition(i,v);patch.localToWorld(v);c.add(v);cb.add(u.fromBufferAttribute(pa,i));}c.divideScalar(pa.count);cb.divideScalar(pa.count);
+    const bg=black.geometry,bi=bg.index;let near=0;for(let k=0;k<bi.count;k++){u.fromBufferAttribute(bg.attributes.position,bi.getX(k));if(u.distanceTo(cb)<0.05)near++;}
+    const sg=suit.geometry,sa=sg.attributes.position,cand=[];for(let j=0;j<sa.count;j++){u.fromBufferAttribute(sa,j);if(u.distanceTo(cb)<0.1)cand.push(j);}
+    let drift=0,pairs=0;const s=P.model.scale.x,bi0=new THREE.Vector3(),bj=new THREE.Vector3(),si=new THREE.Vector3(),sj=new THREE.Vector3();
+    for(let i=0;i<pa.count;i++){bi0.fromBufferAttribute(pa,i);let best=1e9,jb=-1;for(const j of cand){const d=u.fromBufferAttribute(sa,j).distanceTo(bi0);if(d<best){best=d;jb=j;}}
+      if(jb<0||best>0.015)continue;pairs++;bj.fromBufferAttribute(sa,jb);patch.getVertexPosition(i,si);suit.getVertexPosition(jb,sj);
+      drift=Math.max(drift,si.sub(bi0).sub(sj.sub(bj)).length()*s);}
+    return {c:c.toArray(),blackNear:near,drift,pairs};});
   const w0=await where();
-  ok(w0.bn>20&&w0.d<0.02,`${plat}: it sits on the black circle (${w0.bn} black vertices around it, centres ${(w0.d*100).toFixed(1)} cm apart)`,w0);
+  ok(w0.blackNear===0,`${plat}: the old black circle is gone (black triangle corners within 5 cm: ${w0.blackNear})`,w0);
+  ok(w0.pairs>60&&w0.drift<0.006,`${plat}: the patch bends with the suit (${w0.pairs} vertices checked, worst ${(w0.drift*1000).toFixed(1)} mm apart from the suit next to it)`,w0);
   await p.evaluate(()=>{const P=__heads.P;P.pos.x+=1.5;P.pos.y+=0.7;});await p.waitForTimeout(700);
   const w1=await where();const moved=Math.hypot(w1.c[0]-w0.c[0],w1.c[1]-w0.c[1],w1.c[2]-w0.c[2]);
-  ok(moved>1&&w1.d<0.02,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m, still on the circle)`,w1);
+  ok(moved>1&&w1.drift<0.006,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m, worst ${(w1.drift*1000).toFixed(1)} mm from the suit)`,w1);
   // pictures: front view (Q on PC, VER on the phone), then a close-up from the patch's own normal
   await p.evaluate(()=>{__heads.inp.view=true;});await p.waitForTimeout(2200);
   await p.screenshot({path:shot(`parche_${plat}_frente.png`)});

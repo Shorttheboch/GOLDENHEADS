@@ -3,11 +3,10 @@
 #   python3 tools/parche/make_patch_tex.py <photo.png> [--size 512]
 #
 # 1) finds the patch circle (black twill + white and red thread, the gold fabric is everything else) and fits a circle to its outline;
-# 2) two alphas: the circle, and the red swoosh where it leaves the circle (top right, left end, bottom left), like the real patch;
+# 2) alpha = the circle, plus the red swoosh where it leaves the circle (top right, left end, bottom left), like the real patch;
 # 3) crops a square around the circle that holds the swoosh tips, downsamples it to --size and fills the transparent texels with the nearest solid
 #    colour (so no gold bleeds into the edge through filtering or mipmaps);
-# 4) writes tools/parche/parche.webp (RGBA, 2*size x size: left half the disc, right half only the tips) and tools/parche/parche.json
-#    ({"r": circle radius in units of one half's side, centre at 0.5,0.5 of each half}).
+# 4) writes tools/parche/parche.webp (RGBA) and tools/parche/parche.json ({"r": circle radius in UV units, centre at 0.5,0.5}).
 # make_patch_glb.cjs puts that texture on the astronaut. Needs python3 with numpy, opencv-python and Pillow (WebP).
 import sys, json, os
 import numpy as np, cv2
@@ -61,11 +60,9 @@ tips = np.zeros((h, w), bool)
 for i in range(1, n):
     comp = lab == i
     if (comp & ring).any() and (comp & (rr > R + 4)).sum() > 200: tips |= comp & (rr > R - 3)
-# two alphas: the disc (the circle only) and the tips (the swoosh outside the circle, reaching 2 px inside so no gap shows at the rim)
-a_disc = disk.astype(np.uint8) * 255
-a_tips = (tips & (rr > R - 2)).astype(np.uint8) * 255
-a_tips = cv2.morphologyEx(a_tips, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
-ys, xs = np.nonzero(a_disc | a_tips)
+alpha = (disk | tips).astype(np.uint8) * 255
+alpha = cv2.morphologyEx(alpha, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
+ys, xs = np.nonzero(alpha)
 half = max(np.abs(xs - cx).max(), np.abs(ys - cy).max()) + 8  # square around the circle centre that holds every tip
 print('tips: %d px outside the circle; square half-size %.1f px = %.3f R' % ((tips & (rr > R)).sum(), half, half / R))
 
@@ -76,7 +73,7 @@ pad = max(0, -x0, -y0, x0 + side - w, y0 + side - h)
 crop = lambda a, mode, v=0: cv2.copyMakeBorder(a, pad, pad, pad, pad, mode, value=v)[y0 + pad:y0 + pad + side, x0 + pad:x0 + pad + side]
 rgb = cv2.resize(crop(im, cv2.BORDER_REPLICATE), (SIZE, SIZE), interpolation=cv2.INTER_AREA)
 
-def half_img(alpha):
+def rgba(alpha):
     al = cv2.resize(crop(alpha, cv2.BORDER_CONSTANT), (SIZE, SIZE), interpolation=cv2.INTER_AREA)
     # transparent and edge texels take the colour of the nearest fully solid texel (no gold fringe through filtering or mipmaps)
     solid = (al >= 250).astype(np.uint8)
@@ -87,12 +84,10 @@ def half_img(alpha):
     col = np.where(solid[..., None] == 1, rgb, lut[labels])
     return np.dstack([cv2.cvtColor(col, cv2.COLOR_BGR2RGB), al])
 
-# one texture, two halves side by side: left = the disc (on the black circle), right = the tips (on the suit). The suit under the tips moves a
-# little differently from the disc when the astronaut bends, so it must never carry the inside of the circle.
-out = np.hstack([half_img(a_disc), half_img(a_tips)])
+out = rgba(alpha)
 webp = os.path.join(HERE, 'parche.webp')
 Image.fromarray(out, 'RGBA').save(webp, 'WEBP', quality=92, alpha_quality=100, method=6)
 r_uv = (R / (2 * half))
-json.dump({'r': round(float(r_uv), 5), 'size': SIZE, 'layout': 'disc | tips', 'src_circle_px': [round(float(cx), 1), round(float(cy), 1), round(float(R), 1)]},
+json.dump({'r': round(float(r_uv), 5), 'size': SIZE, 'src_circle_px': [round(float(cx), 1), round(float(cy), 1), round(float(R), 1)]},
           open(os.path.join(HERE, 'parche.json'), 'w'), indent=1)
-print('wrote %s (%dx%d, %d bytes), circle radius %.4f of each half' % (webp, 2 * SIZE, SIZE, os.path.getsize(webp), r_uv))
+print('wrote %s (%dx%d, %d bytes), circle radius %.4f in UV' % (webp, SIZE, SIZE, os.path.getsize(webp), r_uv))

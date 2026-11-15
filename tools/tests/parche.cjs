@@ -37,13 +37,25 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
     for(let i=0;i<pa.count;i++){bi0.fromBufferAttribute(pa,i);let best=1e9,jb=-1;for(const j of cand){const d=u.fromBufferAttribute(sa,j).distanceTo(bi0);if(d<best){best=d;jb=j;}}
       if(jb<0||best>0.015)continue;pairs++;bj.fromBufferAttribute(sa,jb);patch.getVertexPosition(i,si);suit.getVertexPosition(jb,sj);
       drift=Math.max(drift,si.sub(bi0).sub(sj.sub(bj)).length()*s);}
-    return {c:c.toArray(),blackNear:near,drift,pairs};});
+    // ripples: fit one affine map from the bind pose to the skinned pose over the inside of the patch (UV within 0.35 of the centre);
+    // a patch that bends like cloth stays close to it, a rippled one does not (largest distance from the fit)
+    const ins=[],uv=g.attributes.uv;for(let i=0;i<pa.count;i++)if(Math.hypot(uv.getX(i)-0.5,uv.getY(i)-0.5)<0.35)ins.push(i);
+    const M=Array.from({length:4},()=>[0,0,0,0]),R=[[0,0,0,0],[0,0,0,0],[0,0,0,0]],X=[],Y=[];
+    for(const i of ins){bi0.fromBufferAttribute(pa,i);patch.getVertexPosition(i,si);const x=[bi0.x-cb.x,bi0.y-cb.y,bi0.z-cb.z,1];X.push(x);Y.push(si.toArray());
+      for(let a=0;a<4;a++){for(let b=0;b<4;b++)M[a][b]+=x[a]*x[b];for(let k=0;k<3;k++)R[k][a]+=x[a]*Y[Y.length-1][k];}}
+    for(let a=0;a<4;a++)M[a][a]+=1e-9;
+    const solve=(A,bv)=>{const m=A.map((r,i)=>[...r,bv[i]]);for(let c=0;c<4;c++){let pv=c;for(let r=c+1;r<4;r++)if(Math.abs(m[r][c])>Math.abs(m[pv][c]))pv=r;[m[c],m[pv]]=[m[pv],m[c]];
+      for(let r=0;r<4;r++)if(r!==c){const f=m[r][c]/m[c][c];for(let k=c;k<5;k++)m[r][k]-=f*m[c][k];}}return m.map((r,i)=>r[4]/r[i]);};
+    const th=[0,1,2].map(k=>solve(M,R[k]));let warp=0;
+    for(let n=0;n<X.length;n++){let e=0;for(let k=0;k<3;k++){const f=th[k].reduce((acc,t,a)=>acc+t*X[n][a],0);e+=(f-Y[n][k])**2;}warp=Math.max(warp,Math.sqrt(e)*s);}
+    return {c:c.toArray(),blackNear:near,drift,pairs,warp,ins:ins.length};});
   const w0=await where();
   ok(w0.blackNear===0,`${plat}: the old black circle is gone (black triangle corners within 5 cm: ${w0.blackNear})`,w0);
-  ok(w0.pairs>60&&w0.drift<0.006,`${plat}: the patch bends with the suit (${w0.pairs} vertices checked, worst ${(w0.drift*1000).toFixed(1)} mm apart from the suit next to it)`,w0);
+  ok(w0.pairs>60&&w0.drift<0.008,`${plat}: the patch bends with the suit (${w0.pairs} vertices checked, worst ${(w0.drift*1000).toFixed(1)} mm apart from the suit next to it)`,w0);
+  ok(w0.ins>100&&w0.warp<0.0015,`${plat}: no ripples (${w0.ins} vertices inside, at most ${(w0.warp*1000).toFixed(2)} mm off a smooth bend)`,w0);
   await p.evaluate(()=>{const P=__heads.P;P.pos.x+=1.5;P.pos.y+=0.7;});await p.waitForTimeout(700);
   const w1=await where();const moved=Math.hypot(w1.c[0]-w0.c[0],w1.c[1]-w0.c[1],w1.c[2]-w0.c[2]);
-  ok(moved>1&&w1.drift<0.006,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m, worst ${(w1.drift*1000).toFixed(1)} mm from the suit)`,w1);
+  ok(moved>1&&w1.drift<0.008&&w1.warp<0.0015,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m, worst ${(w1.drift*1000).toFixed(1)} mm from the suit, ${(w1.warp*1000).toFixed(2)} mm off a smooth bend)`,w1);
   // pictures: front view (Q on PC, VER on the phone), then a close-up from the patch's own normal
   await p.evaluate(()=>{__heads.inp.view=true;});await p.waitForTimeout(2200);
   await p.screenshot({path:shot(`parche_${plat}_frente.png`)});

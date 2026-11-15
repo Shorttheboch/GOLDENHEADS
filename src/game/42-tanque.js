@@ -1,54 +1,59 @@
-/* ================= v86: «TANQUE LLENO» — the notice when the backpack tank is full (PC and phone) ================= */
-// Fires when the tank REACHES capacity (P.carry >= CFG.tankCap), whatever filled it (suction, the phone's auto-pickup, the backpack magnet);
-// it re-arms when the tank drops below capacity (unloading, a bite). Never during a cinematic, the phone pause / tutorial, the end plate or the menu:
-// if the tank fills then, the notice waits and fires when play resumes (if it is still full). Nothing here pauses the game.
-// 1) First time on the device (localStorage 'heads_tank_seen'; ?tanque in the address forces this version on every fill and remembers nothing), ~3 s:
+/* ================= v86: «TANQUE LLENO» — the notice when the backpack tank is full (PC and phone); v88: quieter ================= */
+// Fires when the tank REACHES capacity (P.carry >= CFG.tankCap), whatever filled it (suction, the phone's auto-pickup, the backpack magnet).
+// v88 (Santi: «dice demasiadas veces lo de tank full… el audio se dispara muchas veces y el cartel aparece demasiado»): a fill only counts as a NEW one
+// after the tank has really been emptied (below TK_CFG.rearm, 40 of 60: an unload); a bite that spills a few and the auto-pickup taking them back
+// (full again a second later) does nothing new. Never during a cinematic, the phone pause / tutorial, the end plate or the menu: if the tank fills
+// then, the notice waits and fires when play resumes (if it is still full). Nothing here pauses the game.
+// 1) First time on the device (localStorage 'heads_tank_seen'; ?tanque in the address forces this version on every new fill and remembers nothing), ~3 s:
 //    big cyan title «¡TANQUE LLENO!» + «Llévalo a la BODEGA de la nave» (touch: «Toca BODEGA y te lleva») a bit above the crosshair (#tkT, under the markers),
 //    the pilot's line 'tank_full' (prio 4, queued), the BODEGA marker grows and pulses (4 s), a cyan trail of beads flowing from the backpack to the hold
 //    (tkTrail*, 3.6 s), and the backpack screen flashes (uFlash, 12-player.js). The old tutorial card 'full' is gone (this replaces it).
-// 2) Following fills (short version): «TANQUE LLENO · ve a la bodega» in cyan (PC: the round-message line #msg; phone: the v63 alert under the top panels,
-//    with «Toca BODEGA y te lleva»), sfx('full') and the marker pulse (2.6 s). If another message is up it waits for it (3 s at most).
-//    A refill less than 8 s after the last notice (a bite spilled a few and you sucked them back) only pulses the marker.
-// 3) Voice rule (one game): the first-time notice always speaks. Otherwise the line plays at most once per full event, never in two full events in a row,
-//    and never less than 90 s after it last played (the reminders follow the same rule).
-// 4) Reminder: full for 20 s without unloading (the clock stops while depositing, while the phone flies you to the hold, in cinematics and while the hold
-//    is a nest) -> marker pulse + the short notice again; then every 22 s.
+// 2) v88, the small indicator: while the tank is full a small cyan «TANQUE LLENO» sits under the TRICOMAS bar (PC: #hFull under #hTop; phone: a chip
+//    #hud-full in the FUGAS / POR RESCATAR row, #hud-alerts); it stays through a spill-and-refill (hidden only after TK_CFG.hide s below 60) and is not
+//    shown while the big title is up. A new fill (not the first time): the indicator pops in, sfx('full') and the marker pulses (2.6 s); no message.
+// 3) Voice: the first-time notice always speaks; after that only on a new fill and at most once every TK_CFG.voGap s (3 minutes).
+// 4) Reminder: still full TK_CFG.rem0 s later without unloading (the clock stops while depositing, while the phone flies you to the hold, in cinematics
+//    and while the hold is a nest) -> the indicator pops and the marker pulses again, silently; then every TK_CFG.rem s.
 // 5) While full: the marker reads «BODEGA / LLENO · DESCARGAR» (and back to «DEPOSITAR» after unloading), and trying to vacuum (PC right click / E,
 //    the phone's auto-suction near trichomes, the magnet prize near trichomes) does not pull: the nozzle coughs out a little gas and two cyan sparks
 //    (every 0.45 s; on PC a short beep when you start, at most every 3 s). The old «TANQUE LLENO» float text at the nozzle is gone.
 const TK={key:'heads_tank_seen',seen:false,force:/[?&]tanque\b/.test(location.search),
-  full:false,pend:false,remT:0,remAt:20,n:0,last:-1e9,voT:-1e9,voEv:false,voPrev:false,pulse:0,big:0,flash:0,mq:null,
-  rejT:0,rejOn:false,rejS:-1e9,rejN:0,lbl:null,hn:null,log:[],at:[],voN:0};
-const TK_CFG={big:3.1,pulseBig:4,pulse:2.6,rem0:20,rem:22,minGap:8,voGap:90,flash:1.5,rejEvery:0.45};
+  full:false,pend:false,armed:true,remT:0,remAt:30,n:0,last:-1e9,voT:-1e9,pulse:0,big:0,flash:0,pill:false,low:0,pop:0,
+  rejT:0,rejOn:false,rejS:-1e9,rejN:0,lbl:null,log:[],at:[],voN:0};
+const TK_CFG={big:3.1,pulseBig:4,pulse:2.6,rem0:30,rem:30,rearm:40,hide:1.5,voGap:180,flash:1.5,rejEvery:0.45};
 const TK_SUB='Llévalo a la <b>BODEGA</b> de la nave',TK_SUB_T='Toca <b>BODEGA</b> y te lleva';
 try{TK.seen=localStorage.getItem(TK.key)==='1';}catch(_){}
 const _tk1=new THREE.Vector3(),_tk2=new THREE.Vector3(),_tk3=new THREE.Vector3();
 function tkFirst(){return TK.force||!TK.seen;}
 function tkLog(k){TK.log.push(k);TK.at.push(+playT.toFixed(2));if(TK.log.length>40){TK.log.shift();TK.at.shift();}} // (what fired and when: read by the test)
-function tankReset(){Object.assign(TK,{full:false,pend:false,remT:0,remAt:TK_CFG.rem0,n:0,last:-1e9,voT:-1e9,voEv:false,voPrev:false,pulse:0,big:0,flash:0,mq:null,rejT:0,rejOn:false,rejS:-1e9,rejN:0,log:[],at:[],voN:0});
-  tkTrailOff();const el=$('tkT');if(el)el.classList.remove('go');tkLabel(false);$('hBod').classList.remove('tk');}
+function tankReset(){Object.assign(TK,{full:false,pend:false,armed:true,remT:0,remAt:TK_CFG.rem0,n:0,last:-1e9,voT:-1e9,pulse:0,big:0,flash:0,low:0,pop:0,rejT:0,rejOn:false,rejS:-1e9,rejN:0,log:[],at:[],voN:0});
+  tkTrailOff();const el=$('tkT');if(el)el.classList.remove('go');tkLabel(false);tkPill(false);$('hBod').classList.remove('tk');}
 // the marker's second line: «DEPOSITAR» <-> «LLENO · DESCARGAR» (the i18n observer translates the new text node)
 function tkLabel(full){if(TK.lbl===full)return;TK.lbl=full;const bod=$('hBod'),b=bod.querySelector('span b');if(b)b.textContent=full?'LLENO · DESCARGAR':'DEPOSITAR';bod.classList.toggle('lleno',full);}
-function tkSay(prio){TK.voT=playT;TK.voEv=true;TK.voN++;say('tank_full',prio,{queue:true});}
-function tkVoiceOk(){return playT-TK.voT>=TK_CFG.voGap&&!TK.voEv&&!TK.voPrev;}
+function tkSay(prio){TK.voT=playT;TK.voN++;say('tank_full',prio,{queue:true});}
+// v88: the small indicator under the TRICOMAS bar (PC #hFull in index.html; phone: a chip added to Santi's alert row the first time it is needed)
+const TK_ICON='<svg viewBox="0 0 20 24" aria-hidden="true"><rect x="3" y="4" width="14" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="6" y="9" width="8" height="10" rx="1.5" fill="currentColor"/><rect x="7" y="1" width="6" height="3.4" rx="1" fill="currentColor"/></svg>';
+function tkPillEl(){if(!isTouch)return $('hFull');let el=document.getElementById('hud-full');const row=document.getElementById('hud-alerts');
+  if(!el&&row){row.insertAdjacentHTML('beforeend',`<div id="hud-full" class="hp off">${TK_ICON}<span>${TR('TANQUE LLENO')}</span></div>`);el=document.getElementById('hud-full');}
+  return el;}
+function tkPill(on,pop){TK.pill=on;const el=tkPillEl();if(!el)return;
+  if(!el._tk){el._tk=1;el.addEventListener('animationend',()=>el.classList.remove('pop'));}
+  if(isTouch)el.classList.toggle('off',!on);else el.hidden=!on;
+  if(!on)el.classList.remove('pop');
+  else if(pop){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');}}
 // the big title (first time)
 function tkTitle(){const el=$('tkT');if(!el)return;
   if(!el._tk){el._tk=1;el.addEventListener('animationend',e=>{if(e.target===el.firstElementChild)el.classList.remove('go');});}
   el.querySelector('.tkTl').innerHTML=g3(TR('¡TANQUE LLENO!')).replace('class="g3"','class="g3 cy"');
   el.querySelector('.tkTs').innerHTML=TRH(isTouch?TK_SUB_T:TK_SUB);
   el.classList.remove('go');void el.offsetWidth;el.classList.add('go');}
-// kind: 'big' (first time) · 'short' (a following fill) · 'remind' (still full after 20 s)
-function tkNotice(kind){const big=kind==='big';
-  if(kind==='short'&&playT-TK.last<TK_CFG.minGap){TK.pulse=Math.max(TK.pulse,TK_CFG.pulse);tkLog('gap');return;}
-  TK.n++;TK.last=playT;TK.rejS=playT;tkLog(kind);
-  TK.pulse=Math.max(TK.pulse,big?TK_CFG.pulseBig:TK_CFG.pulse);sfx('full');
-  if(big){TK.big=TK_CFG.big;TK.flash=TK_CFG.flash;TK.mq=null;tkTitle();tkTrailStart();tkSay(4);
-    if(!TK.force){TK.seen=true;try{localStorage.setItem(TK.key,'1');}catch(_){}}}
-  else{TK.mq={w:0};if(tkVoiceOk())tkSay(3);}}
-// the short notice, once the message line is free (another message up: wait for it, 3 s at most)
-function tkMsgBusy(){if(isTouch){const a=$('mAlert');return !!(a&&a.classList.contains('on'))||!!(MHUD.pend&&MHUD.pend.length);}return msgT>0.4;}
-function tkMsgTick(dt){const q=TK.mq;if(!q)return;q.w+=dt;if(tkMsgBusy()&&q.w<3)return;TK.mq=null;TK.pulse=Math.max(TK.pulse,TK_CFG.pulse); // (the marker pulses with the message)
-  showMsg('TANQUE LLENO · ve a la bodega',isTouch?'Toca BODEGA y te lleva':'',2.6,'tk');}
+// kind: 'big' (first time) · 'fill' (a new fill after an unload) · 'remind' (still full 30 s later)
+function tkNotice(kind){const big=kind==='big';TK.n++;TK.last=playT;TK.rejS=playT;tkLog(kind);
+  TK.pulse=Math.max(TK.pulse,big?TK_CFG.pulseBig:TK_CFG.pulse);
+  if(big){sfx('full');TK.big=TK_CFG.big;TK.flash=TK_CFG.flash;tkTitle();tkTrailStart();tkSay(4);
+    if(!TK.force){TK.seen=true;try{localStorage.setItem(TK.key,'1');}catch(_){}}return;}
+  TK.pop=1; // (the indicator pops in on the next frame it is shown)
+  if(kind==='fill'){sfx('full');if(playT-TK.voT>=TK_CFG.voGap)tkSay(3);}}
 // trying to vacuum with a full tank: the nozzle coughs instead of pulling (pooled gas puffs + two sparks)
 function tkReject(noz,nd){TK.rejN++;_tk3.copy(noz).addScaledVector(nd,0.06);
   for(let k=0;k<4;k++)puff(_tk3,_tk1.copy(nd).multiplyScalar(2.4+Math.random()*1.8).add(_tk2.randomDirection().multiplyScalar(0.7)).add(P.vel),0.045,0.34,0.55,1.1);
@@ -57,12 +62,15 @@ function tkReject(noz,nd){TK.rejN++;_tk3.copy(noz).addScaledVector(nd,0.06);
 function tankTick(dt,rdt,noz,nd,sucking,packOn,room,atHatch){
   const play=state==='play',full=play&&P.carry>=CFG.tankCap,can=play&&!CINE.on;
   TK.pulse=Math.max(0,TK.pulse-rdt);TK.big=Math.max(0,TK.big-rdt);TK.flash=Math.max(0,TK.flash-rdt);TK.rejT=Math.max(0,TK.rejT-dt);
-  if(!full){TK.full=false;TK.pend=false;TK.remT=0;TK.mq=null;}
-  else{
-    if(!TK.full){TK.full=true;TK.pend=true;TK.remT=0;TK.remAt=TK_CFG.rem0;TK.voPrev=TK.voEv;TK.voEv=false;}
-    if(TK.pend){const big=tkFirst();if(can&&!(big&&$('xpT').classList.contains('go'))){TK.pend=false;tkNotice(big?'big':'short');}} // (the big title waits for the EXTRA POWER title, ~1.9 s)
-    else if(can&&!P.depActive&&!atHatch&&!(TC.ap&&TC.ap.hatch)&&!ZONES[2].nest){TK.remT+=dt;if(TK.remT>=TK.remAt){TK.remT=0;TK.remAt=TK_CFG.rem;tkNotice('remind');}}
-    if(can)tkMsgTick(dt);}
+  if(play&&P.carry<TK_CFG.rearm)TK.armed=true; // (really emptied: the next fill is a new one)
+  if(!full){TK.full=false;TK.pend=false;TK.remT=0;if(play)TK.low+=rdt;}
+  else{TK.low=0;
+    if(!TK.full){TK.full=true;TK.remT=0;TK.remAt=TK_CFG.rem0;if(TK.armed)TK.pend=true;}
+    if(TK.pend){const big=tkFirst();if(can&&!(big&&$('xpT').classList.contains('go'))){TK.pend=false;TK.armed=false;tkNotice(big?'big':'fill');}} // (the big title waits for the EXTRA POWER title, ~1.9 s)
+    else if(can&&!P.depActive&&!atHatch&&!(TC.ap&&TC.ap.hatch)&&!ZONES[2].nest){TK.remT+=dt;if(TK.remT>=TK.remAt){TK.remT=0;TK.remAt=TK_CFG.rem;tkNotice('remind');}}}
+  // the indicator: on while full (and a moment after a spill), not while the big title is up, not outside play
+  const pill=play&&TK.big<=0&&!TK.pend&&(full||(TK.pill&&TK.low<TK_CFG.hide));
+  if(pill!==TK.pill||(pill&&TK.pop)){tkPill(pill,pill&&TK.pop);if(pill)TK.pop=0;}
   // the marker: label while full, strong pulse for a few seconds after a notice
   if(play){tkLabel(full);const bod=$('hBod');bod.classList.toggle('tk',TK.pulse>0&&full&&!bod.hidden);}
   // the backpack screen blinks three times

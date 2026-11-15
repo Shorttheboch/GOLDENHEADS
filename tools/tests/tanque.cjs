@@ -2,12 +2,13 @@
 // Runs (each a fresh page = a fresh device unless said):
 //   pc       ES, the round-start cinematic ON (__noCine=0): nothing while it plays, nothing below capacity, then the first-time notice (title, voice 'tank_full',
 //            marker pulse, cyan trail that goes round the hull and is gone after ~4 s, backpack flash, no tutorial card, the game not paused, heads_tank_seen),
-//            the marker label while full and after unloading, the nozzle refusing (no intake, gas + sparks), the short notice on the next fill (no title, no voice),
-//            the reminder after 20 s and then every 22 s, the voice rule (90 s, never two full events in a row) and a quick refill (marker pulse only)
-//   phone    ES: first time (touch line «Toca BODEGA y te lleva»), tapping BODEGA stops the reminder clock, the short notice on the alert line, auto-suction refused
-//   pc-en    EN: title, line, marker label and short notice in English
+//            the marker label while full and after unloading, the nozzle refusing (no intake, gas + sparks); v88: the next fill after an unload pops the small
+//            «TANQUE LLENO» under TRICOMAS (no message, no title, no voice before 3 min), a bite that spills a few and the refill do nothing new,
+//            the silent reminder after 30 s and then every 30 s, the voice again only 3 min later and only on a new fill
+//   phone    ES: first time (touch line «Toca BODEGA y te lleva»), tapping BODEGA stops the reminder clock, the small chip in the FUGAS / POR RESCATAR row, auto-suction refused
+//   pc-en    EN: title, line, marker label and the small «TANK FULL» in English
 //   phone-en EN with ?tanque on a device that has seen it: every fill gets the big notice, nothing remembered
-//   pc-seen  ES on a device that has seen it (heads_tank_seen=1): the first fill gets the short notice only
+//   pc-seen  ES on a device that has seen it (heads_tank_seen=1): the first fill gets the small indicator only (and the voice: first of the game)
 // HEADS_ONLY=pc,phone,pc-en,phone-en,pc-seen (default all) · HEADS_NOSHOT=1 skips the screenshots
 // Screenshots (tools/tests/out/): tanque_pc_primera.png · tanque_phone_primera.png (first time, with the trail) · tanque_pc_corto.png · tanque_phone_corto.png (short notice)
 //   · tanque_pc_marcador.png · tanque_phone_marcador.png (the marker while full) · tanque_pc_en_primera.png
@@ -37,6 +38,8 @@ function pageLib(){
         bodTk:b.classList.contains('tk'),bodHidden:b.hidden,lbl:[...b.querySelector('span').childNodes].map(n=>n.textContent.trim()).filter(Boolean).join(' '),lleno:b.classList.contains('lleno'),
         tut:tut.classList.contains('show')?tut.textContent:'',say:K.voN,sayLog:(window.__sayLog||[]).includes('tank_full'),
         trail:TT.on&&TT.core.visible,lit,flash:__heads.P.scr?+__heads.P.scr.material.uniforms.uFlash.value.toFixed(2):-1,
+        pill:(()=>{const e=document.getElementById('hFull'),c=document.getElementById('hud-full');return document.body.classList.contains('touch')?!!(c&&!c.classList.contains('off')):!!(e&&!e.hidden);})(),
+        pillPop:!!document.querySelector('#hFull.pop,#hud-full.pop'),pillTxt:((document.body.classList.contains('touch')?document.getElementById('hud-full'):document.getElementById('hFull'))||{}).textContent||'',
         seen:localStorage.getItem('heads_tank_seen'),cine:__heads.CINE.on,playT:+__T.playT.toFixed(2),rej:K.rejN,carry:__heads.P.carry,cap:__tank.cap,loose:__heads.looseCount()};},
     // the trail's path against the real hull (camSolid: the ellipse moved out by the measured map, nacelles, pylons, wings, rocks), 4 samples per segment
     // (the astronaut is moved there and one frame is run, so the backpack is there too; the rocks are left out for the check: the trail does not dodge them)
@@ -81,7 +84,6 @@ function pageLib(){
    await ev(p,()=>{const e=document.getElementById('tkT'),i=e.querySelector('.tkIn');i.style.animationDelay='';i.style.animationPlayState='';e.classList.remove('go');__tank.TKT.t=99;});await step(p,0.05);};
  const unload=async p=>{await ev(p,()=>{__heads.P.carry=0;});await step(p,0.2);};
  const fill=async(p,s=0.3)=>{await ev(p,()=>{__heads.P.carry=__CFG.tankCap;});await step(p,s);return st(p);};
- const waitShort=async p=>{let r;for(let i=0;i<14;i++){r=await st(p);if(p.plat==='pc'?(r.msgTk&&/TANQUE LLENO · ve a la bodega|TANK FULL · go to the hold/.test(r.msg)):(r.alertOn&&r.alertTk))break;await step(p,0.25);}return r;};
  let r,r0;
 
  // ================================================================ PC, ES
@@ -106,6 +108,7 @@ function pageLib(){
   ok(r.flash>0,'the backpack screen flashes (uFlash)',{flash:r.flash});
   ok(!/Tanque lleno/i.test(r.tut),'no tutorial card «Tanque lleno» on top of it',{tut:r.tut});
   ok(r.seen==='1','remembered on the device (heads_tank_seen)',{seen:r.seen});
+  ok(!r.pill,'no small indicator while the big title is up',{pill:r.pill});
   {const q=await ev(p,()=>__tkLib.titleBox());ok(q.bot<=q.crossTop+2&&q.top>=q.msgTop+40&&q.l>=0&&q.r<=q.W,'the title sits under the message line and above the crosshair',q);}
   r0=r;await step(p,0.5);r=await st(p);
   ok(!r.cine&&r.playT-r0.playT>0.4,'the game is not paused (play time runs)',{dPlay:+(r.playT-r0.playT).toFixed(2)});
@@ -116,6 +119,7 @@ function pageLib(){
   r=await st(p);ok(r.lbl==='BODEGA LLENO · DESCARGAR'&&r.lleno,'marker label «BODEGA / LLENO · DESCARGAR» while full',{lbl:r.lbl});
   await step(p,3.4);r=await st(p);
   ok(!r.trail&&r.big===0&&!r.bodTk,'about 4 s later: trail gone, title time over, marker back to its usual pulse',{trail:r.trail,big:r.big,bodTk:r.bodTk,pulse:r.pulse});
+  ok(r.pill,'… and the small indicator is there (still full)',{pill:r.pill});
   await p.waitForTimeout(3300);r=await st(p);ok(!r.go,'the title has gone (animation over)',{go:r.go});
   await snapFirst(p,'tanque_pc_primera.png');
   await ev(p,()=>__tkLib.place(-0.35));await step(p,0.6);await snap(p,'tanque_pc_marcador.png');
@@ -131,30 +135,35 @@ function pageLib(){
   r0=await ev(p,()=>{__heads.P.carry=20;__heads.inp.suck=true;return __tkLib.st();});await step(p,0.6);r=await st(p);await ev(p,()=>{__heads.inp.suck=false;});
   ok(r.rej===r0.rej&&r.n===r0.n&&r.carry>20&&r.carry<60,'vacuuming with room: it pulls, no refusal, no notice',{carry:r.carry,rej:r.rej-r0.rej});
   await unload(p);await step(p,6);
-  console.log('5) the next fill: the short notice');
-  r0=await st(p);r=await fill(p);r=await waitShort(p);
-  ok(/big,short$/.test(r.log)&&!r.go&&r.big===0,'no big title the second time',{log:r.log,go:r.go});
-  ok(r.msgTk&&/TANQUE LLENO · ve a la bodega/.test(r.msg),'«TANQUE LLENO · ve a la bodega» on the message line, in cyan',{msg:r.msg,tk:r.msgTk});
+  console.log('5) the next fill (after unloading): the small indicator');
+  r=await fill(p);
+  ok(/big,fill$/.test(r.log)&&!r.go&&r.big===0,'no big title the second time',{log:r.log,go:r.go});
+  ok(r.pill&&r.pillPop&&r.pillTxt.trim()==='TANQUE LLENO','the small «TANQUE LLENO» under TRICOMAS pops in',{pill:r.pill,pop:r.pillPop,txt:r.pillTxt});
+  ok(!r.msgTk&&!/TANQUE LLENO/.test(r.msg),'no message on the round line',{msg:r.msg,tk:r.msgTk});
   ok(r.bodTk,'the marker pulses',{bodTk:r.bodTk,hidden:r.bodHidden,nest:r.nest,pulse:r.pulse,at:r.at,playT:r.playT});
-  ok(r.say===1,'no voice (it spoke in the last full event)',{say:r.say});
+  ok(r.say===1,'no voice (the last one was less than 3 min ago)',{say:r.say});
   await ev(p,()=>__tkLib.place());await step(p,0.1);await snap(p,'tanque_pc_corto.png');await ev(p,()=>__tkLib.far());
-  console.log('6) the reminder');
-  const lastAt=async()=>{const x=await st(p);const at=x.at.split(',').map(Number);return {x,t:at[at.length-1]};};
+  console.log('6) a bite spills a few and they come back');
+  await ev(p,()=>{__heads.P.carry=__CFG.tankCap-3;});await step(p,0.6);r=await st(p);
+  ok(r.pill&&!r.full,'57 / 60 for a moment: the indicator stays',{pill:r.pill,full:r.full});
+  await ev(p,()=>{__heads.P.carry=__CFG.tankCap;});await step(p,0.4);r=await st(p);
+  ok(/big,fill$/.test(r.log)&&r.say===1&&r.pill,'full again: nothing new (no notice, no beep, no voice)',{log:r.log,say:r.say});
+  await ev(p,()=>{__heads.P.carry=50;});await step(p,2);r=await st(p);ok(!r.pill,'50 / 60 for 2 s: the indicator goes',{pill:r.pill});
+  await ev(p,()=>{__heads.P.carry=__CFG.tankCap;});await step(p,0.3);r=await st(p);
+  ok(/big,fill$/.test(r.log)&&r.say===1&&r.pill&&!r.pillPop,'full again without going under 40: the indicator is back, quietly (nothing new)',{log:r.log,say:r.say,pill:r.pill,pop:r.pillPop});
+  console.log('7) the silent reminder');
   const stepTo=async t=>{const now=(await st(p)).playT;if(t>now)await step(p,t-now);return st(p);};
-  let q=await lastAt();const tS=q.t;ok(/short$/.test(q.x.log),'(the short notice is the last one)',{log:q.x.log,at:q.x.at});
-  r=await stepTo(tS+19.4);ok(/short$/.test(r.log),'still quiet 19.4 s after it',{log:r.log,at:r.at,playT:r.playT});
-  r=await stepTo(tS+20.4);ok(/short,remind$/.test(r.log)&&r.bodTk&&r.msgTk,'about 20 s full without unloading: a reminder (marker pulse + short notice)',{log:r.log,at:r.at,bodTk:r.bodTk});
-  q=await lastAt();const tR=q.t;ok(Math.abs(tR-tS-20)<0.2,'… 20 s after the notice',{dt:+(tR-tS).toFixed(2)});
-  r=await stepTo(tR+21.4);ok(/short,remind$/.test(r.log),'not again before 22 s',{log:r.log,at:r.at});
-  r=await stepTo(tR+22.4);ok(/short,remind,remind$/.test(r.log),'and again ~22 s later',{log:r.log,at:r.at});
-  ok(r.say===1,'no voice in the reminders here (the event before spoke)',{say:r.say});
-  console.log('7) the voice rule');
-  await unload(p);await ev(p,()=>{__T.playT+=95;});r=await fill(p);
-  ok(r.say===2&&/short$/.test(r.log),'95 s later, after a full event without voice: the voice plays again',{say:r.say,log:r.log});
+  const tF=(await st(p)).playT;
+  r=await stepTo(tF+29.4);ok(/big,fill$/.test(r.log),'still quiet 29 s later',{log:r.log,at:r.at,playT:r.playT});
+  r=await stepTo(tF+30.4);ok(/fill,remind$/.test(r.log)&&r.bodTk&&r.pill&&r.pillPop,'about 30 s full without unloading: the indicator pops and the marker pulses',{log:r.log,at:r.at,bodTk:r.bodTk,pop:r.pillPop});
+  ok(!r.msgTk&&r.say===1,'… no message and no voice',{msg:r.msg,say:r.say});
+  r=await stepTo(tF+59.4);ok(/fill,remind$/.test(r.log),'not again before 30 s more',{log:r.log,at:r.at});
+  r=await stepTo(tF+60.6);ok(/fill,remind,remind$/.test(r.log)&&r.say===1,'and again ~30 s later, still silent',{log:r.log,at:r.at,say:r.say});
+  console.log('8) the voice: at most every 3 minutes, only on a new fill');
+  await unload(p);await ev(p,()=>{__T.playT+=181;});r=await fill(p);
+  ok(r.say===2&&/remind,fill$/.test(r.log),'emptied, 3 min after the last one: the voice plays again',{say:r.say,log:r.log});
   await unload(p);await step(p,9);r=await fill(p);
-  ok(r.say===2&&/short,short$/.test(r.log),'the next full event: no voice (it spoke in the last one)',{say:r.say,log:r.log});
-  await unload(p);await step(p,1);r0=await st(p);r=await fill(p);
-  ok(/gap$/.test(r.log)&&r.n===r0.n&&r.bodTk,'filled again 1 s after a notice: only the marker pulses',{log:r.log});
+  ok(r.say===2&&/fill,fill$/.test(r.log)&&r.pill,'emptied and filled again 10 s later: indicator and beep, no voice',{say:r.say,log:r.log});
   ok(p.errs.length===0,'no page errors (pc)',p.errs.slice(0,4));
   await p.context().close();}
 
@@ -182,11 +191,13 @@ function pageLib(){
   await step(p,1.2);r=await st(p);
   ok(r.carry===60&&r.cap===0&&r.loose===r0.loose&&r.rej-r0.rej>=2,'full: nothing pulled in, the nozzle coughs',{carry:r.carry,cap:r.cap,rej:r.rej-r0.rej});
   await unload(p);await step(p,9);
-  r=await fill(p);r=await waitShort(p);
-  ok(/big,short$/.test(r.log)&&!r.go,'next fill: the short notice, no title',{log:r.log});
-  ok(r.alertOn&&r.alertTk&&/TANQUE LLENO · ve a la bodega/.test(r.alert)&&/Toca BODEGA y te lleva/.test(r.alert),'on the alert line (v63), cyan: «TANQUE LLENO · ve a la bodega» / «Toca BODEGA y te lleva»',{alert:r.alert,on:r.alertOn});
+  r=await fill(p);
+  ok(/big,fill$/.test(r.log)&&!r.go,'next fill: no title',{log:r.log});
+  ok(r.pill&&r.pillTxt.trim()==='TANQUE LLENO'&&!r.alertTk,'the small «TANQUE LLENO» chip in the FUGAS / POR RESCATAR row, nothing on the alert line',{pill:r.pill,txt:r.pillTxt,alert:r.alert});
+  {const q=await ev(p,()=>{const e=document.getElementById('hud-full').getBoundingClientRect(),t=document.getElementById('hud-tri').getBoundingClientRect();return {top:e.top,bot:e.bottom,l:e.left,r:e.right,triBot:t.bottom,W:innerWidth};});
+   ok(q.top>=q.triBot-1&&q.l>=0&&q.r<=q.W&&q.bot<q.triBot+90,'  under the TRICOMAS panel, on screen',q);}
   ok(r.bodTk&&r.say===1,'marker pulse, no voice',{bodTk:r.bodTk,say:r.say});
-  await ev(p,()=>{__tkLib.place();document.getElementById('mAlert').style.opacity='1';});await step(p,0.1);await snap(p,'tanque_phone_corto.png');await ev(p,()=>{document.getElementById('mAlert').style.opacity='';});
+  await ev(p,()=>{__tkLib.place();});await step(p,0.1);await snap(p,'tanque_phone_corto.png');
   ok(p.errs.length===0,'no page errors (phone)',p.errs.slice(0,4));
   await p.context().close();}
 
@@ -199,8 +210,8 @@ function pageLib(){
   ok(r.lbl==='HOLD FULL · UNLOAD','marker «HOLD / FULL · UNLOAD»',{lbl:r.lbl});
   await snapFirst(p,'tanque_pc_en_primera.png');
   await unload(p);r=await st(p);ok(r.lbl==='HOLD DEPOSIT','back to «HOLD / DEPOSIT»',{lbl:r.lbl});
-  await step(p,9);r=await fill(p);r=await waitShort(p);
-  ok(r.msgTk&&/TANK FULL · go to the hold/.test(r.msg),'short notice «TANK FULL · go to the hold»',{msg:r.msg});
+  await step(p,9);r=await fill(p);
+  ok(r.pill&&r.pillTxt.trim()==='TANK FULL','the small «TANK FULL» under the bar',{txt:r.pillTxt});
   ok(p.errs.length===0,'no page errors (pc-en)',p.errs.slice(0,4));
   await p.context().close();}
 
@@ -220,9 +231,9 @@ function pageLib(){
  if(ONLY.includes('pc-seen')){console.log('===== pc ES, device has seen it');
   const p=await open('pc',{seen:true});
   await ev(p,()=>{__tkLib.clear();__tkLib.far();});await step(p,0.3);
-  r=await fill(p);r=await waitShort(p);
-  ok(r.log==='short'&&!r.go&&!r.trail&&r.msgTk,'first fill of this game: the short notice only (no title, no trail)',{log:r.log,go:r.go,trail:r.trail});
-  ok(r.say===1,'the first full event of the game may speak (voice rule)',{say:r.say});
+  r=await fill(p);
+  ok(r.log==='fill'&&!r.go&&!r.trail&&r.pill&&!r.msgTk,'first fill of this game: the small indicator only (no title, no trail, no message)',{log:r.log,go:r.go,trail:r.trail,pill:r.pill});
+  ok(r.say===1,'the first fill of the game speaks (no voice in the last 3 min)',{say:r.say});
   ok(p.errs.length===0,'no page errors (pc-seen)',p.errs.slice(0,4));
   await p.context().close();}
 

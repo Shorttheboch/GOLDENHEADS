@@ -27,7 +27,23 @@ body:has(#xpT.go) #tkT{visibility:hidden} /* (it waits for the EXTRA POWER title
     linear-gradient(180deg,#f4ffff 0%,#c4fcff 12%,#5ff3ff 32%,#22dcf7 50%,#0fa8cc 57%,#0b84a6 63%,#16b6d9 76%,#62f4ff 90%,#cdfdff 100%);
   -webkit-background-clip:text;background-clip:text}
 .g3.cy>i::after{-webkit-text-stroke:.012em rgba(215,255,255,.7)}
-/* the short notice (following fills and the reminder): PC on the round-message line, phone on the v63 alert line; cyan, a little smaller */
+/* v88: the small indicator while the tank is full, under the TRICOMAS bar. PC: #hFull hangs just below the #hTop plate (absolute, so the plate keeps its
+   size); phone: #hud-full, a chip in Santi's FUGAS / POR RESCATAR row (#hud-alerts, which wraps to a second line if the three do not fit). .pop = it just came in */
+#hFull{position:absolute;left:50%;top:calc(100% + .7vh);transform:translateX(-50%);display:flex;align-items:center;gap:.55em;padding:.32em .95em .3em;white-space:nowrap;
+  border:1px solid rgba(95,243,255,.75);border-radius:999px;background:linear-gradient(180deg,rgba(4,38,52,.86),rgba(2,20,30,.86));
+  color:#7ff6ff;font-weight:800;font-size:clamp(11px,1.5vh,18px);line-height:1;letter-spacing:.2em;
+  text-shadow:0 0 8px rgba(40,220,255,.75),0 1px 2px #000;box-shadow:0 0 12px rgba(40,200,255,.35),inset 0 0 8px rgba(40,200,255,.18)}
+#hFull[hidden]{display:none}
+#hFull svg,#hud-full svg{width:1.05em;height:1.25em;flex:none;filter:drop-shadow(0 0 4px rgba(60,230,255,.9))}
+#hFull.pop{animation:tkPop .9s ease-out}
+#hud-alerts{flex-wrap:wrap;row-gap:4px}
+#hud-full{color:#6ff4ff}
+#hud-full span{letter-spacing:.06em}
+#hud-full.pop{animation:tkPopT .9s ease-out}
+@keyframes tkPop{0%{transform:translateX(-50%) scale(1.45);filter:brightness(2.2)}35%{transform:translateX(-50%) scale(.96);filter:brightness(1.4)}60%{transform:translateX(-50%) scale(1.04)}100%{transform:translateX(-50%) scale(1);filter:none}}
+@keyframes tkPopT{0%{transform:scale(1.4);filter:brightness(2.2)}35%{transform:scale(.96);filter:brightness(1.4)}60%{transform:scale(1.04)}100%{transform:none;filter:none}}
+@media (prefers-reduced-motion:reduce){#hFull.pop,#hud-full.pop{animation:none}}
+/* the short notice of v86 (no longer used since v88: kept for showMsg(…,'tk')): PC on the round-message line, phone on the v63 alert line; cyan */
 #msg.tk{color:#5ff3ff;font-size:clamp(16px,2.6vw,23px);letter-spacing:.16em;text-shadow:0 0 14px rgba(20,180,255,.55),0 0 24px rgba(0,0,0,.9)}
 #mAlert.tk .t{color:#5ff3ff;text-shadow:0 1px 0 #000,0 0 10px rgba(0,0,0,.9),0 0 12px rgba(40,200,255,.45)}
 /* the hold marker: «LLENO · DESCARGAR» while full; after a notice it grows and pulses (the whole marker, so h4declutter measures its real size) */

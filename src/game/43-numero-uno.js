@@ -22,7 +22,7 @@ function n1Log(k){N1.log.push(k);if(N1.log.length>20)N1.log.shift();}
 // a new end plate (rankShow) or a retry: nothing left over from the last run
 function n1Reset(){N1.seq++;N1.guest=false;clearTimeout(N1.timer);n1Close('abort');$('saveBtn').classList.remove('n1');}
 // kind 'saved' | 'guest'; o = {token, score, nick, over: 'end' (wait for the plate) | 'acct' (now, over the account screen), after}
-function n1Fire(kind,o){if(window.__noN1||!o||(o.token&&N1.run===o.token))return false; // (__noN1: the end plate tests that click through it)N1.run=o.token||null;if(kind==='guest')N1.guest=true;n1Log('fire:'+kind+':'+o.over);
+function n1Fire(kind,o){if(window.__noN1||!o||(o.token&&N1.run===o.token))return false;N1.run=o.token||null;if(kind==='guest')N1.guest=true;n1Log('fire:'+kind+':'+o.over); // (__noN1: the end plate tests that click through it)
   if(o.over==='acct'){n1Show(kind,o);return true;}
   const seq=N1.seq;endStop(); // (the plate's own swap waits for the celebration)
   clearTimeout(N1.timer);N1.timer=setTimeout(()=>{if(seq!==N1.seq||$('end').hidden||state!=='dead')return;n1Show(kind,o);},Math.max(0,(ENDP.at||0)+N1_CFG.wait-performance.now()));

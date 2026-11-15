@@ -235,5 +235,9 @@ export default {
 "tank_full": [
 "assets/vo/en/tank_full_0.mp3",
 "assets/vo/en/tank_full_1.mp3"
+],
+"top1": [
+"assets/vo/en/top1_0.mp3",
+"assets/vo/en/top1_1.mp3"
 ]
 };

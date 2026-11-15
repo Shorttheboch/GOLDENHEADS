@@ -78,7 +78,7 @@ async function accEndGuest(pend,seq){const box=$('rankBox'),live=()=>seq===ACC.s
   if(can){const top=Array.isArray(d.top)?d.top:[],pos=1+top.filter(e=>e.score>=pend.score).length;ACC.qual=pos<=AC_FULL&&(pos<=top.length||top.length<AC_FULL)?pos:null;}
   $('rankAll').hidden=!R.has;
   if(can){$('saveBtn').hidden=false;accSaveBtn(false);accPreload();
-    if(R.ghost===1){accMsg(['¡SERÍAS EL Nº1!','Guárdala con Google para quedarte el Nº1'],'new');n1Fire('guest',{token:pend.token,score:pend.score,over:'end'});} // v87: it would be #1 (43-numero-uno.js)
+    if(R.ghost===1){accMsg(['¡SERÍAS EL Nº1!',R.has?'Guárdala con Google para quedarte el Nº1':'¡Guárdala y serás el primero del ranking!'],'new');n1Fire('guest',{token:pend.token,score:pend.score,over:'end'});} // v87: it would be #1 (43-numero-uno.js)
     else accMsg(!R.ghost?'Guarda tu puntuación con tu apodo de capitán':`Con esta partida entrarías en el puesto #${R.ghost}`);}
   accBar();box.hidden=false;fitEndPlate();}
 async function accEndSave(pend,seq){const live=()=>seq===ACC.seq&&!$('end').hidden;

@@ -33,7 +33,7 @@ const PRISTINE='bcde206';                          // v88: the last astronaut wi
 const OUT=path.resolve(ROOT,opt('out','public/assets/models/astronaut.glb')),CHECK=args.includes('--check');
 const TEX=path.join(HERE,'parche.webp'),META=JSON.parse(fs.readFileSync(path.join(HERE,'parche.json'),'utf8'));
 const DISC_AT=new THREE.Vector3(0.115,1.443,0.079); // the black circle on the left of the chest (mesh space of NEW_body, Blender export)
-const LIFT=0.0005,TIPLIFT=0.0012,THICK=0.0025,SKIRT=0.004,RINGS=6,SEGS=40,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62,emissive:0.3};
+const LIFT=0.0005,TIPLIFT=0.0012,PATCH_FIT=1.3,THICK=0.0025,SKIRT=0.004,RINGS=6,SEGS=40,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62,emissive:0.3};
 
 const src=opt('src',null);
 const glb=src?fs.readFileSync(path.resolve(src)):execSync(`git show ${PRISTINE}:public/assets/models/astronaut.glb`,{cwd:ROOT,maxBuffer:64<<20});
@@ -130,20 +130,28 @@ for(let i=0;i<sP.count;i++){v.fromBufferAttribute(sP,i);if(v.distanceTo(disc.c)<
 const RC=META.r*SIDE,samples=[];for(const i of near){const q=pl(v.fromBufferAttribute(sP,i));if(Math.hypot(q[0],q[1])<RC+0.015&&Math.abs(q[2])<0.03)samples.push(q);}
 function suitH(x,y){const d=samples.map(q=>[q[2],(q[0]-x)**2+(q[1]-y)**2]).sort((a,b)=>a[1]-b[1]).slice(0,8);let sw=0,sh=0;for(const [h,d2] of d){const f=1/Math.max(1e-10,d2);sw+=f;sh+=h*f;}return sh/sw;}
 // skin weights. The old puck was 100 % LeftShoulder while the suit around it blends Spine1, Spine2, LeftShoulder, LeftArm, Neck and Head and
-// changes a lot from one vertex to the next: copying the nearest suit vertices made the patch ripple when the shoulder moved, and even a smooth
-// (Gaussian) field bent it out of shape. A patch is stiffer than a puffer jacket: it takes one set of weights for all its vertices, the average
-// of the suit's over the circle (top 4 joints), so it moves as one piece with the chest and shoulder as a whole. The swoosh tips (copies of
-// suit triangles) take those weights near the circle, so they stay joined to it, and their own exact weights further out.
+// changes a lot from one vertex to the next: copying the nearest suit vertices made the patch ripple when the shoulder moved (and a Gaussian
+// field bent it out of shape); one set of weights for the whole patch kept it flat but let the suit come through it or leave it by 1 cm.
+// So each joint's weight is a plane over the patch (least squares on the suit vertices within PATCH_FIT circle radii): the patch follows the
+// suit's overall bend and slope with no ripples. Top 4 joints, normalised. The swoosh tips (copies of suit triangles) take that field near the
+// circle, so they stay joined to it, and their own exact weights further out.
 const _sw=new THREE.Vector3();
 const top4=acc=>{const top=[...acc].sort((a,b)=>b[1]-a[1]).slice(0,4),sum=top.reduce((s,x)=>s+x[1],0);while(top.length<4)top.push([0,0]);return {j:top.map(x=>x[0]),w:top.map(x=>x[1]/sum)};};
 function exactWeights(i){const acc=new Map();for(let k=0;k<4;k++){const j=sJ.getComponent(i,k),x=sW.getComponent(i,k);if(x>0)acc.set(j,(acc.get(j)||0)+x);}return acc;}
 function mixWeights(a,b,t){const acc=new Map(),sa=[...a.values()].reduce((s,x)=>s+x,0),sb=[...b.values()].reduce((s,x)=>s+x,0);
   for(const [j,x] of a)acc.set(j,(acc.get(j)||0)+x/sa*t);for(const [j,x] of b)acc.set(j,(acc.get(j)||0)+x/sb*(1-t));return acc;}
-const PATCH_W=(()=>{const acc=new Map();let n=0;for(const i of near){const q=pl(_sw.fromBufferAttribute(sP,i));if(Math.hypot(q[0],q[1])>RC)continue;n++;
-  for(let k=0;k<4;k++){const j=sJ.getComponent(i,k),x=sW.getComponent(i,k);if(x>0)acc.set(j,(acc.get(j)||0)+x);}}return acc;})();
-{const names=json.skins[0].joints.map(j=>json.nodes[j].name),t=top4(PATCH_W);console.log('patch weights: '+t.j.map((j,k)=>t.w[k]>0?names[j]+' '+t.w[k].toFixed(2):'').filter(Boolean).join(', '));}
-const smoothstep=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
 const at=(x,y,h)=>disc.c.clone().addScaledVector(U,x).addScaledVector(UP,y).addScaledVector(N,h);
+const WFIT=(()=>{const rows=[];for(const i of near){const q=pl(_sw.fromBufferAttribute(sP,i));if(Math.hypot(q[0],q[1])>RC*PATCH_FIT)continue;rows.push([q[0]/RC,q[1]/RC,i]);}
+  const joints=new Set();for(const [,,i] of rows)for(let k=0;k<4;k++)if(sW.getComponent(i,k)>0)joints.add(sJ.getComponent(i,k));
+  const M=[[0,0,0],[0,0,0],[0,0,0]];for(const [x,y] of rows){const r=[1,x,y];for(let a=0;a<3;a++)for(let b=0;b<3;b++)M[a][b]+=r[a]*r[b];}
+  const det=m=>m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]),D=det(M);
+  const fit=new Map();for(const j of joints){const r=[0,0,0];for(const [x,y,i] of rows){let wj=0;for(let k=0;k<4;k++)if(sJ.getComponent(i,k)===j)wj+=sW.getComponent(i,k);r[0]+=wj;r[1]+=wj*x;r[2]+=wj*y;}
+    fit.set(j,[0,1,2].map(k=>det(M.map((row,ii)=>row.map((xx,jj)=>jj===k?r[ii]:xx)))/D));}
+  console.log(`weight planes: ${rows.length} suit vertices within ${PATCH_FIT} radii, ${joints.size} joints`);return fit;})();
+function patchWeights(q){const p2=pl(q),x=p2[0]/RC,y=p2[1]/RC,acc=new Map();for(const [j,c] of WFIT){const wj=c[0]+c[1]*x+c[2]*y;if(wj>0)acc.set(j,wj);}return acc;}
+{const names=json.skins[0].joints.map(j=>json.nodes[j].name);for(const [nm,x,y] of [['centre',0,0],['top',0,1],['right',1,0],['bottom',0,-1],['left',-1,0]]){
+   const t=top4(patchWeights(at(x*RC,y*RC,0)));console.log(`  ${nm}: `+t.j.map((j,k)=>t.w[k]>0.005?names[j]+' '+t.w[k].toFixed(2):'').filter(Boolean).join(', '));}}
+const smoothstep=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
 const dPos=[at(0,0,suitH(0,0)+THICK)],dIdx=[];
 for(let r=1;r<=RINGS;r++)for(let k=0;k<SEGS;k++){const an=k/SEGS*Math.PI*2,rr=RC*r/RINGS,x=Math.cos(an)*rr,y=Math.sin(an)*rr;dPos.push(at(x,y,suitH(x,y)+THICK));}
 const ring=(r,k)=>1+(r-1)*SEGS+(k%SEGS);
@@ -177,8 +185,8 @@ for(const c of keep){const g=c.g,mine=c.tag==='patch',tri=[];
       if(!mine)v.addScaledVector(w,LIFT+TIPLIFT*tj);pos.push(v.x,v.y,v.z);nor.push(w.x,w.y,w.z);
       let sw;
       if(mine){const du=q[0]-0.5,dv=q[1]-0.5,r=Math.hypot(du,dv),f=r>RMAX?RMAX/r:1;uvs.push(0.5+du*f,0.5+dv*f); // (the edge and the skirt: just inside the circle, the stitched border)
-        sw=top4(PATCH_W);}
-      else{uvs.push(q[0],q[1]);sw=top4(tj>0?mixWeights(PATCH_W,exactWeights(i),tj):exactWeights(i));}
+        sw=top4(patchWeights(v));}
+      else{uvs.push(q[0],q[1]);sw=top4(tj>0?mixWeights(patchWeights(v),exactWeights(i),tj):exactWeights(i));}
       jnt.push(...sw.j);wgt.push(...sw.w);}
     tri.push(o);}
   idx.push(...tri);}

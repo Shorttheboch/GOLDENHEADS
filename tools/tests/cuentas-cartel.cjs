@@ -45,7 +45,7 @@ function server(){const S={seed:[],down:false};
 async function open(b,S,w,h,phone,lang,init){
   const ctx=await b.newContext(phone?{viewport:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true}:{viewport:{width:w,height:h}});
   await ctx.route('**/api/**',S.handle);
-  await ctx.addInitScript(l=>{window.__rankOn=1;window.__lang=l;window.__noN1=1;},lang); // (v87: the «¡NUEVO Nº1!» celebration has its own test, numero-uno; here it would cover the plate)if(init)await ctx.addInitScript(init);
+  await ctx.addInitScript(l=>{window.__rankOn=1;window.__lang=l;window.__noN1=1;},lang);if(init)await ctx.addInitScript(init); // (v87 __noN1: the «¡NUEVO Nº1!» celebration has its own test, numero-uno; here it would cover the plate)
   const p=await ctx.newPage();p.errs=[];p.on('pageerror',e=>p.errs.push(e.message));p.on('crash',()=>{console.log('PAGE CRASHED');process.exit(3);});
   await p.goto(BASE+'/test.html');await p.waitForFunction(()=>!document.getElementById('play').disabled,null,{timeout:300000});
   if(phone)await p.waitForFunction(()=>!document.getElementById('mmGo').disabled,null,{timeout:30000});

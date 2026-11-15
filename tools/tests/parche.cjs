@@ -1,5 +1,5 @@
 // v89: the HEADS patch on the astronaut's chest (tools/parche/, public/assets/models/astronaut.glb). Checks that the model brings it (a skinned
-// mesh on the body's skeleton, material M_Patch with the 512 px texture, alpha mask, not metallic), that it follows the body when it moves and that
+// mesh on the body's skeleton, material M_Patch with the 1024x512 texture: disc | tips, alpha mask, not metallic), that it follows the body when it moves and that
 // it sits over the black circle, and takes pictures: the front view (Q / VER) and a close-up, on PC and phone (tools/tests/out/parche_*.png).
 //   npm run build:test && tools/run-test.sh dist-test tools/tests/parche.cjs
 const {chromium}=require('playwright');
@@ -21,9 +21,9 @@ const PLAT={pc:{viewport:{width:1600,height:900}},phone:{viewport:{width:844,hei
   const m=await p.evaluate(()=>{const P=__heads.P;let patch=null,body=null;P.model.traverse(o=>{if(!o.isMesh)return;if(o.material.name==='M_Patch')patch=o;if(o.material.name==='M_Suit_Gold'&&o.isSkinnedMesh&&!body)body=o;});
     if(!patch)return {patch:false};const mt=patch.material,img=mt.map&&mt.map.image;
     return {patch:true,skinned:patch.isSkinnedMesh,sameSkel:!!body&&patch.skeleton===body.skeleton,img:img?[img.width,img.height]:null,alphaTest:mt.alphaTest,metal:mt.metalness,rough:mt.roughness,
-      tris:patch.geometry.index.count/3,srgb:mt.map&&mt.map.colorSpace,transparent:mt.transparent};});
+      tris:patch.geometry.index.count/3,srgb:mt.map&&mt.map.colorSpace,transparent:mt.transparent,emis:!!mt.emissiveMap&&mt.emissiveMap.image===mt.map.image&&mt.emissive.r>0.1&&mt.emissive.r<0.6};});
   ok(m.patch&&m.skinned&&m.sameSkel,`${plat}: the patch is a skinned mesh on the astronaut's skeleton`,m);
-  ok(m.img&&m.img[0]===512&&m.img[1]===512&&m.srgb==='srgb',`${plat}: its texture is the 512 px WebP (sRGB)`,m);
+  ok(m.img&&m.img[0]===1024&&m.img[1]===512&&m.srgb==='srgb'&&m.emis,`${plat}: its texture is the 1024x512 WebP (sRGB), also a faint emission`,m);
   ok(m.alphaTest===0.5&&m.metal===0&&!m.transparent&&m.tris<200,`${plat}: alpha mask 0.5, not metallic, opaque pass, ${m.tris} triangles`,m);
   // where it is: over the black circle (the black disc's centre, skinned, in world space) and it moves with the chest
   const where=()=>p.evaluate(()=>{const THREE=__THREE,P=__heads.P;let patch=null,black=null;P.model.traverse(o=>{if(o.isMesh&&o.material.name==='M_Patch')patch=o;if(o.isMesh&&o.material.name==='M_Glove_Black')black=o;});

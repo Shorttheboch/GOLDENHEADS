@@ -3,14 +3,16 @@
 //   node tools/parche/make_patch_glb.mjs [--src <astronaut without patch>.glb] [--out public/assets/models/astronaut.glb] [--check]
 //
 // The astronaut has no textures (flat materials) and the black circle is part of the black material (M_Glove_Black). This tool does not touch
-// any existing byte of the file: it appends one more primitive to the body mesh (same skin), with its own small material M_Patch (the 512 px WebP,
-// alpha MASK, non-metallic). That primitive is a copy of the triangles you see from the front over the patch area (the black disc and, where the
-// red swoosh leaves the circle, the gold suit), lifted 0.5 mm along their normals, with planar UVs on the disc's plane:
+// any existing byte of the file: it appends one more primitive to the body mesh (same skin), with its own small material M_Patch (the 1024x512
+// WebP, alpha MASK, non-metallic, a little of the texture as emission so it reads in the dark). That primitive is a copy of the triangles you see
+// from the front over the patch area (the black disc and, where the red swoosh leaves the circle, the gold suit), lifted 0.5 mm along their
+// normals, with planar UVs on the disc's plane: the disc's triangles use the left half of the texture (the circle), the suit's the right half
+// (only the swoosh tips: the suit moves a little differently from the disc when the astronaut bends, and must never show the inside of the circle).
 //  1) the disc = the black connected piece near DISC_AT; its plane (PCA), centre (circle fit of its rim) and radius give the projection, so the
 //     texture's circle lands exactly on it (image right = the astronaut's left = +x, image up = +y);
 //  2) every front-facing triangle of the suit and the black material inside the texture square is rasterised on a 512 grid with its height
-//     along the disc normal; only the frontmost triangle at each texel counts, and a triangle is kept only if it is frontmost at some texel the
-//     texture covers (alpha >= 0.5): the disc, plus the suit under the three swoosh tips;
+//     along the disc normal; only the frontmost triangle at each texel counts: a black triangle is kept if it is frontmost at some texel of the
+//     circle, a suit triangle if it is frontmost at some texel of the tips (alpha >= 0.5);
 //  3) EXT_texture_webp (required: the game already needs WebP for its menus and HUD).
 // By default it starts from the astronaut of v88 (git show bcde206:public/assets/models/astronaut.glb), so it can be run again after the patch is in.
 import fs from 'fs';
@@ -27,7 +29,7 @@ const PRISTINE='bcde206';                          // v88: the last astronaut wi
 const OUT=path.resolve(ROOT,opt('out','public/assets/models/astronaut.glb')),CHECK=args.includes('--check');
 const TEX=path.join(HERE,'parche.webp'),META=JSON.parse(fs.readFileSync(path.join(HERE,'parche.json'),'utf8'));
 const DISC_AT=new THREE.Vector3(0.115,1.443,0.079); // the black circle on the left of the chest (mesh space of NEW_body, Blender export)
-const LIFT=0.0005,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62};
+const LIFT=0.0005,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62,emissive:0.3};
 
 const src=opt('src',null);
 const glb=src?fs.readFileSync(path.resolve(src)):execSync(`git show ${PRISTINE}:public/assets/models/astronaut.glb`,{cwd:ROOT,maxBuffer:64<<20});
@@ -81,32 +83,48 @@ const P2=DP.map(pl),rim=P2.filter(p=>Math.hypot(p[0],p[1])>0.03);
   const D=det(M),sol=[0,1,2].map(k=>det(M.map((row,i)=>row.map((x,j)=>j===k?r[i]:x)))/D);
   disc.c.addScaledVector(U,sol[0]).addScaledVector(UP,sol[1]);}
 const P3=DP.map(pl),RD=Math.max(...P3.map(p=>Math.hypot(p[0],p[1])));
-const SIDE=RD/META.r;                              // model units covered by the whole texture (its circle radius r maps to the disc radius)
+let SIDE=RD/META.r;                                // model units covered by one half of the texture (its circle radius r maps to the disc)
 const toUV=q=>{w.copy(q).sub(disc.c);return [0.5+w.dot(U)/SIDE,0.5-w.dot(UP)/SIDE,w.dot(N)];};
-const rr=P3.map(p=>Math.hypot(p[0],p[1])).sort((a,b)=>a-b);
-console.log(`disc: ${disc.tris.length} triangles, centre ${disc.c.toArray().map(x=>x.toFixed(4))}, normal ${N.toArray().map(x=>x.toFixed(3))}, radius ${RD.toFixed(4)} (rim spread ${rr[Math.floor(rr.length*0.6)].toFixed(4)}..${RD.toFixed(4)}), texture covers ${SIDE.toFixed(4)} m`);
+console.log(`disc: ${disc.tris.length} triangles, centre ${disc.c.toArray().map(x=>x.toFixed(4))}, normal ${N.toArray().map(x=>x.toFixed(3))}, outer radius ${RD.toFixed(4)}`);
 
 // 2) frontmost triangles over the textured texels
-const {data:alphaPx}=await (async()=>{ // the texture's alpha, decoded with sharp (already in node_modules for the icon/ui tools) or PIL as a fallback
-  try{const sharp=(await import('sharp')).default;const {data,info}=await sharp(TEX).ensureAlpha().raw().toBuffer({resolveWithObject:true});
-    if(info.width!==GRID||info.height!==GRID)throw new Error('texture is not '+GRID);const a=new Uint8Array(GRID*GRID);for(let i=0;i<a.length;i++)a[i]=data[i*4+3];return {data:a};}
-  catch(e){const out=execSync(`python3 -c "from PIL import Image;import sys;sys.stdout.buffer.write(Image.open(sys.argv[1]).convert('RGBA').getchannel('A').tobytes())" "${TEX}"`,{maxBuffer:8<<20});return {data:new Uint8Array(out)};}})();
-const zbuf=new Float32Array(GRID*GRID).fill(-1e9),owner=new Int32Array(GRID*GRID).fill(-1),cand=[];
+const alphaPx=await (async()=>{ // the texture's alpha (2*GRID x GRID), decoded with sharp (already in node_modules) or PIL as a fallback
+  let a;try{const sharp=(await import('sharp')).default;const {data,info}=await sharp(TEX).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+    if(info.width!==2*GRID||info.height!==GRID)throw new Error('texture is not '+2*GRID+'x'+GRID);a=new Uint8Array(2*GRID*GRID);for(let i=0;i<a.length;i++)a[i]=data[i*4+3];}
+  catch(e){a=new Uint8Array(execSync(`python3 -c "from PIL import Image;import sys;sys.stdout.buffer.write(Image.open(sys.argv[1]).convert('RGBA').getchannel('A').tobytes())" "${TEX}"`,{maxBuffer:8<<20}));}
+  if(a.length!==2*GRID*GRID)throw new Error('texture is not '+2*GRID+'x'+GRID);return a;})();
+const aDisc=k=>alphaPx[(k/GRID|0)*2*GRID+k%GRID],aTips=k=>alphaPx[(k/GRID|0)*2*GRID+GRID+k%GRID];
+let zbuf,owner,cand;
+function raster(){zbuf=new Float32Array(GRID*GRID).fill(-1e9);owner=new Int32Array(GRID*GRID).fill(-1);cand=[];
 for(const [g,tag] of [[gSuit,'suit'],[gBlack,'black']]){const p=g.attributes.position,n=g.attributes.normal,ix=g.index;
   for(let t=0;t<ix.count/3;t++){const id=[ix.getX(t*3),ix.getX(t*3+1),ix.getX(t*3+2)];const uv=[];let ok=true,nd=0;
     for(const i of id){const q=toUV(v.fromBufferAttribute(p,i));uv.push(q);nd+=w.fromBufferAttribute(n,i).dot(N)/3;if(q[2]<-0.04||q[2]>0.05)ok=false;}
     if(!ok||nd<MIN_NDOT)continue;
     const minU=Math.min(uv[0][0],uv[1][0],uv[2][0]),maxU=Math.max(uv[0][0],uv[1][0],uv[2][0]),minV=Math.min(uv[0][1],uv[1][1],uv[2][1]),maxV=Math.max(uv[0][1],uv[1][1],uv[2][1]);
     if(maxU<0||minU>1||maxV<0||minV>1)continue;
-    const ci=cand.length;cand.push({g,tag,id,uv,hit:0});
+    const ci=cand.length;cand.push({g,tag,id,uv,hit:0,off:tag==='suit'?0.5:0});
     const x0=Math.max(0,Math.floor(minU*GRID)),x1=Math.min(GRID-1,Math.ceil(maxU*GRID)),y0=Math.max(0,Math.floor(minV*GRID)),y1=Math.min(GRID-1,Math.ceil(maxV*GRID));
     const [a,b,c]=uv,den=(b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1]);if(Math.abs(den)<1e-12)continue;
     for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const px=(x+0.5)/GRID,py=(y+0.5)/GRID;
       const l1=((b[1]-c[1])*(px-c[0])+(c[0]-b[0])*(py-c[1]))/den,l2=((c[1]-a[1])*(px-c[0])+(a[0]-c[0])*(py-c[1]))/den,l3=1-l1-l2;
-      if(l1<-1e-4||l2<-1e-4||l3<-1e-4)continue;const h=l1*a[2]+l2*b[2]+l3*c[2],k=y*GRID+x;if(h>zbuf[k]){zbuf[k]=h;owner[k]=ci;}}}}
-let covered=0,holes=0;for(let k=0;k<GRID*GRID;k++){if(alphaPx[k]<128)continue;covered++;if(owner[k]<0)holes++;else cand[owner[k]].hit++;}
+      if(l1<-1e-4||l2<-1e-4||l3<-1e-4)continue;const h=l1*a[2]+l2*b[2]+l3*c[2],k=y*GRID+x;if(h>zbuf[k]){zbuf[k]=h;owner[k]=ci;}}}}}
+// the disc is a polygon whose outer bevel dips under the suit: seen from the front, the black circle ends a little inside its outer radius.
+// Pass 1 finds that visible edge (from the centre outwards along 720 rays, where the suit takes over), pass 2 maps the texture's circle onto it,
+// so the whole stitched border shows and the original black disc makes a hairline margin around it.
+raster();
+{const rays=[];for(let k=0;k<720;k++){const an=k/720*Math.PI*2;let last=0;
+   for(let r=0;r<0.5;r+=0.25/GRID){const x=Math.floor((0.5+Math.cos(an)*r)*GRID),y=Math.floor((0.5-Math.sin(an)*r)*GRID);const o=owner[y*GRID+x];if(o<0||cand[o].tag!=='black')break;last=r;}
+   rays.push(last*SIDE);}
+ rays.sort((a,b)=>a-b);const RV=rays[Math.floor(rays.length*0.03)];
+ console.log(`visible black edge: ${rays[0].toFixed(4)} .. ${rays[rays.length-1].toFixed(4)} m (3rd percentile ${RV.toFixed(4)}); the texture's circle goes there`);
+ SIDE=RV/META.r;}
+raster();
+console.log(`one half of the texture covers ${SIDE.toFixed(4)} m (the patch is ${(2*META.r*SIDE*100).toFixed(1)} cm across in the model, ${(2*META.r*SIDE*88).toFixed(1)} cm in the game)`);
+let covered=0,holes=0,suitOverDisc=0;
+for(let k=0;k<GRID*GRID;k++){const o=owner[k],d=aDisc(k)>=128,t=aTips(k)>=128;if(!d&&!t)continue;covered++;if(o<0){holes++;continue;}const c=cand[o];
+  if(d&&c.tag==='black')c.hit++;else if(d&&c.tag==='suit')suitOverDisc++;if(t&&c.tag==='suit')c.hit++;}
 const keep=cand.filter(c=>c.hit>0);
-console.log(`candidates ${cand.length}, kept ${keep.length} (suit ${keep.filter(c=>c.tag==='suit').length}, black ${keep.filter(c=>c.tag==='black').length}); textured texels ${covered}, with no surface under them ${holes}`);
+console.log(`candidates ${cand.length}, kept ${keep.length} (suit ${keep.filter(c=>c.tag==='suit').length} under the tips, black ${keep.filter(c=>c.tag==='black').length} of the disc); textured texels ${covered}, with no surface under them ${holes}, circle texels where the suit is in front of the disc ${suitOverDisc}`);
 if(holes>covered*0.002)throw new Error('the patch does not sit on the model: '+holes+' texels without surface');
 
 // 3) the new primitive's vertices (one per source vertex, lifted along its normal)
@@ -114,7 +132,7 @@ const vmap=new Map(),pos=[],nor=[],uvs=[],jnt=[],wgt=[],idx=[];
 for(const c of keep){const g=c.g,tri=[];
   for(const i of c.id){const key=(c.tag==='suit'?'s':'b')+i;let o=vmap.get(key);
     if(o===undefined){o=pos.length/3;vmap.set(key,o);v.fromBufferAttribute(g.attributes.position,i);w.fromBufferAttribute(g.attributes.normal,i);
-      const q=toUV(v);v.addScaledVector(w,LIFT);pos.push(v.x,v.y,v.z);nor.push(w.x,w.y,w.z);uvs.push(q[0],q[1]);
+      const q=toUV(v);v.addScaledVector(w,LIFT);pos.push(v.x,v.y,v.z);nor.push(w.x,w.y,w.z);uvs.push(c.off+q[0]*0.5,q[1]); // (left half: disc · right half: tips)
       const J=g.attributes.skinIndex,Wt=g.attributes.skinWeight;for(let k=0;k<4;k++){jnt.push(J.getComponent(i,k));wgt.push(Wt.getComponent(i,k));}}
     tri.push(o);}
   idx.push(...tri);}
@@ -141,7 +159,8 @@ const img=fs.readFileSync(TEX);const imgView=push(img,null);
 (json.samplers||(json.samplers=[])).push({magFilter:9729,minFilter:9987,wrapS:33071,wrapT:33071});
 (json.textures||(json.textures=[])).push({sampler:json.samplers.length-1,extensions:{EXT_texture_webp:{source:json.images.length-1}}});
 json.materials.push({name:MATERIAL.name,alphaMode:'MASK',alphaCutoff:0.5,
-  pbrMetallicRoughness:{baseColorTexture:{index:json.textures.length-1},metallicFactor:0,roughnessFactor:MATERIAL.rough}});
+  pbrMetallicRoughness:{baseColorTexture:{index:json.textures.length-1},metallicFactor:0,roughnessFactor:MATERIAL.rough},
+  emissiveTexture:{index:json.textures.length-1},emissiveFactor:[MATERIAL.emissive,MATERIAL.emissive,MATERIAL.emissive]});
 prim.material=json.materials.length-1;json.meshes[meshIx].primitives.push(prim);
 for(const k of ['extensionsUsed','extensionsRequired']){json[k]=json[k]||[];if(!json[k].includes('EXT_texture_webp'))json[k].push('EXT_texture_webp');}
 {const pad=(4-BIN.length%4)%4;if(pad)BIN=Buffer.concat([BIN,Buffer.alloc(pad)]);}

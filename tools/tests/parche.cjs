@@ -5,7 +5,7 @@
 const {chromium}=require('playwright');
 const {BASE,ARGS,shot}=require('./lib.cjs');
 let bad=0;const ok=(c,m,i)=>{console.log((c?'  ok   ':'  FAIL ')+m+(i!==undefined&&!c?'  '+JSON.stringify(i):''));if(!c)bad++;};
-const PLAT={pc:{viewport:{width:1600,height:900}},phone:{viewport:{width:844,height:390},deviceScaleFactor:2,isMobile:true,hasTouch:true}};
+const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{viewport:{width:844,height:390},deviceScaleFactor:2,isMobile:true,hasTouch:true}};
 (async()=>{
  const b=await chromium.launch({args:ARGS});
  for(const plat of ['pc','phone']){
@@ -47,16 +47,21 @@ const PLAT={pc:{viewport:{width:1600,height:900}},phone:{viewport:{width:844,hei
   // pictures: front view (Q on PC, VER on the phone), then a close-up from the patch's own normal
   await p.evaluate(()=>{__heads.inp.view=true;});await p.waitForTimeout(2200);
   await p.screenshot({path:shot(`parche_${plat}_frente.png`)});
-  await p.evaluate(()=>{const THREE=__THREE,P=__heads.P;let patch=null;P.model.traverse(o=>{if(o.isMesh&&o.material.name==='M_Patch')patch=o;});
+  const look=(dist,turn,lift)=>p.evaluate(([dist,turn,lift])=>{const THREE=__THREE,P=__heads.P;let patch=null;P.model.traverse(o=>{if(o.isMesh&&o.material.name==='M_Patch')patch=o;});
     const g=patch.geometry,v=new THREE.Vector3(),c=new THREE.Vector3();let n=0;
     for(let i=0;i<g.attributes.position.count;i++){patch.getVertexPosition(i,v);patch.localToWorld(v);c.add(v);n++;}c.divideScalar(n);
     // facing: the plane of the skinned patch (two far-apart vertices around the centre), pointing away from the spine
     let A=null,B=null,da=0;const tmp=[];for(let i=0;i<n;i++){const q=new THREE.Vector3();patch.getVertexPosition(i,q);patch.localToWorld(q);tmp.push(q);const d=q.distanceTo(c);if(d>da&&d<0.06){da=d;A=q;}}
     let db=0;for(const q of tmp){const d1=q.distanceTo(c);if(d1>0.03&&d1<0.06){const s=Math.abs(q.clone().sub(c).normalize().cross(A.clone().sub(c).normalize()).length());if(s>db){db=s;B=q;}}}
     const nrm=A.clone().sub(c).cross(B.clone().sub(c)).normalize();const sp=P.bones.Spine2.getWorldPosition(new THREE.Vector3());if(nrm.dot(c.clone().sub(sp))<0)nrm.negate();
-    const eye=c.clone().addScaledVector(nrm,0.5);
-    window.__camOv=eye.sub(P.pos);window.__camLook=c.clone().sub(P.pos);});
-  await p.waitForTimeout(900);
+    nrm.applyAxisAngle(new THREE.Vector3(0,1,0),turn);const eye=c.clone().addScaledVector(nrm,dist).add(new THREE.Vector3(0,lift,0));
+    window.__camOv=eye.sub(P.pos);window.__camLook=c.clone().sub(P.pos);},[dist,turn,lift]);
+  await look(0.5,0,0);await p.waitForTimeout(900);
   await p.screenshot({path:shot(`parche_${plat}_cerca.png`)});
+  if(plat==='pc'){ // detail pictures for review, without the HUD: straight on and from the side (3200x1800 render, the middle cropped)
+    await p.evaluate(()=>{const cv=document.querySelector('canvas');for(const e of document.body.children)if(!e.contains(cv))e.style.visibility='hidden';});
+    const clip={x:400,y:150,width:800,height:600};
+    await look(0.3,0,0);await p.waitForTimeout(900);await p.screenshot({path:shot('parche_pc_detalle_frente.png'),clip});
+    await look(0.32,0.75,0.08);await p.waitForTimeout(900);await p.screenshot({path:shot('parche_pc_detalle_lado.png'),clip});}
   ok(p.errs.length===0,`${plat}: no page errors`,p.errs.slice(0,3));await ctx.close();}
  console.log(bad?('FAILED '+bad):'ALL OK');await b.close();process.exitCode=bad?1:0;})();

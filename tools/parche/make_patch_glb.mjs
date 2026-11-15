@@ -33,7 +33,7 @@ const PRISTINE='bcde206';                          // v88: the last astronaut wi
 const OUT=path.resolve(ROOT,opt('out','public/assets/models/astronaut.glb')),CHECK=args.includes('--check');
 const TEX=path.join(HERE,'parche.webp'),META=JSON.parse(fs.readFileSync(path.join(HERE,'parche.json'),'utf8'));
 const DISC_AT=new THREE.Vector3(0.115,1.443,0.079); // the black circle on the left of the chest (mesh space of NEW_body, Blender export)
-const LIFT=0.0005,TIPLIFT=0.0012,PATCH_FIT=1.3,THICK=0.0025,SKIRT=0.004,RINGS=6,SEGS=40,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62,emissive:0.3};
+const LIFT=0.0005,TIPLIFT=0.0012,PATCH_FIT=1.3,EDGE_BLEND=[0.6,0.95],THICK=0.0025,SKIRT=0.004,RINGS=6,SEGS=40,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62,emissive:0.3};
 
 const src=opt('src',null);
 const glb=src?fs.readFileSync(path.resolve(src)):execSync(`git show ${PRISTINE}:public/assets/models/astronaut.glb`,{cwd:ROOT,maxBuffer:64<<20});
@@ -132,9 +132,10 @@ function suitH(x,y){const d=samples.map(q=>[q[2],(q[0]-x)**2+(q[1]-y)**2]).sort(
 // skin weights. The old puck was 100 % LeftShoulder while the suit around it blends Spine1, Spine2, LeftShoulder, LeftArm, Neck and Head and
 // changes a lot from one vertex to the next: copying the nearest suit vertices made the patch ripple when the shoulder moved (and a Gaussian
 // field bent it out of shape); one set of weights for the whole patch kept it flat but let the suit come through it or leave it by 1 cm.
-// So each joint's weight is a plane over the patch (least squares on the suit vertices within PATCH_FIT circle radii): the patch follows the
-// suit's overall bend and slope with no ripples. Top 4 joints, normalised. The swoosh tips (copies of suit triangles) take that field near the
-// circle, so they stay joined to it, and their own exact weights further out.
+// So each joint's weight is a plane over the patch (least squares on the suit vertices within PATCH_FIT circle radii): the middle follows
+// the suit's overall bend and slope with no ripples; towards the edge (EDGE_BLEND, in circle radii) it turns into the weights of the nearest
+// suit vertices (8, inverse squared distance), so the edge stays on the suit around it. Top 4 joints, normalised. The swoosh tips (copies of
+// suit triangles) take that field near the circle, so they stay joined to it, and their own exact weights further out.
 const _sw=new THREE.Vector3();
 const top4=acc=>{const top=[...acc].sort((a,b)=>b[1]-a[1]).slice(0,4),sum=top.reduce((s,x)=>s+x[1],0);while(top.length<4)top.push([0,0]);return {j:top.map(x=>x[0]),w:top.map(x=>x[1]/sum)};};
 function exactWeights(i){const acc=new Map();for(let k=0;k<4;k++){const j=sJ.getComponent(i,k),x=sW.getComponent(i,k);if(x>0)acc.set(j,(acc.get(j)||0)+x);}return acc;}
@@ -148,10 +149,14 @@ const WFIT=(()=>{const rows=[];for(const i of near){const q=pl(_sw.fromBufferAtt
   const fit=new Map();for(const j of joints){const r=[0,0,0];for(const [x,y,i] of rows){let wj=0;for(let k=0;k<4;k++)if(sJ.getComponent(i,k)===j)wj+=sW.getComponent(i,k);r[0]+=wj;r[1]+=wj*x;r[2]+=wj*y;}
     fit.set(j,[0,1,2].map(k=>det(M.map((row,ii)=>row.map((xx,jj)=>jj===k?r[ii]:xx)))/D));}
   console.log(`weight planes: ${rows.length} suit vertices within ${PATCH_FIT} radii, ${joints.size} joints`);return fit;})();
-function patchWeights(q){const p2=pl(q),x=p2[0]/RC,y=p2[1]/RC,acc=new Map();for(const [j,c] of WFIT){const wj=c[0]+c[1]*x+c[2]*y;if(wj>0)acc.set(j,wj);}return acc;}
+function planeWeights(x,y){const acc=new Map();for(const [j,c] of WFIT){const wj=c[0]+c[1]*x+c[2]*y;if(wj>0)acc.set(j,wj);}return acc;}
+function nearWeights(q){const d=near.map(i=>[i,_sw.fromBufferAttribute(sP,i).distanceTo(q)]).sort((a,b)=>a[1]-b[1]).slice(0,8),acc=new Map();
+  for(const [i,dd] of d){const f=1/Math.max(1e-6,dd*dd);for(let k=0;k<4;k++){const j=sJ.getComponent(i,k),x=sW.getComponent(i,k)*f;if(x>0)acc.set(j,(acc.get(j)||0)+x);}}return acc;}
+function patchWeights(q){const p2=pl(q),x=p2[0]/RC,y=p2[1]/RC,e=smoothstep(EDGE_BLEND[0],EDGE_BLEND[1],Math.hypot(x,y));
+  return e<=0?planeWeights(x,y):mixWeights(nearWeights(q),planeWeights(x,y),e);}
+const smoothstep=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
 {const names=json.skins[0].joints.map(j=>json.nodes[j].name);for(const [nm,x,y] of [['centre',0,0],['top',0,1],['right',1,0],['bottom',0,-1],['left',-1,0]]){
    const t=top4(patchWeights(at(x*RC,y*RC,0)));console.log(`  ${nm}: `+t.j.map((j,k)=>t.w[k]>0.005?names[j]+' '+t.w[k].toFixed(2):'').filter(Boolean).join(', '));}}
-const smoothstep=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
 const dPos=[at(0,0,suitH(0,0)+THICK)],dIdx=[];
 for(let r=1;r<=RINGS;r++)for(let k=0;k<SEGS;k++){const an=k/SEGS*Math.PI*2,rr=RC*r/RINGS,x=Math.cos(an)*rr,y=Math.sin(an)*rr;dPos.push(at(x,y,suitH(x,y)+THICK));}
 const ring=(r,k)=>1+(r-1)*SEGS+(k%SEGS);

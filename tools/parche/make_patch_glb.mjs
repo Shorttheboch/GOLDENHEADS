@@ -3,19 +3,20 @@
 //   node tools/parche/make_patch_glb.mjs [--src <astronaut without patch>.glb] [--out public/assets/models/astronaut.glb] [--check]
 //
 // The astronaut has no textures (flat materials); the black circle is a small black puck (72 triangles of M_Glove_Black) sitting in a hole of
-// the suit, skinned a little differently from the suit around it. A patch printed on that puck as it is came apart when the astronaut moved
-// (black edges poking out, the swoosh tips on the suit sliding away from the circle), so:
+// the suit. Printed on that puck as it is, the patch came apart when the astronaut moved (the puck is skinned a little differently from the
+// suit: black edges poked out and the swoosh tips on the suit slid away from the circle), and the puck is a flat disc up to ~1 cm off the curved
+// chest, which hid the base of the swoosh tips from an angle. So:
 //  1) the puck = the black connected piece near DISC_AT; its plane (PCA), centre (circle fit of its rim) and visible size give the projection
 //     (image right = the astronaut's left = +x, image up = +y). Its triangles leave the black primitive (a new, plain index accessor for that
-//     primitive; the meshopt data stays as it is, the puck's vertices are just no longer used) and come back in the patch primitive with skin
-//     weights blended from the nearest suit vertices, so the circle bends exactly like the suit around it;
-//  2) every front-facing suit triangle inside the texture square is rasterised on a 512 grid with its height along the patch normal, the puck
-//     too; a suit triangle is kept if it is frontmost at some texel the texture covers (alpha >= 0.5): around the circle and under the three
-//     swoosh tips;
-//  3) all that goes into one more primitive of the body mesh (same skin), lifted 0.5 mm along the normals, with planar UVs (the puck's rim
-//     and walls clamped just inside the circle: they show the stitched border) and its own small material M_Patch (512 px WebP, alpha MASK,
-//     not metallic, a little of the texture as emission so it reads in the dark); EXT_texture_webp is required (the game already needs WebP
-//     for its menus and HUD).
+//     primitive; the meshopt data stays as it is, the puck's vertices are just no longer used). In its place goes a thin patch mesh (RINGS x
+//     SEGS) that follows the chest THICK above the suit, with a short skirt at the edge and skin weights blended from the nearest suit
+//     vertices, so it bends like the suit around it;
+//  2) every front-facing suit triangle inside the texture square is rasterised on a 512 grid with its height along the patch normal, the patch
+//     mesh too; a suit triangle is kept if it is frontmost at some texel the texture covers (alpha >= 0.5): under the three swoosh tips;
+//  3) all that goes into one more primitive of the body mesh (same skin; the suit copies lifted 0.5 mm along their normals), with planar UVs
+//     (the patch's edge and skirt clamped just inside the circle: they show the stitched border) and its own small material M_Patch (512 px
+//     WebP, alpha MASK, not metallic, a little of the texture as emission so it reads in the dark); EXT_texture_webp is required (the game
+//     already needs WebP for its menus and HUD).
 // No existing byte of the binary changes: the new data is appended. By default it starts from the astronaut of v88
 // (git show bcde206:public/assets/models/astronaut.glb), so it can be run again after the patch is in.
 import fs from 'fs';
@@ -32,7 +33,7 @@ const PRISTINE='bcde206';                          // v88: the last astronaut wi
 const OUT=path.resolve(ROOT,opt('out','public/assets/models/astronaut.glb')),CHECK=args.includes('--check');
 const TEX=path.join(HERE,'parche.webp'),META=JSON.parse(fs.readFileSync(path.join(HERE,'parche.json'),'utf8'));
 const DISC_AT=new THREE.Vector3(0.115,1.443,0.079); // the black circle on the left of the chest (mesh space of NEW_body, Blender export)
-const LIFT=0.0005,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62,emissive:0.3};
+const LIFT=0.0005,THICK=0.0025,SKIRT=0.004,RINGS=6,SEGS=40,GRID=512,MIN_NDOT=0.2,MATERIAL={name:'M_Patch',rough:0.62,emissive:0.3};
 
 const src=opt('src',null);
 const glb=src?fs.readFileSync(path.resolve(src)):execSync(`git show ${PRISTINE}:public/assets/models/astronaut.glb`,{cwd:ROOT,maxBuffer:64<<20});
@@ -121,33 +122,51 @@ raster([[gSuit,'suit'],[gBlack,'black']]);
  rays.sort((a,b)=>a-b);const RV=rays[rays.length>>1];
  console.log(`visible black edge: ${rays[0].toFixed(4)} .. ${rays[rays.length-1].toFixed(4)} m, median ${RV.toFixed(4)}: the patch's circle`);
  SIDE=RV/META.r;}
-const notDisc=new Set();for(let t=0;t<gBlack.index.count/3;t++)if(!discTris.has(t))notDisc.add(t);
-raster([[gSuit,'suit'],[gBlack,'black',notDisc]]); // (suit + the puck alone: the rest of the black is skipped)
-console.log(`the texture covers ${SIDE.toFixed(4)} m (the patch is ${(2*META.r*SIDE*100).toFixed(1)} cm across in the model, ${(2*META.r*SIDE*88).toFixed(1)} cm in the game)`);
-let covered=0,holes=0;
-for(let k=0;k<GRID*GRID;k++){if(alphaPx[k]<128)continue;covered++;if(owner[k]<0)holes++;else cand[owner[k]].hit++;}
-const keep=cand.filter(c=>c.tag==='suit'&&c.hit>0);
-// the whole puck comes along (also its rim and walls, which fill the hole in the suit), whether or not it is in front somewhere
-for(const t of disc.tris)keep.push({g:gBlack,tag:'black',id:[gBlack.index.getX(t*3),gBlack.index.getX(t*3+1),gBlack.index.getX(t*3+2)]});
-console.log(`suit triangles: ${cand.filter(c=>c.tag==='suit').length} in the square, ${keep.length-disc.tris.length} under the patch, plus the ${disc.tris.length} of the puck; textured texels ${covered}, with nothing under them ${holes}`);
-if(holes>covered*0.002)throw new Error('the patch does not sit on the model: '+holes+' texels without surface');
-// skin weights for the puck: blended from the 8 nearest front-facing suit vertices (inverse squared distance), top 4 joints, normalised
+// the patch mesh: polar rings over the circle, THICK above the suit (the suit's height under each point interpolated from the front-facing
+// suit vertices around and inside the hole: 8 nearest in the plane, inverse squared distance), and a skirt down to SKIRT below the suit at the
+// edge (the patch's thickness, in the black of its border)
 const sP=gSuit.attributes.position,sN=gSuit.attributes.normal,sJ=gSuit.attributes.skinIndex,sW=gSuit.attributes.skinWeight,near=[];
 for(let i=0;i<sP.count;i++){v.fromBufferAttribute(sP,i);if(v.distanceTo(disc.c)<0.12&&w.fromBufferAttribute(sN,i).dot(N)>0.2)near.push(i);}
+const RC=META.r*SIDE,samples=[];for(const i of near){const q=pl(v.fromBufferAttribute(sP,i));if(Math.hypot(q[0],q[1])<RC+0.015&&Math.abs(q[2])<0.03)samples.push(q);}
+function suitH(x,y){const d=samples.map(q=>[q[2],(q[0]-x)**2+(q[1]-y)**2]).sort((a,b)=>a[1]-b[1]).slice(0,8);let sw=0,sh=0;for(const [h,d2] of d){const f=1/Math.max(1e-10,d2);sw+=f;sh+=h*f;}return sh/sw;}
+// skin weights: blended from the 8 nearest front-facing suit vertices (inverse squared distance), top 4 joints, normalised
 const _sw=new THREE.Vector3();
 function suitWeights(q){const d=near.map(i=>[i,_sw.fromBufferAttribute(sP,i).distanceTo(q)]).sort((a,b)=>a[1]-b[1]).slice(0,8),acc=new Map();
   for(const [i,dd] of d){const f=1/Math.max(1e-6,dd*dd);for(let k=0;k<4;k++){const j=sJ.getComponent(i,k),x=sW.getComponent(i,k)*f;if(x>0)acc.set(j,(acc.get(j)||0)+x);}}
   const top=[...acc].sort((a,b)=>b[1]-a[1]).slice(0,4),sum=top.reduce((s,x)=>s+x[1],0);while(top.length<4)top.push([0,0]);
   return {j:top.map(x=>x[0]),w:top.map(x=>x[1]/sum)};}
+const at=(x,y,h)=>disc.c.clone().addScaledVector(U,x).addScaledVector(UP,y).addScaledVector(N,h);
+const dPos=[at(0,0,suitH(0,0)+THICK)],dIdx=[];
+for(let r=1;r<=RINGS;r++)for(let k=0;k<SEGS;k++){const an=k/SEGS*Math.PI*2,rr=RC*r/RINGS,x=Math.cos(an)*rr,y=Math.sin(an)*rr;dPos.push(at(x,y,suitH(x,y)+THICK));}
+const ring=(r,k)=>1+(r-1)*SEGS+(k%SEGS);
+for(let k=0;k<SEGS;k++)dIdx.push(0,ring(1,k),ring(1,k+1));
+for(let r=1;r<RINGS;r++)for(let k=0;k<SEGS;k++)dIdx.push(ring(r,k),ring(r+1,k),ring(r+1,k+1),ring(r,k),ring(r+1,k+1),ring(r,k+1));
+const sk0=dPos.length;for(let k=0;k<SEGS;k++){const an=k/SEGS*Math.PI*2,x=Math.cos(an)*RC,y=Math.sin(an)*RC;dPos.push(at(x,y,suitH(x,y)-SKIRT));}
+for(let k=0;k<SEGS;k++){const a=ring(RINGS,k),b=ring(RINGS,k+1),c=sk0+k,d=sk0+(k+1)%SEGS;dIdx.push(a,c,d,a,d,b);}
+const gDisc=new THREE.BufferGeometry();gDisc.setAttribute('position',new THREE.Float32BufferAttribute(dPos.flatMap(q=>q.toArray()),3));gDisc.setIndex(dIdx);gDisc.computeVertexNormals();
+// (the skirt takes the normals of the rim above it: shaded like the patch's edge, not like a wall facing sideways)
+for(let k=0;k<SEGS;k++){const n=new THREE.Vector3().fromBufferAttribute(gDisc.attributes.normal,ring(RINGS,k));gDisc.attributes.normal.setXYZ(sk0+k,n.x,n.y,n.z);}
+{const fr=[...Array(dPos.length).keys()].filter(i=>!(i>=sk0)).map(i=>pl(dPos[i])[2]);
+ console.log(`patch mesh: ${dPos.length} vertices, ${dIdx.length/3} triangles, ${(THICK*1000).toFixed(1)} mm over the suit (its face ${Math.min(...fr).toFixed(4)}..${Math.max(...fr).toFixed(4)} m on the old puck's normal; the puck went up to 0.0054)`);}
+raster([[gSuit,'suit'],[gDisc,'patch']]);
+console.log(`the texture covers ${SIDE.toFixed(4)} m (the patch is ${(2*RC*100).toFixed(1)} cm across in the model, ${(2*RC*88).toFixed(1)} cm in the game)`);
+let covered=0,holes=0,poke=0;
+for(let k=0;k<GRID*GRID;k++){if(alphaPx[k]<128)continue;covered++;if(owner[k]<0){holes++;continue;}const c=cand[owner[k]];c.hit++;
+  const x=(k%GRID+0.5)/GRID-0.5,y=((k/GRID|0)+0.5)/GRID-0.5;if(c.tag==='suit'&&Math.hypot(x,y)<META.r*0.97)poke++;}
+const keep=cand.filter(c=>c.tag==='suit'&&c.hit>0);
+console.log(`suit triangles: ${cand.filter(c=>c.tag==='suit').length} in the square, ${keep.length} carry the tips; textured texels ${covered}, with nothing under them ${holes}, circle texels where the suit is above the patch ${poke}`);
+if(holes>covered*0.002)throw new Error('the patch does not sit on the model: '+holes+' texels without surface');
+if(poke>covered*0.003)throw new Error('the suit comes through the patch at '+poke+' texels: raise THICK');
+for(let t=0;t<dIdx.length/3;t++)keep.push({g:gDisc,tag:'patch',id:[dIdx[t*3],dIdx[t*3+1],dIdx[t*3+2]]});
 const RMAX=0.985*META.r;
 
 // 3) the new primitive's vertices (one per source vertex, lifted along its normal) and the black primitive without the puck
 const vmap=new Map(),pos=[],nor=[],uvs=[],jnt=[],wgt=[],idx=[];
-for(const c of keep){const g=c.g,puck=c.tag==='black',tri=[];
-  for(const i of c.id){const key=(puck?'b':'s')+i;let o=vmap.get(key);
+for(const c of keep){const g=c.g,mine=c.tag==='patch',tri=[];
+  for(const i of c.id){const key=(mine?'p':'s')+i;let o=vmap.get(key);
     if(o===undefined){o=pos.length/3;vmap.set(key,o);v.fromBufferAttribute(g.attributes.position,i);w.fromBufferAttribute(g.attributes.normal,i);
-      const q=toUV(v);v.addScaledVector(w,LIFT);pos.push(v.x,v.y,v.z);nor.push(w.x,w.y,w.z);
-      if(puck){const du=q[0]-0.5,dv=q[1]-0.5,r=Math.hypot(du,dv),f=r>RMAX?RMAX/r:1;uvs.push(0.5+du*f,0.5+dv*f); // (rim and walls: just inside the circle)
+      const q=toUV(v);if(!mine)v.addScaledVector(w,LIFT);pos.push(v.x,v.y,v.z);nor.push(w.x,w.y,w.z);
+      if(mine){const du=q[0]-0.5,dv=q[1]-0.5,r=Math.hypot(du,dv),f=r>RMAX?RMAX/r:1;uvs.push(0.5+du*f,0.5+dv*f); // (the edge and the skirt: just inside the circle, the stitched border)
         const sw=suitWeights(v.clone());jnt.push(...sw.j);wgt.push(...sw.w);}
       else{uvs.push(q[0],q[1]);const J=g.attributes.skinIndex,Wt=g.attributes.skinWeight;for(let k=0;k<4;k++){jnt.push(J.getComponent(i,k));wgt.push(Wt.getComponent(i,k));}}}
     tri.push(o);}

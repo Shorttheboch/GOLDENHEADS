@@ -24,7 +24,7 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
       tris:patch.geometry.index.count/3,srgb:mt.map&&mt.map.colorSpace,transparent:mt.transparent,emis:!!mt.emissiveMap&&mt.emissiveMap.image===mt.map.image&&mt.emissive.r>0.1&&mt.emissive.r<0.6};});
   ok(m.patch&&m.skinned&&m.sameSkel,`${plat}: the patch is a skinned mesh on the astronaut's skeleton`,m);
   ok(m.img&&m.img[0]===512&&m.img[1]===512&&m.srgb==='srgb'&&m.emis,`${plat}: its texture is the 512 px WebP (sRGB), also a faint emission`,m);
-  ok(m.alphaTest===0.5&&m.metal===0&&!m.transparent&&m.tris<200,`${plat}: alpha mask 0.5, not metallic, opaque pass, ${m.tris} triangles`,m);
+  ok(m.alphaTest===0.5&&m.metal===0&&!m.transparent&&m.tris<700,`${plat}: alpha mask 0.5, not metallic, opaque pass, ${m.tris} triangles`,m);
   // where it is and how it bends: the old black puck is gone from the black mesh (no black triangle left near the patch), and every patch vertex
   // moves like the suit next to it (skinned offset from the bind pose compared with the nearest suit vertex within 1.5 cm), now and after moving
   const where=()=>p.evaluate(()=>{const THREE=__THREE,P=__heads.P;let patch=null,black=null,suit=null;

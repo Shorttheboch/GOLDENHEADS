@@ -33,10 +33,15 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
     for(let i=0;i<pa.count;i++){patch.getVertexPosition(i,v);patch.localToWorld(v);c.add(v);cb.add(u.fromBufferAttribute(pa,i));}c.divideScalar(pa.count);cb.divideScalar(pa.count);
     const bg=black.geometry,bi=bg.index;let near=0;for(let k=0;k<bi.count;k++){u.fromBufferAttribute(bg.attributes.position,bi.getX(k));if(u.distanceTo(cb)<0.05)near++;}
     const sg=suit.geometry,sa=sg.attributes.position,cand=[];for(let j=0;j<sa.count;j++){u.fromBufferAttribute(sa,j);if(u.distanceTo(cb)<0.1)cand.push(j);}
-    let drift=0,pairs=0;const s=P.model.scale.x,bi0=new THREE.Vector3(),bj=new THREE.Vector3(),si=new THREE.Vector3(),sj=new THREE.Vector3();
+    // the patch's own plane, skinned (centre and two far-apart vertices), for the part of the drift across the suit (in or out of it)
+    const sk=[];for(let i=0;i<pa.count;i++){const q=new THREE.Vector3();patch.getVertexPosition(i,q);sk.push(q);}
+    const uvA=g.attributes.uv,inn=sk.filter((q,i)=>Math.hypot(uvA.getX(i)-0.5,uvA.getY(i)-0.5)<0.35),cs=inn.reduce((a,q)=>a.add(q),new THREE.Vector3()).divideScalar(inn.length);
+    let A=inn[0];for(const q of inn)if(q.distanceTo(cs)>A.distanceTo(cs))A=q;let B=inn[0],bs=0;for(const q of inn){const x=q.clone().sub(cs).cross(A.clone().sub(cs)).length();if(x>bs){bs=x;B=q;}}
+    const nrm=A.clone().sub(cs).cross(B.clone().sub(cs)).normalize();
+    let drift=0,driftN=0,pairs=0;const s=P.model.scale.x,bi0=new THREE.Vector3(),bj=new THREE.Vector3(),si=new THREE.Vector3(),sj=new THREE.Vector3();
     for(let i=0;i<pa.count;i++){bi0.fromBufferAttribute(pa,i);let best=1e9,jb=-1;for(const j of cand){const d=u.fromBufferAttribute(sa,j).distanceTo(bi0);if(d<best){best=d;jb=j;}}
       if(jb<0||best>0.015)continue;pairs++;bj.fromBufferAttribute(sa,jb);patch.getVertexPosition(i,si);suit.getVertexPosition(jb,sj);
-      drift=Math.max(drift,si.sub(bi0).sub(sj.sub(bj)).length()*s);}
+      const dv=si.sub(bi0).sub(sj.sub(bj));drift=Math.max(drift,dv.length()*s);driftN=Math.max(driftN,Math.abs(dv.dot(nrm))*s);}
     // ripples: fit one affine map from the bind pose to the skinned pose over the inside of the patch (UV within 0.35 of the centre);
     // a patch that bends like cloth stays close to it, a rippled one does not (largest distance from the fit)
     const ins=[],uv=g.attributes.uv;for(let i=0;i<pa.count;i++)if(Math.hypot(uv.getX(i)-0.5,uv.getY(i)-0.5)<0.35)ins.push(i);
@@ -48,14 +53,14 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
       for(let r=0;r<4;r++)if(r!==c){const f=m[r][c]/m[c][c];for(let k=c;k<5;k++)m[r][k]-=f*m[c][k];}}return m.map((r,i)=>r[4]/r[i]);};
     const th=[0,1,2].map(k=>solve(M,R[k]));let warp=0;
     for(let n=0;n<X.length;n++){let e=0;for(let k=0;k<3;k++){const f=th[k].reduce((acc,t,a)=>acc+t*X[n][a],0);e+=(f-Y[n][k])**2;}warp=Math.max(warp,Math.sqrt(e)*s);}
-    return {c:c.toArray(),blackNear:near,drift,pairs,warp,ins:ins.length};});
+    return {c:c.toArray(),blackNear:near,drift,driftN,pairs,warp,ins:ins.length};});
   const w0=await where();
   ok(w0.blackNear===0,`${plat}: the old black circle is gone (black triangle corners within 5 cm: ${w0.blackNear})`,w0);
-  ok(w0.pairs>60&&w0.drift<0.008,`${plat}: the patch bends with the suit (${w0.pairs} vertices checked, worst ${(w0.drift*1000).toFixed(1)} mm apart from the suit next to it)`,w0);
-  ok(w0.ins>100&&w0.warp<0.0015,`${plat}: no ripples (${w0.ins} vertices inside, at most ${(w0.warp*1000).toFixed(2)} mm off a smooth bend)`,w0);
+  ok(w0.pairs>60&&w0.driftN<0.0025,`${plat}: the patch stays on the suit (${w0.pairs} vertices checked against the suit next to them: at most ${(w0.driftN*1000).toFixed(1)} mm into or off it, ${(w0.drift*1000).toFixed(1)} mm in all)`,w0);
+  ok(w0.ins>100&&w0.warp<0.0005,`${plat}: it does not ripple (${w0.ins} vertices inside, at most ${(w0.warp*1000).toFixed(2)} mm off one smooth bend)`,w0);
   await p.evaluate(()=>{const P=__heads.P;P.pos.x+=1.5;P.pos.y+=0.7;});await p.waitForTimeout(700);
   const w1=await where();const moved=Math.hypot(w1.c[0]-w0.c[0],w1.c[1]-w0.c[1],w1.c[2]-w0.c[2]);
-  ok(moved>1&&w1.drift<0.008&&w1.warp<0.0015,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m, worst ${(w1.drift*1000).toFixed(1)} mm from the suit, ${(w1.warp*1000).toFixed(2)} mm off a smooth bend)`,w1);
+  ok(moved>1&&w1.driftN<0.0025&&w1.warp<0.0005,`${plat}: it moves with the astronaut (moved ${moved.toFixed(2)} m, at most ${(w1.driftN*1000).toFixed(1)} mm into or off the suit, ${(w1.warp*1000).toFixed(2)} mm off one smooth bend)`,w1);
   // pictures: front view (Q on PC, VER on the phone), then a close-up from the patch's own normal
   await p.evaluate(()=>{__heads.inp.view=true;});await p.waitForTimeout(2200);
   await p.screenshot({path:shot(`parche_${plat}_frente.png`)});

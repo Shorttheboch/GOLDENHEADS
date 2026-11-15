@@ -49,7 +49,7 @@ function spawnInc(cine){const B=makeBiped(INC_SC);if(!B)return null;incN++;const
   e.fg=incFootGeom(e); // v71: where the Idle clip puts its feet (for standing on rocks)
   e.coreL=e.bChest.worldToLocal(e.bChest.getWorldPosition(new THREE.Vector3()).addScaledVector(e.face,0.075*INC_SC).addScaledVector(e.n,0.02*INC_SC));
   e.fall={tgt:e.pos.clone(),n:e.n.clone(),v:cine?14:18,cine};e.pos.addScaledVector(e.n,cine?48:46);B.play('ZeroG_Float',0);incPlace(e);INCS.push(e);
-  if(cine){for(const sh of shards)sh.visible=false;CINE.on=true;CINE.mode='boss';CINE.t=0;CINE.dur=5.6;CINE.boss=e;document.body.classList.add('cine');}
+  if(cine){CINE.on=true;CINE.mode='boss';CINE.t=0;CINE.dur=5.6;CINE.boss=e;document.body.classList.add('cine');}
   else showMsg('¡CUIDADO ARRIBA!','La Incineradora cae sobre la nave',2);
   return e;}
 // stand on the hull: up = hull normal, facing kept in the tangent plane
@@ -292,7 +292,7 @@ function incCam(dt){CINE.t+=dt;const s=CINE.boss;P.inv=Math.max(P.inv,1);P.vel.m
   camera.position.copy(camPos);
   if(CINE.landT>=0&&CINE.landT<0.8){const k=CINE.landT;camera.position.addScaledVector(CINE.n,-0.35*Math.exp(-k*6)*Math.cos(k*26));} // the hull kicks under the lens
   camera.lookAt(CINE.look);CINE.fov=fov;
-  if(CINE.t>=CINE.dur){for(const sh of shards)sh.visible=true;CINE.on=false;CINE.mode='';CINE.camN=null;CINE.boss=null;CINE.fov=0;document.body.classList.remove('cine');}}
+  if(CINE.t>=CINE.dur){CINE.on=false;CINE.mode='';CINE.camN=null;CINE.boss=null;CINE.fov=0;document.body.classList.remove('cine');}}
 function incBeam(e,dt,t){const o=incCore(e,_j5).clone(),d=e.aim;let [L,ship]=incRayLen(o,d);
   // the astronaut anywhere near the beam line burns (and stops it)
   const pr=_j1.subVectors(P.pos,o),along=pr.dot(d),off=pr.addScaledVector(d,-along).length();

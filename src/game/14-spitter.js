@@ -13,7 +13,7 @@ function spawnSpitter(cine=false){spitN++;if(spitN===1)spitFirstW=wave;const k=s
   const n=new THREE.Vector3();hullPoint(s.z,s.th,s.pos,n);
   // it drops out of the sky like a meteor and smashes into the hull
   s.fall={tgt:s.pos.clone(),n:n.clone(),v:cine?14:18,cine};s.pos.addScaledVector(n,cine?48:46);s.state='fall';s.mesh.position.copy(s.pos);orient(s.mesh,new THREE.Vector3(0,0,1).addScaledVector(n,-n.z).normalize(),n);
-  if(cine){for(const sh of shards)sh.visible=false;CINE.on=true;CINE.mode='boss';CINE.t=0;CINE.dur=4.1;CINE.boss=s;document.body.classList.add('cine');}
+  if(cine){CINE.on=true;CINE.mode='boss';CINE.t=0;CINE.dur=4.1;CINE.boss=s;document.body.classList.add('cine');}
   else showMsg('¡CUIDADO ARRIBA!','Algo enorme cae sobre la nave',1.8);
   return s;}
 // impact: shockwave, sparks, a dented plate, the whole ship shakes
@@ -60,6 +60,6 @@ function bossCam(dt){if(CINE.boss&&CINE.boss.isInc){incCam(dt);return;} // v67: 
   if(CINE.landT>=0&&CINE.landT<0.8){const k=CINE.landT;camera.position.addScaledVector(CINE.n,-0.35*Math.exp(-k*6)*Math.cos(k*26));} // the hull kicks under the lens
   camera.lookAt(CINE.look);
   const fv=70;if(Math.abs(camera.fov-fv)>0.01){camera.fov=fv;camera.updateProjectionMatrix();}
-  if(CINE.t>=CINE.dur){for(const sh of shards)sh.visible=true;CINE.on=false;CINE.mode='';CINE.camN=null;if(CINE.boss&&!CINE.boss.isInc){const b=CINE.boss;b.cd=Math.max(b.cd,1.4);b.idleT=0;b.idle0=0;if(b.state==='windup'){b.state='crawl';b.t=0;}}CINE.boss=null;document.body.classList.remove('cine');}}
+  if(CINE.t>=CINE.dur){CINE.on=false;CINE.mode='';CINE.camN=null;if(CINE.boss&&!CINE.boss.isInc){const b=CINE.boss;b.cd=Math.max(b.cd,1.4);b.idleT=0;b.idle0=0;if(b.state==='windup'){b.state='crawl';b.t=0;}}CINE.boss=null;document.body.classList.remove('cine');}}
 
 

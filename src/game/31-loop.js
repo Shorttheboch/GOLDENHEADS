@@ -39,7 +39,6 @@ function tick(){const _qa0=performance.now();
   const eggC=CINE.on&&CINE.mode==='egg',fdt=eggC?rdt:dt;if(eggC)dt=1e-4;
   FLOW.dz=(state==='play'||state==='menu')?CFG.worldV*dt:0;
   for(const [o,sp] of ROTORS)o.rotation.z+=sp*dt;
-  for(const s of shards){s.rotation.x+=s.userData.spin.x*dt;s.rotation.y+=s.userData.spin.y*dt;}
   hatchRing.rotation.z+=dt*0.8;
   if(P.model&&(state==='play'||state==='menu')){
     // look

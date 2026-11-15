@@ -149,9 +149,13 @@ const WFIT=(()=>{const rows=[];for(const i of near){const q=pl(_sw.fromBufferAtt
   const fit=new Map();for(const j of joints){const r=[0,0,0];for(const [x,y,i] of rows){let wj=0;for(let k=0;k<4;k++)if(sJ.getComponent(i,k)===j)wj+=sW.getComponent(i,k);r[0]+=wj;r[1]+=wj*x;r[2]+=wj*y;}
     fit.set(j,[0,1,2].map(k=>det(M.map((row,ii)=>row.map((xx,jj)=>jj===k?r[ii]:xx)))/D));}
   console.log(`weight planes: ${rows.length} suit vertices within ${PATCH_FIT} radii, ${joints.size} joints`);return fit;})();
-function planeWeights(x,y){const acc=new Map();for(const [j,c] of WFIT){const wj=c[0]+c[1]*x+c[2]*y;if(wj>0)acc.set(j,wj);}return acc;}
+// the same 4 joints over the whole patch (the 4 with the most weight on the suit there): a joint swapping in and out of the top 4 from one
+// vertex to the next made a crease (Neck turns with the aim)
+const JOINTS4=(()=>{const tot=new Map();for(const [j,c] of WFIT)tot.set(j,c[0]);return new Set([...tot].sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]));})();
+const only4=acc=>{for(const j of [...acc.keys()])if(!JOINTS4.has(j))acc.delete(j);return acc;};
+function planeWeights(x,y){const acc=new Map();for(const [j,c] of WFIT){const wj=c[0]+c[1]*x+c[2]*y;if(wj>0)acc.set(j,wj);}return only4(acc);}
 function nearWeights(q){const d=near.map(i=>[i,_sw.fromBufferAttribute(sP,i).distanceTo(q)]).sort((a,b)=>a[1]-b[1]).slice(0,8),acc=new Map();
-  for(const [i,dd] of d){const f=1/Math.max(1e-6,dd*dd);for(let k=0;k<4;k++){const j=sJ.getComponent(i,k),x=sW.getComponent(i,k)*f;if(x>0)acc.set(j,(acc.get(j)||0)+x);}}return acc;}
+  for(const [i,dd] of d){const f=1/Math.max(1e-6,dd*dd);for(let k=0;k<4;k++){const j=sJ.getComponent(i,k),x=sW.getComponent(i,k)*f;if(x>0)acc.set(j,(acc.get(j)||0)+x);}}return only4(acc);}
 function patchWeights(q){const p2=pl(q),x=p2[0]/RC,y=p2[1]/RC,e=smoothstep(EDGE_BLEND[0],EDGE_BLEND[1],Math.hypot(x,y));
   return e<=0?planeWeights(x,y):mixWeights(nearWeights(q),planeWeights(x,y),e);}
 const smoothstep=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};

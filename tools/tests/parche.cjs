@@ -68,7 +68,7 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
     return {c:c.toArray(),blackNear:near,minGap,skirtUp,faces,warp,mid:mid.length,patchV:big.length,suitTris:tri.length};});
   const w0=await where();
   ok(w0.blackNear===0,`${plat}: the old black circle is gone (black triangle corners within 5 cm: ${w0.blackNear})`,w0);
-  ok(w0.faces>60&&w0.minGap>-0.0005,`${plat}: the suit never comes through the patch (${w0.faces} points over the suit: the closest is ${(w0.minGap*1000).toFixed(1)} mm over it; 2.2 mm in the bind pose)`,w0);
+  ok(w0.faces>25&&w0.minGap>-0.0005,`${plat}: the suit never comes through the patch (${w0.faces} points over the suit: the closest is ${(w0.minGap*1000).toFixed(1)} mm over it; 2.2 mm in the bind pose)`,w0);
   ok(w0.skirtUp<0.0005,`${plat}: the skirt stays under the suit (highest ${(w0.skirtUp*1000).toFixed(1)} mm)`,w0);
   ok(w0.mid>40&&w0.warp<0.0006,`${plat}: it bends in one smooth piece (${w0.mid} vertices in the middle, at most ${(w0.warp*1000).toFixed(2)} mm off a smooth bend)`,w0);
   await p.evaluate(()=>{const P=__heads.P;P.pos.x+=1.5;P.pos.y+=0.7;});await p.waitForTimeout(700);

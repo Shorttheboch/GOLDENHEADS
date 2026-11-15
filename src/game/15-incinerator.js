@@ -49,7 +49,7 @@ function spawnInc(cine){const B=makeBiped(INC_SC);if(!B)return null;incN++;const
   e.fg=incFootGeom(e); // v71: where the Idle clip puts its feet (for standing on rocks)
   e.coreL=e.bChest.worldToLocal(e.bChest.getWorldPosition(new THREE.Vector3()).addScaledVector(e.face,0.075*INC_SC).addScaledVector(e.n,0.02*INC_SC));
   e.fall={tgt:e.pos.clone(),n:e.n.clone(),v:cine?14:18,cine};e.pos.addScaledVector(e.n,cine?48:46);B.play('ZeroG_Float',0);incPlace(e);INCS.push(e);
-  if(cine){for(const sh of shards)sh.visible=false;CINE.on=true;CINE.mode='boss';CINE.t=0;CINE.dur=5.6;CINE.boss=e;document.body.classList.add('cine');}
+  if(cine){CINE.on=true;CINE.mode='boss';CINE.t=0;CINE.dur=5.6;CINE.boss=e;document.body.classList.add('cine');}
   else showMsg('¡CUIDADO ARRIBA!','La Incineradora cae sobre la nave',2);
   return e;}
 // stand on the hull: up = hull normal, facing kept in the tangent plane
@@ -63,6 +63,11 @@ function incMove(e,dir,spd,dt){if(spd<=0)return false;
   for(const a of [0,0.6,-0.6,1.2,-1.2]){const d=_j5.copy(dir).applyAxisAngle(e.n,a),np=_j6.copy(e.pos).addScaledVector(d,spd*dt),hp=hullParam(np);
     if(hp.z<-13.5||hp.z>20.5||hullBlocked(hp.z,hp.th,2))continue;e.z=hp.z;e.th=hp.th;hullPoint(e.z,e.th,e.pos,e.n);return true;}
   return false;}
+// v91 (Santi): the FIRST Incineradora's beam, once it fires, turns slowly and only so far from where it started, so a dash gets you out of
+// it (the aiming before it still follows you). Incineradora II, III... as before (~7.5 m/s, up to 1.6 rad/s).
+const INC_BEAM1={speed:4,cap:0.75,arc:0.55}; // sweep speed at your distance (m/s), most it turns up close (rad/s), farthest from where it started (rad)
+function incAimClamp(e,arc){const a=Math.acos(THREE.MathUtils.clamp(e.aim.dot(e.aim0),-1,1));if(a<=arc)return;
+  const ax=_j3.crossVectors(e.aim0,e.aim);if(ax.lengthSq()<1e-10)return;e.aim.copy(e.aim0).applyAxisAngle(ax.normalize(),arc).normalize();}
 function incAimTrack(e,dt,rate){const c=incCore(e,_j1),d=_j2.subVectors(P.pos,c).normalize();const ang=Math.acos(THREE.MathUtils.clamp(e.aim.dot(d),-1,1));if(ang<1e-4)return;
   const ax=_j3.crossVectors(e.aim,d);if(ax.lengthSq()<1e-10)return;e.aim.applyAxisAngle(ax.normalize(),Math.min(ang,rate*dt)).normalize();}
 function incStep(e,k=1){const v=Math.max(0.15,1-e.pos.distanceTo(P.pos)/40);if(!(AC&&playS('step',0.6*v*k,0.85+Math.random()*0.15)))sfx('thump',e.pos);}
@@ -292,7 +297,7 @@ function incCam(dt){CINE.t+=dt;const s=CINE.boss;P.inv=Math.max(P.inv,1);P.vel.m
   camera.position.copy(camPos);
   if(CINE.landT>=0&&CINE.landT<0.8){const k=CINE.landT;camera.position.addScaledVector(CINE.n,-0.35*Math.exp(-k*6)*Math.cos(k*26));} // the hull kicks under the lens
   camera.lookAt(CINE.look);CINE.fov=fov;
-  if(CINE.t>=CINE.dur){for(const sh of shards)sh.visible=true;CINE.on=false;CINE.mode='';CINE.camN=null;CINE.boss=null;CINE.fov=0;document.body.classList.remove('cine');}}
+  if(CINE.t>=CINE.dur){CINE.on=false;CINE.mode='';CINE.camN=null;CINE.boss=null;CINE.fov=0;document.body.classList.remove('cine');}}
 function incBeam(e,dt,t){const o=incCore(e,_j5).clone(),d=e.aim;let [L,ship]=incRayLen(o,d);
   // the astronaut anywhere near the beam line burns (and stops it)
   const pr=_j1.subVectors(P.pos,o),along=pr.dot(d),off=pr.addScaledVector(d,-along).length();
@@ -493,9 +498,9 @@ function updateInc(e,dt,t){const B=e.B;e.t+=dt;e.clk+=dt;e.dt=dt;if(e.rk)incRock
     case 'rise':if(B.done())incStalk(e);break;
     case 'charge':incTurn(e,toP,3,dt);incAimTrack(e,dt,2.2);glow=1.5+Math.min(1,e.t/0.6)*2.5;INC_FX.aimOn=1;
       if(e.t>=0.6){e.st='beamStart';e.t=0;B.play('Beam_Start',0.1);}break;
-    case 'beamStart':incTurn(e,toP,2,dt);incAimTrack(e,dt,1.4);glow=4;INC_FX.aimOn=1;if(B.done()){e.st='beam';e.t=0;B.play('Beam_Loop',0.08);e.beamHit=0;incBeamSnd(true);}break;
-    case 'beam':{const rate=Math.min(1.6,7.5/Math.max(3,dist)); // it sweeps after you at ~7.5 m/s: keep moving fast or dash out of it
-      incAimTrack(e,dt,rate);incTurn(e,e.aim,rate,dt);glow=4.5;incBeam(e,dt,t);
+    case 'beamStart':incTurn(e,toP,2,dt);incAimTrack(e,dt,1.4);glow=4;INC_FX.aimOn=1;if(B.done()){e.st='beam';e.t=0;B.play('Beam_Loop',0.08);e.beamHit=0;(e.aim0||(e.aim0=new THREE.Vector3())).copy(e.aim);incBeamSnd(true);}break;
+    case 'beam':{const easy=e.gen===1,rate=easy?Math.min(INC_BEAM1.cap,INC_BEAM1.speed/Math.max(3,dist)):Math.min(1.6,7.5/Math.max(3,dist)); // it sweeps after you (the first one slowly): keep moving fast or dash out of it
+      incAimTrack(e,dt,rate);if(easy&&e.aim0)incAimClamp(e,INC_BEAM1.arc);incTurn(e,e.aim,rate,dt);glow=4.5;incBeam(e,dt,t);
       if(e.t>=1.7){e.st='beamEnd';e.t=0;B.play('Beam_End',0.12);incBeamSnd(false);e.cds.beam=3.6+Math.random()*1.8;}break;}
     case 'beamEnd':glow=2;if(B.done())incStalk(e);break;
     case 'guardS':glow=1.8;if(B.done()){e.st='guard';e.t=0;B.play('Guard_Loop',0.1);}break;

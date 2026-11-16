@@ -144,7 +144,11 @@ async function run(mode){
  const m2a=await msgState(p),sayB=await sayN(p);
  await p.evaluate(()=>{__xp.xpStart();});
  let seenGo=false,seenMsg=false;
- for(let i=0;i<24;i++){await step(p,0.05);const tt2=await title(p);if(tt2.go)seenGo=true;const mm=await msgState(p);if(!seenMsg&&(mm.msg!==m2a.msg||mm.feed!==m2a.feed||mm.alert!==m2a.alert))seenMsg={before:m2a,after:mm,step:i};}
+ // only NEW text counts: phone feed lines left from the kills earlier in this test (e.g. «¡TRIPLE!») fade out on their own during this window,
+ // and the old check took that for text appearing (it failed whenever they happened to expire here: about half the runs, on main as well)
+ let prev=m2a;
+ for(let i=0;i<24;i++){await step(p,0.05);const tt2=await title(p);if(tt2.go)seenGo=true;const mm=await msgState(p);
+   if(!seenMsg&&((mm.msg!==prev.msg&&mm.msg)||mm.feed>prev.feed||(mm.alert!==prev.alert&&mm.alertText)))seenMsg={before:prev,after:mm,step:i};prev=mm;}
  ok(!seenGo,'second time: the title does not show');
  ok(!seenMsg,'second time: no text at all (no message, no phone feed / alert)',seenMsg);
  ok(await sayN(p)===sayB+1,'second time: the voice line is asked for again');

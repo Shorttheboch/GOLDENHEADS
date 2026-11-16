@@ -176,26 +176,30 @@ function spreadTwist(side,k){const B=P.bones,h=B[side+'Hand'],f=B[side+'ForeArm'
   let a=2*Math.atan2(d.x*ax.x+d.y*ax.y+d.z*ax.z,d.w);if(a>Math.PI)a-=2*Math.PI;if(a<-Math.PI)a+=2*Math.PI;
   const af=h.position.clone().normalize(),sg=Math.sign(ax.clone().applyQuaternion(qr).dot(af))||1;
   _rf.setFromAxisAngle(af,k*a*sg);f.quaternion.multiply(_rf);h.quaternion.premultiply(_rf.invert());f.updateMatrixWorld(true);}
-// v92: the right index finger on the trigger instead of closed in the fist with the others (Santi). Both guns have their trigger ~9 cm ahead of
-// and ~4 cm above the grip point, in the middle (gun.glb / gun2.glb, pistol space, cross-section at x=0); TRIG is where the finger's tip goes,
-// just in front of the trigger's curve. Each frame, after the pistol is placed (31-loop.js): the index opens from the fist towards straight
-// (slerp between its rest and its fist pose) until its reach matches the distance from the knuckle to TRIG, then the knuckle turns the finger
-// onto TRIG (at most TRIG_TURN radians). The other fingers and the thumb keep the fist. window.__trig: the last tip-to-trigger distance (tests).
-const TRIG=new THREE.Vector3(0,0.042,0.09),TRIG_TURN=0.8,_tgT=new THREE.Vector3(),_tgJ=new THREE.Vector3(),_tgP=new THREE.Vector3(),_tgA=new THREE.Vector3(),_tgB=new THREE.Vector3(),
+// v92: the right hand holds the pistol like a pistol (Santi): the index finger hooked on the trigger and the thumb along the left side of the
+// frame, pointing forward; middle, ring and little finger keep the fist round the grip. Both guns have their trigger ~9 cm ahead of and ~4 cm
+// above the grip point, in the middle (gun.glb / gun2.glb, pistol space, cross-section at x=0; +x is the gun's left). Each frame, after the
+// pistol is placed (31-loop.js), for each finger: the two outer joints take a fixed part of their fist curl (HOOK), the first joint opens from
+// the fist towards straight until the finger's reach matches the distance to its target, then turns the finger onto it (at most TURN radians).
+// window.__trig / window.__thumb: the last tip-to-target distances (tests).
+const HANDP={index:{n:'RightHandIndex',T:new THREE.Vector3(0,0.037,0.087),hook:[0.62,0.75],turn:0.8,f0:0.5},
+  thumb:{n:'RightHandThumb',T:new THREE.Vector3(0.016,0.034,-0.01),hook:[0.15,0.15],turn:1.6,f0:0.4}}; // the thumb's base sits high behind the grip: its tip reaches the left side just behind the trigger area
+const _tgT=new THREE.Vector3(),_tgJ=new THREE.Vector3(),_tgP=new THREE.Vector3(),_tgA=new THREE.Vector3(),_tgB=new THREE.Vector3(),
   _tgQ=new THREE.Quaternion(),_tgW=new THREE.Quaternion(),_tgF=[new THREE.Quaternion(),new THREE.Quaternion(),new THREE.Quaternion()];
-function triggerFinger(){
-  const B=P.bones,c=[B.RightHandIndex1,B.RightHandIndex2,B.RightHandIndex3];if(!c[2]||!P.rest.grip_Index1)return;
-  pistol.updateMatrixWorld(true);_tgT.copy(TRIG).applyMatrix4(pistol.matrixWorld);
+function fingerTo(d){
+  const B=P.bones,c=[B[d.n+'1'],B[d.n+'2'],B[d.n+'3']];if(!c[2]||!P.rest[d.n+'1'])return -1;
+  _tgT.copy(d.T).applyMatrix4(pistol.matrixWorld);
   for(let k=0;k<3;k++)_tgF[k].copy(c[k].quaternion); // the fist pose poseArms just set
-  const rest=k=>P.rest['RightHandIndex'+(k+1)],L3=c[2].position.length()*0.9;
+  const rest=k=>P.rest[d.n+(k+1)],L3=c[2].position.length()*0.9;
   const tip=()=>{c[0].updateMatrixWorld(true);return c[2].localToWorld(_tgP.set(0,L3,0));};
-  const pose=f=>{for(let k=0;k<3;k++)c[k].quaternion.copy(rest(k)).slerp(_tgF[k],k===0?f*0.5:f);return tip();};
+  const pose=f=>{c[0].quaternion.copy(rest(0)).slerp(_tgF[0],f*d.f0);for(let k=1;k<3;k++)c[k].quaternion.copy(rest(k)).slerp(_tgF[k],d.hook[k-1]);return tip();};
   c[0].getWorldPosition(_tgJ);const want=_tgJ.distanceTo(_tgT);
-  let best=0.5,bd=1e9;for(let f=0;f<=1.001;f+=0.1){const d=Math.abs(pose(f).distanceTo(_tgJ)-want);if(d<bd){bd=d;best=f;}}
+  let best=0.5,bd=1e9;for(let f=0;f<=1.001;f+=0.1){const e=Math.abs(pose(f).distanceTo(_tgJ)-want);if(e<bd){bd=e;best=f;}}
   pose(best);_tgA.copy(tip()).sub(_tgJ).normalize();_tgB.copy(_tgT).sub(_tgJ).normalize();
-  _tgW.setFromUnitVectors(_tgA,_tgB);const ang=2*Math.acos(Math.min(1,Math.abs(_tgW.w)));if(ang>TRIG_TURN)_tgW.slerp(_tgQ.identity(),1-TRIG_TURN/ang);
+  _tgW.setFromUnitVectors(_tgA,_tgB);const ang=2*Math.acos(Math.min(1,Math.abs(_tgW.w)));if(ang>d.turn)_tgW.slerp(_tgQ.identity(),1-d.turn/ang);
   c[0].getWorldQuaternion(_tgQ);_tgQ.premultiply(_tgW);c[0].parent.getWorldQuaternion(_tgW).invert();c[0].quaternion.copy(_tgW.multiply(_tgQ));
-  window.__trig=+tip().distanceTo(_tgT).toFixed(4);}
+  return +tip().distanceTo(_tgT).toFixed(4);}
+function triggerFinger(){pistol.updateMatrixWorld(true);window.__trig=fingerTo(HANDP.index);window.__thumb=fingerTo(HANDP.thumb);}
 function poseArms(aimDir,sucking,dt,leftDir,t=0){
   const B=P.bones;if(!B.LeftArm)return;
   for(const n of ['LeftArm','LeftForeArm','LeftHand','RightArm','RightForeArm','RightHand','Spine1','Spine2','Head'])if(B[n])B[n].quaternion.copy(P.rest[n]);

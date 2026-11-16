@@ -2,7 +2,7 @@
 // 2048 px map and phones the 1024 one (astronaut_mobile.glb), that the four body materials (gold suit, black gloves, grey metal, black visor) carry
 // it, with the baked tangents (three uses them: no derivative tangents, normalScale.y +1), that the backpack and the hose do not (no UVs there),
 // that nothing else about the astronaut changed (bones, the hose grip animation, the HEADS patch), and takes pictures without the HUD:
-// the front view (Q / VER), the chest, the back, an arm, the legs, the helmet and the zips, and the game camera (tools/tests/out/astro_<tag>_<plat>_*.png).
+// the front view (Q / VER), the chest, the back, an arm, the legs, the helmet, the zips and pockets, the gun hand, and the game camera (tools/tests/out/astro_<tag>_<plat>_*.png).
 // The pictures come first: HEADS_ASTRO_REF=<commit> serves that commit's astronaut.glb instead (on PC and phone), to take the same pictures of the
 // model before (HEADS_ASTRO_REF=0b2d360 HEADS_TAG=antes: v91, without the map; its checks then fail, as they should).
 //   npm run build:test && tools/run-test.sh dist-test tools/tests/astronauta.cjs        (HEADS_ONLY=pc|phone, HEADS_TAG=v92)
@@ -42,7 +42,7 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
     const at=(bone==='Spine2'?sp:P.bones[bone].getWorldPosition(new THREE.Vector3()));
     const dir=F.clone().multiplyScalar(fwd).addScaledVector(R,side).addScaledVector(U,up).normalize();
     window.__camOv=at.clone().addScaledVector(dir,dist).sub(P.pos);window.__camLook=at.clone().sub(P.pos);},[bone,fwd,side,up,dist]);
-  const views=[['pecho','Spine2',1,0.25,0.15,0.75],['espalda','Spine2',-1,0.35,0.35,0.95],['brazo','LeftForeArm',0.6,-0.2,0.5,0.6],['piernas','LeftLeg',1,0.35,0.05,1.0],['lado','Spine2',0.15,1,0.1,1.1],['casco','Head',1,0.45,0.2,0.75],['cremallera','Spine1',1,-0.15,0.05,0.5]];
+  const views=[['pecho','Spine2',1,0.25,0.15,0.75],['espalda','Spine2',-1,0.35,0.35,0.95],['brazo','LeftForeArm',0.6,-0.2,0.5,0.6],['piernas','LeftLeg',1,0.35,0.05,1.0],['lado','Spine2',0.15,1,0.1,1.1],['casco','Head',1,0.45,0.2,0.75],['cremallera','Spine1',1,-0.15,0.05,0.5],['bolsillo','Spine',1,0.9,0.15,0.6],['bolsillo_otro','Spine',1,-0.9,0.15,0.6],['mano','RightHand',0.25,1,0.2,0.42],['mano_arriba','RightHand',0.1,0.4,1,0.42],['mano_debajo','RightHand',0.35,0.5,-0.8,0.42]];
   for(const [name,...a] of views){await look(...a);await p.waitForTimeout(900);await p.screenshot({path:shot(`astro_${TAG}_${plat}_${name}.png`)});}
   await p.evaluate(()=>{delete window.__camOv;delete window.__camLook;});await hud(true);
   // the model
@@ -57,6 +57,12 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
   for(const n of ['M_Suit_Gold_Pack','M_Hose_Gold','M_Patch']){const x=M[n];ok(x&&!x.n,`${plat}: ${n} has no normal map`,x);}
   const g=M.M_Metal_Grey||{},zb=M.M_Zip_Black||{};
   ok(g.metal===1&&g.rough<=0.25&&g.base>0.5&&g.env<1&&zb.base<0.05&&zb.env<0.5,`${plat}: the helmet metal is polished silver (base ${g.base}, roughness ${g.rough}, reflections x${g.env}) and the zips are black (base ${zb.base}, reflections x${zb.env})`,{g,zb});
+  const rig=await p.evaluate(()=>{const THREE=__THREE,P=__heads.P;let worst=0,n=0;
+    P.model.traverse(o=>{if(!o.isSkinnedMesh||o.material.name!=='M_Zip_Pull')return;const g=o.geometry,pos=g.attributes.position,N=pos.count,a=new THREE.Vector3(),b=new THREE.Vector3(),pa=new THREE.Vector3(),pb=new THREE.Vector3();
+      const ps=[];for(let i=0;i<N;i++){o.getVertexPosition(i,a);ps.push(a.clone());}
+      for(let k=0;k<4000;k++){const i=(k*7919)%N,j=(k*104729+13)%N;a.fromBufferAttribute(pos,i);b.fromBufferAttribute(pos,j);const d0=a.distanceTo(b);if(d0<0.004||d0>0.05)continue;
+        worst=Math.max(worst,Math.abs(ps[i].distanceTo(ps[j])/d0-1));n++;}});return {worst:+worst.toFixed(3),n};});
+  ok(rig.n>100&&rig.worst<0.15,`${plat}: the zip pulls keep their shape in the game pose (worst stretch ${Math.round(rig.worst*100)} %; before v92 up to 1800 %: some of their vertices followed the arm)`,rig);
   ok(m.bones===69,`${plat}: the skeleton (${m.bones} bones)`,m.bones);
   ok(p.errs.length===0,`${plat}: no page errors`,p.errs.slice(0,3));await ctx.close();}
  console.log(bad?('FAILED '+bad):'ALL OK');await b.close();process.exitCode=bad?1:0;})();

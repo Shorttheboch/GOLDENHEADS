@@ -20,7 +20,7 @@
 //     WebP, alpha MASK, not metallic, a little of the texture as emission so it reads in the dark); EXT_texture_webp is required (the game
 //     already needs WebP for its menus and HUD).
 // No existing byte of the binary changes: the new data is appended. By default it starts from the astronaut of v88
-// (git show a2f7fd6:public/assets/models/astronaut.glb; until v91 bcde206), so it can be run again after the patch is in. Since v92 the
+// (git show 1137b24:public/assets/models/astronaut.glb; until v91 bcde206), so it can be run again after the patch is in. Since v92 the
 // result goes on to tools/astro-normal/add_normal_glb.mjs (the normal map) before it is the game's astronaut.glb.
 import fs from 'fs';
 import path from 'path';
@@ -32,7 +32,7 @@ import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 
 const HERE=path.dirname(fileURLToPath(import.meta.url)),ROOT=path.resolve(HERE,'..','..');
 const args=process.argv.slice(2),opt=(k,d)=>{const i=args.indexOf('--'+k);return i<0?d:args[i+1];};
-const PRISTINE='a2f7fd6';                          // v92: the Blender export with UV_game, tangents and the zips' own materials, without the patch (v89-v91: bcde206, v88)
+const PRISTINE='1137b24';                          // v92: the Blender export with UV_game, tangents, the zips' own materials and rigid zip pulls, without the patch (v89-v91: bcde206, v88)
 const OUT=path.resolve(ROOT,opt('out','public/assets/models/astronaut.glb')),CHECK=args.includes('--check');
 const TEX=path.join(HERE,'parche.webp'),META=JSON.parse(fs.readFileSync(path.join(HERE,'parche.json'),'utf8'));
 const DISC_AT=new THREE.Vector3(0.115,1.443,0.079); // the black circle on the left of the chest (mesh space of NEW_body, Blender export)

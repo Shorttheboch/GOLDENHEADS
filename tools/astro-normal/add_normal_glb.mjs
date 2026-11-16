@@ -23,7 +23,7 @@ const args=process.argv.slice(2),opt=(k,d)=>{const i=args.indexOf('--'+k);return
 const SRC=opt('src'),TEX=opt('tex'),OUT=opt('out');
 if(!SRC||!TEX||!OUT){console.error('usage: add_normal_glb.mjs --src in.glb --tex normal.jpg --out out.glb');process.exit(2);}
 const NORMAL_MATS=['M_Suit_Gold','M_Glove_Black','M_Metal_Grey','M_Visor_Black','M_Zip_Black','M_Zip_Pull'];
-const FINISH={M_Metal_Grey:{base:[0.6,0.6,0.61],metal:1,rough:0.2}};
+const FINISH={M_Metal_Grey:{base:[0.62,0.6,0.57],metal:1,rough:0.2},M_Zip_Black:{base:[0.025,0.025,0.026],metal:0,rough:0.55}}; // the game also lowers their envMapIntensity (setupAstronaut, 12-player.js)
 
 function readGLB(b){if(b.readUInt32LE(0)!==0x46546C67)throw new Error('not a glb');let off=12,json=null,bin=null;
   while(off<b.length){const len=b.readUInt32LE(off),type=b.readUInt32LE(off+4),data=b.subarray(off+8,off+8+len);

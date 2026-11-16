@@ -48,7 +48,7 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
   // the model
   const m=await p.evaluate(()=>{const P=__heads.P,out={mats:{},bones:0,anims:0};
     P.model.traverse(o=>{if(o.isBone)out.bones++;if(!o.isMesh)return;const mt=o.material,g=o.geometry,img=mt.normalMap&&mt.normalMap.image;
-      out.mats[mt.name]={base:+mt.color.r.toFixed(3),metal:mt.metalness,rough:mt.roughness,n:img?[img.width,img.height]:null,tan:!!g.attributes.tangent,uv:!!g.attributes.uv,ny:mt.normalScale?mt.normalScale.y:null,cs:mt.normalMap&&mt.normalMap.colorSpace,skinned:o.isSkinnedMesh};});
+      out.mats[mt.name]={base:mt.color?+mt.color.r.toFixed(3):null,env:mt.envMapIntensity,metal:mt.metalness,rough:mt.roughness,n:img?[img.width,img.height]:null,tan:!!g.attributes.tangent,uv:!!g.attributes.uv,ny:mt.normalScale?mt.normalScale.y:null,cs:mt.normalMap&&mt.normalMap.colorSpace,skinned:o.isSkinnedMesh};});
     return out;});
   const want=plat==='pc'?2048:1024,M=m.mats;
   ok(models.length===1&&models[0]===(plat==='pc'?'astronaut.glb':'astronaut_mobile.glb'),`${plat}: loads ${models.join(', ')}`,models);
@@ -56,7 +56,7 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
     ok(x.n&&x.n[0]===want&&x.n[1]===want&&x.tan&&x.uv&&x.ny===1&&x.cs!=='srgb'&&x.skinned,`${plat}: ${n} has the ${want} px normal map with the baked tangents (normalScale.y ${x.ny})`,x);}
   for(const n of ['M_Suit_Gold_Pack','M_Hose_Gold','M_Patch']){const x=M[n];ok(x&&!x.n,`${plat}: ${n} has no normal map`,x);}
   const g=M.M_Metal_Grey||{},zb=M.M_Zip_Black||{};
-  ok(g.metal===1&&g.rough<=0.25&&g.base>0.5&&zb.base<0.05,`${plat}: the helmet metal is polished silver (base ${g.base}, roughness ${g.rough}) and the zips are black (base ${zb.base})`,{g,zb});
+  ok(g.metal===1&&g.rough<=0.25&&g.base>0.5&&g.env<1&&zb.base<0.05&&zb.env<0.5,`${plat}: the helmet metal is polished silver (base ${g.base}, roughness ${g.rough}, reflections x${g.env}) and the zips are black (base ${zb.base}, reflections x${zb.env})`,{g,zb});
   ok(m.bones===69,`${plat}: the skeleton (${m.bones} bones)`,m.bones);
   ok(p.errs.length===0,`${plat}: no page errors`,p.errs.slice(0,3));await ctx.close();}
  console.log(bad?('FAILED '+bad):'ALL OK');await b.close();process.exitCode=bad?1:0;})();

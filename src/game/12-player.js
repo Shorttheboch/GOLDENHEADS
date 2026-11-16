@@ -176,6 +176,26 @@ function spreadTwist(side,k){const B=P.bones,h=B[side+'Hand'],f=B[side+'ForeArm'
   let a=2*Math.atan2(d.x*ax.x+d.y*ax.y+d.z*ax.z,d.w);if(a>Math.PI)a-=2*Math.PI;if(a<-Math.PI)a+=2*Math.PI;
   const af=h.position.clone().normalize(),sg=Math.sign(ax.clone().applyQuaternion(qr).dot(af))||1;
   _rf.setFromAxisAngle(af,k*a*sg);f.quaternion.multiply(_rf);h.quaternion.premultiply(_rf.invert());f.updateMatrixWorld(true);}
+// v92: the right index finger on the trigger instead of closed in the fist with the others (Santi). Both guns have their trigger ~9 cm ahead of
+// and ~4 cm above the grip point, in the middle (gun.glb / gun2.glb, pistol space, cross-section at x=0); TRIG is where the finger's tip goes,
+// just in front of the trigger's curve. Each frame, after the pistol is placed (31-loop.js): the index opens from the fist towards straight
+// (slerp between its rest and its fist pose) until its reach matches the distance from the knuckle to TRIG, then the knuckle turns the finger
+// onto TRIG (at most TRIG_TURN radians). The other fingers and the thumb keep the fist. window.__trig: the last tip-to-trigger distance (tests).
+const TRIG=new THREE.Vector3(0,0.042,0.09),TRIG_TURN=0.8,_tgT=new THREE.Vector3(),_tgJ=new THREE.Vector3(),_tgP=new THREE.Vector3(),_tgA=new THREE.Vector3(),_tgB=new THREE.Vector3(),
+  _tgQ=new THREE.Quaternion(),_tgW=new THREE.Quaternion(),_tgF=[new THREE.Quaternion(),new THREE.Quaternion(),new THREE.Quaternion()];
+function triggerFinger(){
+  const B=P.bones,c=[B.RightHandIndex1,B.RightHandIndex2,B.RightHandIndex3];if(!c[2]||!P.rest.grip_Index1)return;
+  pistol.updateMatrixWorld(true);_tgT.copy(TRIG).applyMatrix4(pistol.matrixWorld);
+  for(let k=0;k<3;k++)_tgF[k].copy(c[k].quaternion); // the fist pose poseArms just set
+  const rest=k=>P.rest['RightHandIndex'+(k+1)],L3=c[2].position.length()*0.9;
+  const tip=()=>{c[0].updateMatrixWorld(true);return c[2].localToWorld(_tgP.set(0,L3,0));};
+  const pose=f=>{for(let k=0;k<3;k++)c[k].quaternion.copy(rest(k)).slerp(_tgF[k],k===0?f*0.5:f);return tip();};
+  c[0].getWorldPosition(_tgJ);const want=_tgJ.distanceTo(_tgT);
+  let best=0.5,bd=1e9;for(let f=0;f<=1.001;f+=0.1){const d=Math.abs(pose(f).distanceTo(_tgJ)-want);if(d<bd){bd=d;best=f;}}
+  pose(best);_tgA.copy(tip()).sub(_tgJ).normalize();_tgB.copy(_tgT).sub(_tgJ).normalize();
+  _tgW.setFromUnitVectors(_tgA,_tgB);const ang=2*Math.acos(Math.min(1,Math.abs(_tgW.w)));if(ang>TRIG_TURN)_tgW.slerp(_tgQ.identity(),1-TRIG_TURN/ang);
+  c[0].getWorldQuaternion(_tgQ);_tgQ.premultiply(_tgW);c[0].parent.getWorldQuaternion(_tgW).invert();c[0].quaternion.copy(_tgW.multiply(_tgQ));
+  window.__trig=+tip().distanceTo(_tgT).toFixed(4);}
 function poseArms(aimDir,sucking,dt,leftDir,t=0){
   const B=P.bones;if(!B.LeftArm)return;
   for(const n of ['LeftArm','LeftForeArm','LeftHand','RightArm','RightForeArm','RightHand','Spine1','Spine2','Head'])if(B[n])B[n].quaternion.copy(P.rest[n]);

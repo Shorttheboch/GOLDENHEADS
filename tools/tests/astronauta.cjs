@@ -73,6 +73,8 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
       for(let k=0;k<4000;k++){const i=(k*7919)%N,j=(k*104729+13)%N;a.fromBufferAttribute(pos,i);b.fromBufferAttribute(pos,j);const d0=a.distanceTo(b);if(d0<0.004||d0>0.05)continue;
         worst=Math.max(worst,Math.abs(ps[i].distanceTo(ps[j])/d0-1));n++;}});return {worst:+worst.toFixed(3),n};});
   ok(rig.n>100&&rig.worst<0.2,`${plat}: the zip pulls keep their shape in the game pose (worst stretch ${Math.round(rig.worst*100)} %; before v92 up to 1800 %: some of their vertices followed the arm)`,rig);
+  const trig=await p.evaluate(()=>window.__trig);
+  ok(typeof trig==='number'&&trig<0.012,`${plat}: the index finger is on the trigger (its tip ${(trig*100).toFixed(1)} cm from the trigger point)`,trig);
   ok(m.bones===69,`${plat}: the skeleton (${m.bones} bones)`,m.bones);
   ok(p.errs.length===0,`${plat}: no page errors`,p.errs.slice(0,3));await ctx.close();}
  console.log(bad?('FAILED '+bad):'ALL OK');await b.close();process.exitCode=bad?1:0;})();

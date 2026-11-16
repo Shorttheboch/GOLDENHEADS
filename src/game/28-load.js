@@ -22,7 +22,7 @@ const ASTRO_URL=isTouch?'assets/astronaut_mobile.glb':'assets/astronaut.glb';
     // Santi's pistol (GUN_v1): origin in the grip where the fist goes, barrel along +Z, muzzle at the glowing mouth
     if(gun){for(const c of [...pistol.children])if(c!==muzzle)c.visible=false;const g=gun.scene;
       P.gunMats=[];g.traverse(o=>{if(o.isMesh){o.castShadow=true;const m=o.material;m.envMapIntensity=1.1;minRough(m,0.18);if(m.emissive)P.gunMats.push([m,m.emissiveIntensity]);}});
-      pistol.add(g);muzzle.position.set(0,0.0887,0.345);PGRIP.set(0,0,0);XP.g1=g;}
+      pistol.add(g);muzzle.position.set(0,0.0887,0.345);PGRIP.set(0,0,GUN_BACK*AS);XP.g1=g;}
     ship.scene.traverse(o=>{if(o.isMesh&&o.material){o.castShadow=true;o.receiveShadow=true;let m=o.material;
       // a thin clear lacquer over the baked gold makes highlights read as polished metal (desktop only)
       if(!isTouch){const pm=new THREE.MeshPhysicalMaterial();THREE.MeshStandardMaterial.prototype.copy.call(pm,m);pm.clearcoat=0.35;pm.clearcoatRoughness=0.14;o.material=m=pm;}

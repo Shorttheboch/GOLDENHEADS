@@ -76,6 +76,11 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
   const trig=await p.evaluate(()=>window.__trig),thumb=await p.evaluate(()=>window.__thumb);
   ok(typeof trig==='number'&&trig>=0&&trig<0.012,`${plat}: the index finger is hooked on the trigger (its tip ${(trig*100).toFixed(1)} cm from the trigger point)`,trig);
   ok(typeof thumb==='number'&&thumb>=0&&thumb<0.02,`${plat}: the thumb lies along the left side of the gun (its tip ${(thumb*100).toFixed(1)} cm from its spot)`,thumb);
+  // the gun sits 2.5 cm (pistol space) behind the fist's centre, and the index bends like a finger to reach the trigger (knuckle, middle, tip joints)
+  const grip=await p.evaluate(()=>{const THREE=__THREE,P=__heads.P,g=__xp.XP.g1.parent;g.updateMatrixWorld(true);const v=P.gripW.clone().sub(g.position);
+    return {back:+(v.dot(new THREE.Vector3(0,0,1).applyQuaternion(g.quaternion))/g.scale.x).toFixed(4),ang:window.__handp.index.ang};});
+  ok(Math.abs(grip.back-0.025)<0.002,`${plat}: the gun sits ${(grip.back*100).toFixed(1)} cm back in the fist`,grip);
+  ok(grip.ang&&grip.ang[0]<=70&&grip.ang[1]<=100&&grip.ang[2]<=80,`${plat}: the index joints bend like a finger (${grip.ang} degrees; limits 70 / 100 / 80)`,grip);
   ok(m.bones===69,`${plat}: the skeleton (${m.bones} bones)`,m.bones);
   ok(p.errs.length===0,`${plat}: no page errors`,p.errs.slice(0,3));await ctx.close();}
  console.log(bad?('FAILED '+bad):'ALL OK');await b.close();process.exitCode=bad?1:0;})();

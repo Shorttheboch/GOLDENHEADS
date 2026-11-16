@@ -32,7 +32,7 @@ function setupAstronaut(gltf){
   // v92: the zips (black) and the helmet's silver take less of the purple nebula in their reflections, so they read as black / silver
   m.traverse(o=>{if(o.isMesh){o.frustumCulled=false;const mt=o.material;
     if(mt&&/Glass/i.test(mt.name)){o.material=new THREE.MeshStandardMaterial({color:0x9fb8c8,metalness:0,roughness:0.04,transparent:true,opacity:0.22,depthWrite:false,envMapIntensity:2.5});o.renderOrder=2;}
-    else if(mt){mt.envMapIntensity=/Zip_Black/.test(mt.name)?0.35:/Zip_Pull/.test(mt.name)?0.6:/Metal_Grey/.test(mt.name)?0.75:1.0;if(/Suit|Hose/.test(mt.name))mt.roughness=Math.min(mt.roughness,0.3);if(mt.isMeshStandardMaterial)minRough(mt,0.08);}o.castShadow=true;o.receiveShadow=true;}});
+    else if(mt){mt.envMapIntensity=/Zip_Black/.test(mt.name)?0.35:/Zip_Pull/.test(mt.name)?0.6:/Metal_Grey/.test(mt.name)?0.4:1.0;if(/Suit|Hose/.test(mt.name))mt.roughness=Math.min(mt.roughness,0.3);if(mt.isMeshStandardMaterial)minRough(mt,0.08);}o.castShadow=true;o.receiveShadow=true;}});
   const need=['LeftUpLeg','RightUpLeg','LeftLeg','RightLeg','LeftFoot','RightFoot','LeftArm','LeftForeArm','LeftHand','LeftHand_end','RightArm','RightForeArm','RightHand','RightHand_end','Hose_Grip','Spine1','Spine2','Head',
     ...FINGERS.map(f=>'LeftHand'+f),...FINGERS.map(f=>'RightHand'+f)];
   for(const n of need){const b=m.getObjectByName(n);if(b){P.bones[n]=b;P.rest[n]=b.quaternion.clone();}}

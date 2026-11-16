@@ -7,10 +7,14 @@
 //   1) Blender: astronaut_body exported with ONE uv map, UV_game (the one the normal map was baked on), with tangents and meshopt
 //      (export_tangents, export_meshopt_compression_enable). The first commit of v92 keeps that export as public/assets/models/astronaut.glb.
 //   2) node tools/parche/make_patch_glb.mjs (v89) adds the HEADS patch on the chest (it reads that commit).
-//   3) this tool: one JPEG image (4:4:4, see make_normal_web.py) as the normalTexture of the four body materials (gold suit, black gloves,
-//      grey metal, black visor). Every primitive that uses one of them must have TEXCOORD_0 and TANGENT (three then uses the baked tangents,
+//   3) this tool: one JPEG image (4:4:4, see make_normal_web.py) as the normalTexture of the body materials (gold suit, black gloves,
+//      helmet metal, black visor, black zips, zip pulls). Every primitive that uses one must have TEXCOORD_0 and TANGENT (three then uses the baked tangents,
 //      the same MikkTSpace ones Blender baked with). The backpack uses the gold suit material too but has no UVs: it gets its own copy of the
 //      material without the normal map (M_Suit_Gold_Pack; the game treats it like the suit because the name has "Suit" in it).
+//      And the finish of the metal (FINISH): the helmet's grey metal was a dark, rough mirror (base 0.29, roughness 0.5) that only showed the
+//      purple nebula blurred; now polished silver like Santi's references. The zips (M_Zip_Black, tape and teeth; M_Zip_Pull, sliders and tabs)
+//      are their own materials since v92 (Blender, on the export copy of the mesh: the grey pieces of the jacket under z 1.5), black like the
+//      references instead of grey metal.
 // It only appends: the image goes at the end of the binary chunk, nothing else in it moves. It refuses a file that already has a normal map.
 import fs from 'fs';
 import path from 'path';
@@ -18,7 +22,8 @@ import path from 'path';
 const args=process.argv.slice(2),opt=(k,d)=>{const i=args.indexOf('--'+k);return i<0?d:args[i+1];};
 const SRC=opt('src'),TEX=opt('tex'),OUT=opt('out');
 if(!SRC||!TEX||!OUT){console.error('usage: add_normal_glb.mjs --src in.glb --tex normal.jpg --out out.glb');process.exit(2);}
-const NORMAL_MATS=['M_Suit_Gold','M_Glove_Black','M_Metal_Grey','M_Visor_Black'];
+const NORMAL_MATS=['M_Suit_Gold','M_Glove_Black','M_Metal_Grey','M_Visor_Black','M_Zip_Black','M_Zip_Pull'];
+const FINISH={M_Metal_Grey:{base:[0.6,0.6,0.61],metal:1,rough:0.2}};
 
 function readGLB(b){if(b.readUInt32LE(0)!==0x46546C67)throw new Error('not a glb');let off=12,json=null,bin=null;
   while(off<b.length){const len=b.readUInt32LE(off),type=b.readUInt32LE(off+4),data=b.subarray(off+8,off+8+len);
@@ -59,6 +64,8 @@ for(const mesh of json.meshes)for(const p of mesh.primitives){
   console.log(`  ${mesh.name}: ${json.materials[p.material].name} -> ${json.materials[copies.get(p.material)].name} (no UVs)`);
   p.material=copies.get(p.material);}
 for(const i of want)json.materials[i].normalTexture={index:tx};
+for(const [n,f] of Object.entries(FINISH)){const m=json.materials[mIx(n)];if(!m)throw new Error('no material '+n);
+  const pbr=m.pbrMetallicRoughness=m.pbrMetallicRoughness||{};pbr.baseColorFactor=[...f.base,1];pbr.metallicFactor=f.metal;pbr.roughnessFactor=f.rough;}
 
 fs.writeFileSync(path.resolve(OUT),writeGLB(json,bin));
 console.log(`${OUT}: ${fs.statSync(path.resolve(OUT)).size} bytes; normal map ${W}x${W} (${img.length} bytes) on ${[...want].map(i=>json.materials[i].name).join(', ')}`);

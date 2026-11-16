@@ -39,7 +39,7 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
     if(patch){const g=patch.geometry;for(let i=0;i<g.attributes.position.count;i++){patch.getVertexPosition(i,v);patch.localToWorld(v);c.add(v);}c.divideScalar(g.attributes.position.count);}
     const U=new THREE.Vector3(0,1,0).applyQuaternion(P.model.getWorldQuaternion(new THREE.Quaternion())).normalize();
     const F=c.clone().sub(sp);F.addScaledVector(U,-F.dot(U)).normalize();const R=new THREE.Vector3().crossVectors(F,U).normalize();
-    const at=(bone==='Spine2'?sp:P.bones[bone].getWorldPosition(new THREE.Vector3()));
+    const at=(bone==='Spine2'?sp:(P.bones[bone]||P.model.getObjectByName(bone)).getWorldPosition(new THREE.Vector3()));
     const dir=F.clone().multiplyScalar(fwd).addScaledVector(R,side).addScaledVector(U,up).normalize();
     window.__camOv=at.clone().addScaledVector(dir,dist).sub(P.pos);window.__camLook=at.clone().sub(P.pos);},[bone,fwd,side,up,dist]);
   const views=[['pecho','Spine2',1,0.25,0.15,0.75],['espalda','Spine2',-1,0.35,0.35,0.95],['brazo','LeftForeArm',0.6,-0.2,0.5,0.6],['piernas','LeftLeg',1,0.35,0.05,1.0],['lado','Spine2',0.15,1,0.1,1.1],['casco','Head',1,0.45,0.2,0.75],['cremallera','Spine1',1,-0.15,0.05,0.5],['bolsillo','Spine',1,0.9,0.15,0.6],['bolsillo_otro','Spine',1,-0.9,0.15,0.6],['mano','RightHand',0.25,1,0.2,0.42],['mano_arriba','RightHand',0.1,0.4,1,0.42],['mano_debajo','RightHand',0.35,0.5,-0.8,0.42]];

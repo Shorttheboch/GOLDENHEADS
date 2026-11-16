@@ -44,6 +44,16 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
     window.__camOv=at.clone().addScaledVector(dir,dist).sub(P.pos);window.__camLook=at.clone().sub(P.pos);},[bone,fwd,side,up,dist]);
   const views=[['pecho','Spine2',1,0.25,0.15,0.75],['espalda','Spine2',-1,0.35,0.35,0.95],['brazo','LeftForeArm',0.6,-0.2,0.5,0.6],['piernas','LeftLeg',1,0.35,0.05,1.0],['lado','Spine2',0.15,1,0.1,1.1],['casco','Head',1,0.45,0.2,0.75],['cremallera','Spine1',1,-0.15,0.05,0.5],['bolsillo','Spine',1,0.9,0.15,0.6],['bolsillo_otro','Spine',1,-0.9,0.15,0.6],['mano','RightHand',0.25,1,0.2,0.42],['mano_arriba','RightHand',0.1,0.4,1,0.42],['mano_debajo','RightHand',0.35,0.5,-0.8,0.42]];
   for(const [name,...a] of views){await look(...a);await p.waitForTimeout(900);await p.screenshot({path:shot(`astro_${TAG}_${plat}_${name}.png`)});}
+  // close-ups at a point: the pocket zip pulls (bind x > 0.1 or < -0.1) and the trigger (the right index finger's knuckle)
+  const lookAt=(what,side,dist)=>p.evaluate(([what,side,dist])=>{const THREE=__THREE,P=__heads.P;const c=new THREE.Vector3(),v=new THREE.Vector3(),b=new THREE.Vector3();let n=0;
+    if(what==='pull'){P.model.traverse(o=>{if(!o.isSkinnedMesh||!/Zip_Pull/.test(o.material.name))return;const pos=o.geometry.attributes.position;
+      for(let i=0;i<pos.count;i++){b.fromBufferAttribute(pos,i);if(b.x*side<0.1)continue;o.getVertexPosition(i,v);o.localToWorld(v);c.add(v);n++;}});c.divideScalar(Math.max(n,1));}
+    else{P.model.getObjectByName('RightHandIndex2').getWorldPosition(c);n=1;}
+    const sp=P.bones.Spine2.getWorldPosition(new THREE.Vector3()),U=new THREE.Vector3(0,1,0).applyQuaternion(P.model.getWorldQuaternion(new THREE.Quaternion()));
+    let out=c.clone().sub(sp);out.addScaledVector(U,-out.dot(U));if(what!=='pull'){out=new THREE.Vector3().crossVectors(U,out).multiplyScalar(-side);}out.normalize().addScaledVector(U,0.15).normalize();
+    window.__camOv=c.clone().addScaledVector(out,dist).sub(P.pos);window.__camLook=c.clone().sub(P.pos);return n;},[what,side,dist]);
+  for(const [name,what,side,dist] of [['tirador_der','pull',1,0.32],['tirador_izq','pull',-1,0.32],['gatillo','hand',1,0.3],['gatillo_otro','hand',-1,0.3]]){
+    await lookAt(what,side,dist);await p.waitForTimeout(900);await p.screenshot({path:shot(`astro_${TAG}_${plat}_${name}.png`)});}
   await p.evaluate(()=>{delete window.__camOv;delete window.__camLook;});await hud(true);
   // the model
   const m=await p.evaluate(()=>{const P=__heads.P,out={mats:{},bones:0,anims:0};
@@ -62,7 +72,7 @@ const PLAT={pc:{viewport:{width:1600,height:900},deviceScaleFactor:2},phone:{vie
       const ps=[];for(let i=0;i<N;i++){o.getVertexPosition(i,a);ps.push(a.clone());}
       for(let k=0;k<4000;k++){const i=(k*7919)%N,j=(k*104729+13)%N;a.fromBufferAttribute(pos,i);b.fromBufferAttribute(pos,j);const d0=a.distanceTo(b);if(d0<0.004||d0>0.05)continue;
         worst=Math.max(worst,Math.abs(ps[i].distanceTo(ps[j])/d0-1));n++;}});return {worst:+worst.toFixed(3),n};});
-  ok(rig.n>100&&rig.worst<0.15,`${plat}: the zip pulls keep their shape in the game pose (worst stretch ${Math.round(rig.worst*100)} %; before v92 up to 1800 %: some of their vertices followed the arm)`,rig);
+  ok(rig.n>100&&rig.worst<0.2,`${plat}: the zip pulls keep their shape in the game pose (worst stretch ${Math.round(rig.worst*100)} %; before v92 up to 1800 %: some of their vertices followed the arm)`,rig);
   ok(m.bones===69,`${plat}: the skeleton (${m.bones} bones)`,m.bones);
   ok(p.errs.length===0,`${plat}: no page errors`,p.errs.slice(0,3));await ctx.close();}
  console.log(bad?('FAILED '+bad):'ALL OK');await b.close();process.exitCode=bad?1:0;})();

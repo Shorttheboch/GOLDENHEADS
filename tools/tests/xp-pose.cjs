@@ -52,7 +52,8 @@ async function run(mode){
      hp:P.hp,inv:P.inv,fireT:P.fireT,shots:H.stats.shots,fov:__camera.fov};});
  const title=p=>p.evaluate(()=>{const e=document.getElementById('xpT');return {go:e.classList.contains('go'),big:(e.querySelector('.xpTl .g3')||{dataset:{}}).dataset.t||'',sub:e.querySelector('.xpTs').textContent};});
  // what the screen says: the big message, and on a phone its feed / alert
- const msgState=p=>p.evaluate(()=>({msg:document.getElementById('msg').textContent,feed:(document.getElementById('mFeed')||{children:[]}).children.length,alert:(document.getElementById('mAlert')||{className:''}).className}));
+ const msgState=p=>p.evaluate(()=>{const f=document.getElementById('mFeed'),a=document.getElementById('mAlert');return {msg:document.getElementById('msg').textContent,feed:f?f.children.length:0,alert:a?a.className:'',
+   feedText:f&&f.lastElementChild?f.lastElementChild.textContent.trim().slice(0,80):'',alertText:a?a.textContent.trim().slice(0,80):'',t:+(window.__T&&__T.t||0).toFixed(2)};});
  const sayN=p=>p.evaluate(()=>(window.__sayLog||[]).filter(x=>x==='xp_on').length);
  const reset=p=>p.evaluate(()=>{__xp.xpEnd(true);__xp.XP.pp=-1;__xp.XP.k=0;const P=__heads.P;P.hp=100;P.inv=0;__T.showcase=0;__step(10);});
  // a picture of the 3D canvas (read right after drawing it, in the same task)
@@ -143,9 +144,9 @@ async function run(mode){
  const m2a=await msgState(p),sayB=await sayN(p);
  await p.evaluate(()=>{__xp.xpStart();});
  let seenGo=false,seenMsg=false;
- for(let i=0;i<24;i++){await step(p,0.05);const tt2=await title(p);if(tt2.go)seenGo=true;const mm=await msgState(p);if(mm.msg!==m2a.msg||mm.feed!==m2a.feed||mm.alert!==m2a.alert)seenMsg=true;}
+ for(let i=0;i<24;i++){await step(p,0.05);const tt2=await title(p);if(tt2.go)seenGo=true;const mm=await msgState(p);if(!seenMsg&&(mm.msg!==m2a.msg||mm.feed!==m2a.feed||mm.alert!==m2a.alert))seenMsg={before:m2a,after:mm,step:i};}
  ok(!seenGo,'second time: the title does not show');
- ok(!seenMsg,'second time: no text at all (no message, no phone feed / alert)');
+ ok(!seenMsg,'second time: no text at all (no message, no phone feed / alert)',seenMsg);
  ok(await sayN(p)===sayB+1,'second time: the voice line is asked for again');
  ok((await snap(p)).pp<0,'second time: the pose itself ran as well');
  // and the pose happens every time: third activation, mid-pose

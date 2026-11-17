@@ -108,6 +108,7 @@ function tick(){const _qa0=performance.now();
     
     {const gw=P.gripW||childPos('RightHand'),z=xpAimDir(aimTarget.clone().sub(gw).normalize()),y=(P.gripHole||UP).clone();y.addScaledVector(z,-y.dot(z)).normalize();
      PM4.makeBasis(new THREE.Vector3().crossVectors(y,z),y,z);pistol.quaternion.setFromRotationMatrix(PM4);pistol.position.copy(gw).sub(PGRIP.clone().applyQuaternion(pistol.quaternion));}
+    triggerFinger(); // v92: the right index finger on the trigger (12-player.js)
     xpUpdate(dt,t);
     // recoil kick + muzzle flash
     pistol.translateZ(-0.07*(P.recoil||0));pistol.rotateX(-0.28*(P.recoil||0));P.recoil=Math.max(0,(P.recoil||0)-dt*9);

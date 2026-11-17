@@ -1,6 +1,8 @@
 /* ================= LOAD ================= */
 // v74: phones get ship_mobile.glb (same model, every texture at most 2048 px: 4.7 MB instead of 6.5 and ~117 MB of texture memory instead of ~252 with the 4K ship)
 const SHIP_URL=isTouch?'assets/ship_mobile.glb':'assets/ship.glb';
+// v92: the astronaut's normal map (puffer fabric, seams, zips) is 2048 px on PC and 1024 on phones (astronaut_mobile.glb, otherwise the same file)
+const ASTRO_URL=isTouch?'assets/astronaut_mobile.glb':'assets/astronaut.glb';
 (async()=>{
   try{
     const prog={a:0,s:0};const upd=()=>$('load').textContent=`Cargando modelos ${Math.round((prog.a+prog.s)/2*100)}%`;
@@ -14,13 +16,13 @@ const SHIP_URL=isTouch?'assets/ship_mobile.glb':'assets/ship.glb';
     // v74: only what round 1 needs gates the menu (ship, astronaut, spider, pistol); crab, egg, EXTRA POWER pistol and Incineradora come later (lateStart below)
     const [ship,astro,spi,gun]=await Promise.all([
       loadGLB(SHIP_URL,e=>{if(e.total){prog.s=e.loaded/e.total;upd();}}),
-      loadGLB('assets/astronaut.glb',e=>{if(e.total){prog.a=e.loaded/e.total;upd();}}),
+      loadGLB(ASTRO_URL,e=>{if(e.total){prog.a=e.loaded/e.total;upd();}}),
       loadGLB('assets/spider.glb').catch(e=>{console.warn('spider glb',e);return null;}),
       loadGLB('assets/gun.glb').catch(e=>{console.warn('gun glb',e);return null;})]);SPIDER_GLB=spi;
     // Santi's pistol (GUN_v1): origin in the grip where the fist goes, barrel along +Z, muzzle at the glowing mouth
     if(gun){for(const c of [...pistol.children])if(c!==muzzle)c.visible=false;const g=gun.scene;
       P.gunMats=[];g.traverse(o=>{if(o.isMesh){o.castShadow=true;const m=o.material;m.envMapIntensity=1.1;minRough(m,0.18);if(m.emissive)P.gunMats.push([m,m.emissiveIntensity]);}});
-      pistol.add(g);muzzle.position.set(0,0.0887,0.345);PGRIP.set(0,0,0);XP.g1=g;}
+      pistol.add(g);muzzle.position.set(0,0.0887,0.345);PGRIP.set(0,0,GUN_BACK*AS);XP.g1=g;}
     ship.scene.traverse(o=>{if(o.isMesh&&o.material){o.castShadow=true;o.receiveShadow=true;let m=o.material;
       // a thin clear lacquer over the baked gold makes highlights read as polished metal (desktop only)
       if(!isTouch){const pm=new THREE.MeshPhysicalMaterial();THREE.MeshStandardMaterial.prototype.copy.call(pm,m);pm.clearcoat=0.35;pm.clearcoatRoughness=0.14;o.material=m=pm;}

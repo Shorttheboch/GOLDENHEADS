@@ -160,7 +160,10 @@ const clickSave=async(p,phone)=>{const nav=p.waitForNavigation({timeout:60000});
   ok(A.t==='ELIGE TU APODO'&&/único y no se puede cambiar/.test(A.txt)&&A.go==='GUARDAR'&&A.no==='AHORA NO'&&A.inside&&!A.cut,'nickname screen: title, text, GUARDAR / AHORA NO, on screen, nothing cut',A);
   const rules=await p.evaluate(()=>[...document.querySelectorAll('#acNick .acRules a')].map(a=>[a.textContent,a.getAttribute('href'),a.target]));
   ok(JSON.stringify(rules)===JSON.stringify([['privacidad','privacidad/','_blank'],['normas del ranking','privacidad/#normas','_blank']]),'«Al guardar aceptas la privacidad y las normas del ranking», links open the privacy page (new tab)',rules);
-  ok(await p.evaluate(()=>document.activeElement===document.getElementById('acIn')),'PC: the field has the focus');
+  // the field takes the focus 60 ms after the screen opens (40-cuentas.js); back from Google the page is still loading the game (since v92 the
+  // astronaut brings its normal map: one more texture and shader to prepare), so that timer can run a few hundred ms late: wait up to 3 s
+  {const t0=Date.now(),f=await p.waitForFunction(()=>document.activeElement===document.getElementById('acIn'),null,{timeout:3000}).then(()=>true,()=>false);
+   ok(f,`PC: the field has the focus (after ${Date.now()-t0} ms)`);}
   await settle(p);await snap(p,'cuentas_nick_pc_es.png');
   let n0=count(S,'/api/nick');
   await nickTry(p,'ab');A=await scr(p);ok(/de 3 a 12/i.test(A.err)&&count(S,'/api/nick')===n0,'«ab»: format message, checked here (no request)',A.err);

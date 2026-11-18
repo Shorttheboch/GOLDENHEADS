@@ -27,10 +27,11 @@ const $=id=>document.getElementById(id);
 {const m=$('menu'),f=()=>document.body.classList.toggle('menuOn',!m.hidden);f();new MutationObserver(f).observe(m,{attributes:true,attributeFilter:['hidden']});}
 {const x=$('xpT'),f=()=>document.body.classList.toggle('xpTgo',x.classList.contains('go'));if(x){f();new MutationObserver(f).observe(x,{attributes:true,attributeFilter:['class']});}} // (same for the EXTRA POWER title: `body:has(#xpT.go)` in the CSS)
 // 4) the same with texts: `el.textContent=…` every frame with the text it already shows still swapped the text node (and any `body:has()` rule
-//    then restyled the page): writing the same text does nothing now.
+//    then restyled the page, and in English the translator translated it again, every frame): writing the same text does nothing now.
 {const d=Object.getOwnPropertyDescriptor(Node.prototype,'textContent');
  if(d&&d.set&&d.get)Object.defineProperty(Node.prototype,'textContent',{configurable:true,enumerable:d.enumerable,get:d.get,set(v){const c=this.firstChild;
-   if(c&&c===this.lastChild&&c.nodeType===3&&v!=null&&c.data===String(v))return;d.set.call(this,v);}});}
+   if(c&&c===this.lastChild&&c.nodeType===3&&v!=null){const t=String(v);if(c.data===t||(c===this._tcN&&t===this._tcV))return;} // (second case: in English the translator has rewritten that same text node in place, public/i18n.js)
+   d.set.call(this,v);if(this.nodeType===1){this._tcN=this.firstChild;this._tcV=v==null?'':String(v);}}});}
 let VW=innerWidth,VH=innerHeight;addEventListener('resize',()=>{VW=innerWidth;VH=innerHeight;});
 const FLOW={dz:0};
 const AS=0.88; // astronaut scale (a little smaller: the ship reads bigger, the spiders scarier)

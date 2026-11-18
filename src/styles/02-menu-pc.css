@@ -3,7 +3,7 @@
 #menuArt.go{visibility:visible}
 #mDrop,#mLogoW,#mTopW{will-change:transform}
 /* while the menu is up, none of the game's HUD shows through it */
-body:has(#menu:not([hidden])) :is(.hud,.mk,#flare,#fxLayer,#hatchInd,#repPrompt,[id^="zi"]){visibility:hidden!important}
+body.menuOn :is(.hud,.mk,#flare,#fxLayer,#hatchInd,#repPrompt,[id^="zi"]){visibility:hidden!important}
 #menuArt img{display:block;position:absolute;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
 .mL{position:absolute;inset:0}
 #mTopW{z-index:4}#mDropC{z-index:2;clip-path:inset(37.097% -20% -20% -20%)}

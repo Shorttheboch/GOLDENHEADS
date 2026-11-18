@@ -2,7 +2,7 @@
 // left half: floating stick · right half: drag to look · SHOOT button: hold to fire, drag it to aim · pause top-left
 // every finger is tracked by its pointerId, so moving, looking and shooting work at the same time
 const st={x:0,y:0},_tcF=new THREE.Vector3(),_tcV=new THREE.Vector3(),_tcV2=new THREE.Vector3(),_tcT=new THREE.Vector3(),_tcW=new THREE.Vector3(),_tcN=new THREE.Vector3(),_tcD=new THREE.Vector3();
-const TC={stickId:null,lookId:null,fireId:null,last:{},ox:0,oy:0,mag:0,ang:0,R:62,boost:false,aim:false,paused:false,ap:null,wPaused:false,mk:[],wSlow:false,
+const TC={oriN:0,stickId:null,lookId:null,fireId:null,last:{},ox:0,oy:0,mag:0,ang:0,R:62,boost:false,aim:false,paused:false,ap:null,wPaused:false,mk:[],wSlow:false,
   push:{on:false,ang:0,relT:-9,relAng:0}};
 const TC_SENS=0.006; // v56: was 0.0045 — Santi had to slide too far to turn
 let _tcAimP=null,_tcAimHit=false;const _tcAimV=new THREE.Vector3(); // body of the spider (or egg / Incinerator core) under the crosshair, for the aim help
@@ -23,7 +23,7 @@ function tcReset(){TC.stickId=TC.lookId=TC.fireId=null;st.x=st.y=0;TC.mag=0;TC.b
   $('tStick').classList.remove('on','boost');$('tKnob').style.transform='';$('tFire').classList.remove('on');}
 {const tz=$('tZone');
  tz.addEventListener('pointerdown',e=>{if(!isTouch||state!=='play'||TC.paused)return;e.preventDefault();
-   if(e.clientX<innerWidth*0.5){if(TC.stickId!==null)return;TC.stickId=e.pointerId;TC.ox=e.clientX;TC.oy=e.clientY;
+   if(e.clientX<VW*0.5){if(TC.stickId!==null)return;TC.stickId=e.pointerId;TC.ox=e.clientX;TC.oy=e.clientY;
      const s=$('tStick');s.style.left=e.clientX+'px';s.style.top=e.clientY+'px';s.classList.add('on');tcStick(e.clientX,e.clientY);}
    else{if(TC.lookId!==null)return;TC.lookId=e.pointerId;}
    TC.last[e.pointerId]=[e.clientX,e.clientY];try{tz.setPointerCapture(e.pointerId);}catch(_){}});
@@ -77,7 +77,7 @@ function tcSetPause(v){if(!isTouch||TC.paused===v)return;TC.paused=v;$('tPauseM'
   else if(typeof AC!=='undefined'&&AC&&AC.state==='suspended')AC.resume().catch(()=>{});}
 // phone held upright: warning on top, and the game pauses
 function tcOrient(){if(!isTouch)return;const port=innerHeight>innerWidth*1.05;$('tRot').hidden=!port;if(port&&state==='play')tcSetPause(true);}
-function tcOrientTick(){if(!isTouch)return;const port=innerHeight>innerWidth*1.05;if(port!==TC.port){TC.port=port;tcOrient();}} // also checked every frame (some browsers are late with resize)
+function tcOrientTick(){if(!isTouch||++TC.oriN%15)return;VW=innerWidth;VH=innerHeight;const port=VH>VW*1.05;if(port!==TC.port){TC.port=port;tcOrient();}} // v93: 4 times a second, not every frame (reading the window size in the middle of a frame makes the browser lay the page out again) // also checked every frame (some browsers are late with resize)
 // full screen + landscape lock when PLAY / RETRY is tapped (Android; iPhone Safari allows neither for web pages)
 function tcFull(){if(!isTouch)return;const de=document.documentElement,rq=de.requestFullscreen||de.webkitRequestFullscreen;
   const lock=()=>{try{const o=screen.orientation;if(o&&o.lock)o.lock('landscape').catch(()=>{});}catch(_){}};
@@ -147,6 +147,6 @@ function tcFrame(dt){if(!isTouch){tcMarkers();h4declutter(dt);return;}tcOrientTi
   if($('touch').hidden===on){$('touch').hidden=!on;$('tZone').hidden=!on;if(!on)tcReset();}
   tcMarkers();h4declutter(dt);tcAvoid();}
 // touch: markers stuck to the screen edge keep clear of the SHOOT and pause buttons
-function tcAvoid(){const W=innerWidth,H=innerHeight;for(const el of document.querySelectorAll('.mk:not([hidden])')){const x=parseFloat(el.style.left),y=parseFloat(el.style.top);if(!(x>=0))continue;
+function tcAvoid(){const W=VW,H=VH;for(const el of document.querySelectorAll('.mk:not([hidden])')){const x=parseFloat(el.style.left),y=parseFloat(el.style.top);if(!(x>=0))continue;
   if(x>W-170&&y>H-160)el.style.top=(H-160)+'px';else if(x<100&&y<74)el.style.top='74px';}}
 

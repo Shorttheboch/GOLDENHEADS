@@ -15,6 +15,23 @@ const CFG={
   lullTime:7, floatLife:30, puLife:15, packR:8, packT:15,   // calm between bursts · floating cargo is lost after 30 s · prizes vanish after 15 s
 };
 const $=id=>document.getElementById(id);
+// v93 (performance): the HUD is HTML, and three things made the browser restyle and lay out the WHOLE page several times every frame
+// (measured: ~170 elements a frame on PC, ~1,400 on phones, over half of the frame's CPU time there):
+// 1) the game sets `el.hidden=…` on dozens of elements every frame, mostly to the value they already have, and the browser still counts each one
+//    as a change: now writing the same value does nothing;
+// 2) CSS rules written `body:has(#menu:not([hidden])) …` made every one of those changes restyle everything under <body>: the menu being up is
+//    now a class on <body> (`menuOn`, kept in step with #menu here, whoever hides it). No rule may start with `body:has(` again;
+// 3) reading innerWidth / innerHeight in the middle of a frame forces a layout: the window size is kept in VW / VH (updated on resize).
+{const d=Object.getOwnPropertyDescriptor(HTMLElement.prototype,'hidden');
+ if(d&&d.set&&d.get)Object.defineProperty(HTMLElement.prototype,'hidden',{configurable:true,enumerable:d.enumerable,get:d.get,set(v){if(!!d.get.call(this)!==!!v)d.set.call(this,v);}});}
+{const m=$('menu'),f=()=>document.body.classList.toggle('menuOn',!m.hidden);f();new MutationObserver(f).observe(m,{attributes:true,attributeFilter:['hidden']});}
+{const x=$('xpT'),f=()=>document.body.classList.toggle('xpTgo',x.classList.contains('go'));if(x){f();new MutationObserver(f).observe(x,{attributes:true,attributeFilter:['class']});}} // (same for the EXTRA POWER title: `body:has(#xpT.go)` in the CSS)
+// 4) the same with texts: `el.textContent=…` every frame with the text it already shows still swapped the text node (and any `body:has()` rule
+//    then restyled the page): writing the same text does nothing now.
+{const d=Object.getOwnPropertyDescriptor(Node.prototype,'textContent');
+ if(d&&d.set&&d.get)Object.defineProperty(Node.prototype,'textContent',{configurable:true,enumerable:d.enumerable,get:d.get,set(v){const c=this.firstChild;
+   if(c&&c===this.lastChild&&c.nodeType===3&&v!=null&&c.data===String(v))return;d.set.call(this,v);}});}
+let VW=innerWidth,VH=innerHeight;addEventListener('resize',()=>{VW=innerWidth;VH=innerHeight;});
 const FLOW={dz:0};
 const AS=0.88; // astronaut scale (a little smaller: the ship reads bigger, the spiders scarier)
 const isTouch=matchMedia('(pointer:coarse)').matches; // v54: primary pointer only: a touch laptop used with a mouse stays PC

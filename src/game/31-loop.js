@@ -26,7 +26,7 @@ function qaFrame(t0){const now=performance.now(),fd=now-QA.last,js=now-t0;QA.las
   const ft=qaMed(QA.wF),jt=qaMed(QA.wJ);QA.wT=0;QA.wF=[];QA.wJ=[];QA.fps=1000/ft;qaDecide(ft,jt);qaHud();mtFps();} // v81: mtFps = median fps and quality level for the metrics (39-metricas.js)
 // add ?fps to the address to see frame rate, level, rendered megapixels and GPU; ?q=0..5 fixes the level (no automatic changes)
 const QA_HUD=/[?&]fps\b/.test(location.search)?(()=>{const d=document.createElement('div');d.style.cssText='position:fixed;left:50%;bottom:4px;transform:translateX(-50%);z-index:60;font:600 12px/1.2 monospace;color:#ffd27a;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:4px;pointer-events:none;white-space:nowrap';document.body.appendChild(d);return d;})():null;
-function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.textContent=Math.round(QA.fps)+' fps · Q'+QA.lvl+' · '+(innerWidth*innerHeight*pr*pr/1e6).toFixed(1)+' MP · '+QA.gpu.replace(/^ANGLE \(/,'').replace(/^[^,(]*, /,'').replace(/ (Direct3D|vs_|OpenGL).*$/,'').slice(0,48);}
+function qaHud(){if(!QA_HUD)return;const pr=renderer.getPixelRatio();QA_HUD.textContent=Math.round(QA.fps)+' fps · Q'+QA.lvl+' · '+(VW*VH*pr*pr/1e6).toFixed(1)+' MP · '+QA.gpu.replace(/^ANGLE \(/,'').replace(/^[^,(]*, /,'').replace(/ (Direct3D|vs_|OpenGL).*$/,'').slice(0,48);}
 {const qf=/[?&]q=([0-5])\b/.exec(location.search);
  if(qf){QA.on=false;qaSet(+qf[1]);}
  // start lower on GPUs that cannot carry the full look (it climbs back if there is headroom): software rendering -> 4, integrated Intel/AMD -> 2
@@ -270,7 +270,7 @@ function tick(){const _qa0=performance.now();
        const bd=$('repBand');bd.hidden=!R.useBand||!!R.pa.noPerf;bd.style.left=(R.band*100)+'%';bd.style.width=(CFG.bandW*100)+'%';}
      const pr=$('repPrompt');let showP=state==='play'&&near&&!R.on&&!(isTouch&&tcPause&&R.pa===near);
      if(showP){_pv.copy(near.pos).addScaledVector(near.n,0.6).project(camera);showP=_pv.z<1&&Math.abs(_pv.x)<0.95&&Math.abs(_pv.y)<0.95;
-       if(showP){pr.style.left=((_pv.x+1)/2*innerWidth)+'px';pr.style.top=((1-_pv.y)/2*innerHeight)+'px';pr.classList.toggle('blocked',blocked);
+       if(showP){pr.style.left=((_pv.x+1)/2*VW)+'px';pr.style.top=((1-_pv.y)/2*VH)+'px';pr.classList.toggle('blocked',blocked);
          $('repPromptT').textContent=blocked?'ARAÑAS ENCIMA':'SOLDAR '+near.zone.name;if(!blocked)tip('weld');}}
      pr.hidden=!showP;}
     if(state==='play'){
@@ -282,14 +282,14 @@ function tick(){const _qa0=performance.now();
       const ind=$('hatchInd'),showInd=call&&!atHatch&&state==='play';ind.hidden=!showInd;
       if(showInd){_pv.copy(HATCH).project(camera);let x=_pv.x,y=_pv.y;const behind=_pv.z>1;if(behind){x=-x;y=-y;}
         const m=0.86,off=behind||Math.abs(x)>m||Math.abs(y)>m;if(off){const s=m/Math.max(Math.abs(x),Math.abs(y),1e-3);x*=s;y*=s;}
-        ind.style.left=((x+1)/2*innerWidth)+'px';ind.style.top=((1-y)/2*innerHeight)+'px';
+        ind.style.left=((x+1)/2*VW)+'px';ind.style.top=((1-y)/2*VH)+'px';
         ind.firstChild.style.transform=`rotate(${off?Math.atan2(x,y)*180/Math.PI:180}deg)`;
         $('hatchDist').textContent=Math.round(P.pos.distanceTo(HATCH))+' m';}
       // zones being eaten off-screen -> red arrow at the screen edge
       for(const Z of ZONES){const el=$('zi'+Z.idx);let show=Z.eaters>0&&Z.bite;
         if(show){_pv.copy(Z.bite.pos).project(camera);let x=_pv.x,y=_pv.y;const behind=_pv.z>1;if(behind){x=-x;y=-y;}
           const m=0.86,off=behind||Math.abs(x)>m||Math.abs(y)>m;show=off;
-          if(off){const s=m/Math.max(Math.abs(x),Math.abs(y),1e-3);x*=s;y*=s;el.style.left=((x+1)/2*innerWidth)+'px';el.style.top=((1-y)/2*innerHeight)+'px';
+          if(off){const s=m/Math.max(Math.abs(x),Math.abs(y),1e-3);x*=s;y*=s;el.style.left=((x+1)/2*VW)+'px';el.style.top=((1-y)/2*VH)+'px';
             el.firstChild.style.transform=`rotate(${Math.atan2(x,y)*180/Math.PI}deg)`;el.lastChild.textContent=Z.name;}}
         el.hidden=!show;}
     }

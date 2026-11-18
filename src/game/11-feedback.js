@@ -3,7 +3,7 @@ let shakeAmp=0,hitStop=0;function shake(a){shakeAmp=Math.min(0.6,Math.max(shakeA
 const fxLayer=$('fxLayer');const _pv=new THREE.Vector3();
 function floatText(p,txt,cls){_pv.copy(p).project(camera);if(_pv.z>1||Math.abs(_pv.x)>1.05||Math.abs(_pv.y)>1.05)return;
   const d=document.createElement('div');d.className='ft '+cls;d.textContent=txt;
-  d.style.left=((_pv.x+1)/2*innerWidth)+'px';d.style.top=((1-_pv.y)/2*innerHeight)+'px';fxLayer.appendChild(d);setTimeout(()=>d.remove(),1200);}
+  d.style.left=((_pv.x+1)/2*VW)+'px';d.style.top=((1-_pv.y)/2*VH)+'px';fxLayer.appendChild(d);setTimeout(()=>d.remove(),1200);}
 const flashLight=new THREE.PointLight(0xff6030,0,16,2);scene.add(flashLight);let flashT=0;
 function deathFlash(p){flashLight.position.copy(p);flashT=1;}
 const muzzleFlash=new THREE.Sprite(new THREE.SpriteMaterial({color:new THREE.Color(4,4,4),map:glowTex('rgba(255,250,220,1)','rgba(255,150,60,.7)'),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
@@ -27,7 +27,7 @@ function updateLook(dt,t){GRADE.uniforms.uTime.value=t;
     const occ=shipBetween(camera.position,FLARE.a.copy(camera.position).addScaledVector(SUN_DIR,26))||shipBetween(camera.position,FLARE.a.copy(camera.position).addScaledVector(SUN_DIR,80));
     want=occ?0:1-THREE.MathUtils.smoothstep(Math.max(Math.abs(v.x),Math.abs(v.y)),0.8,1.3);}
   FLARE.k=THREE.MathUtils.damp(FLARE.k,want,want<FLARE.k?12:4,dt);
-  if(FLARE.k>0.01){const W=innerWidth,H=innerHeight,sx=(v.x+1)/2*W,sy=(1-v.y)/2*H,cx=W/2,cy=H/2,[fs,fc,...gh]=FLARE.parts;
+  if(FLARE.k>0.01){const W=VW,H=VH,sx=(v.x+1)/2*W,sy=(1-v.y)/2*H,cx=W/2,cy=H/2,[fs,fc,...gh]=FLARE.parts;
     fs.style.left=sx+'px';fs.style.top=sy+'px';fc.style.left=sx+'px';fc.style.top=sy+'px';
     [0.55,1.15,1.55,1.95].forEach((k,i)=>{gh[i].style.left=(sx+(cx-sx)*k)+'px';gh[i].style.top=(sy+(cy-sy)*k)+'px';});
     FLARE.el.style.opacity=(FLARE.k*0.85).toFixed(3);}else if(FLARE.el.style.opacity!=='0')FLARE.el.style.opacity='0';}

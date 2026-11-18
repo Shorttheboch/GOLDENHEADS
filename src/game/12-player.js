@@ -196,7 +196,8 @@ function fingerTo(d){
   const tip=()=>{c[0].updateMatrixWorld(true);return c[2].localToWorld(_tgP.set(0,L3,0));};
   const pose=(f,s)=>{c[0].quaternion.copy(rest(0)).slerp(_tgF[0],f*d.f0);for(let k=1;k<3;k++)c[k].quaternion.copy(rest(k)).slerp(_tgF[k],Math.min(d.max,d.hook[k-1]*s));return tip();};
   c[0].getWorldPosition(_tgJ);const want=_tgJ.distanceTo(_tgT);_tgB.copy(_tgT).sub(_tgJ).normalize();
-  let s1=1,bd=1e9;if(d.fit)for(let s=0.3;s<=3.601;s+=0.05){const e=Math.abs(pose(0,s).distanceTo(_tgJ)-want);if(e<bd){bd=e;s1=s;}} // the reach does not depend on the first joint's turn
+  let s1=1,bd=1e9;if(d.fit){const tr=s=>{const e=Math.abs(pose(0,s).distanceTo(_tgJ)-want);if(e<bd){bd=e;s1=s;}};
+    for(let s=0.3;s<=3.601;s+=0.3)tr(s);const c=s1;for(let k=-5;k<=5;k++)if(k)tr(Math.min(3.6,Math.max(0.3,c+k*0.05)));} // v93: coarse then fine (23 poses, not 67): the reach only shrinks as the finger curls // the reach does not depend on the first joint's turn
   let f1=0;bd=-2;for(let f=0;f<=1.001;f+=0.1){const a=_tgA.copy(pose(f,s1)).sub(_tgJ).normalize().dot(_tgB);if(a>bd){bd=a;f1=f;}}
   pose(f1,s1);_tgA.copy(tip()).sub(_tgJ).normalize();
   _tgW.setFromUnitVectors(_tgA,_tgB);const ang=2*Math.acos(Math.min(1,Math.abs(_tgW.w)));if(ang>d.turn)_tgW.slerp(_tgQ.identity(),1-d.turn/ang);
@@ -332,7 +333,7 @@ function solveHose(){
   // slack hangs as a sag between the backpack and the elbow
   const direct=A.distanceTo(gOut)+0.12,slack=Math.max(0,P.hlen-direct);
   const M=A.clone().lerp(gOut,0.5).addScaledVector(dn,0.12+slack*0.45).addScaledVector(P.hoseBack||dn,0.04+slack*0.15);
-  const curve=new THREE.CatmullRomCurve3([A,M,gOut,gIn],false,'centripetal');const CL=curve.getLength();
+  const curve=new THREE.CatmullRomCurve3([A,M,gOut,gIn],false,'centripetal');curve.arcLengthDivisions=48;const CL=curve.getLength(); // v93: 48 samples for the length of a 1 m hose of 10 links (three's default is 200, every frame)
   let s=0;const pt=new THREE.Vector3();
   for(let i=0;i<9;i++){s+=P.hseg[i];curve.getPointAt(Math.min(1,s/CL),pt);
     const bp=H[i].getWorldPosition(new THREE.Vector3()),cp=H[i+1].getWorldPosition(new THREE.Vector3());

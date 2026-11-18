@@ -30,7 +30,7 @@ function updateLook(dt,t){GRADE.uniforms.uTime.value=t;
   if(FLARE.k>0.01){const W=VW,H=VH,sx=(v.x+1)/2*W,sy=(1-v.y)/2*H,cx=W/2,cy=H/2,[fs,fc,...gh]=FLARE.parts;
     fs.style.left=sx+'px';fs.style.top=sy+'px';fc.style.left=sx+'px';fc.style.top=sy+'px';
     [0.55,1.15,1.55,1.95].forEach((k,i)=>{gh[i].style.left=(sx+(cx-sx)*k)+'px';gh[i].style.top=(sy+(cy-sy)*k)+'px';});
-    FLARE.el.style.opacity=(FLARE.k*0.85).toFixed(3);}else if(FLARE.el.style.opacity!=='0')FLARE.el.style.opacity='0';}
+    FLARE.el.style.opacity=(FLARE.k*0.85).toFixed(3);FLARE.el.hidden=false;}else if(!FLARE.el.hidden){FLARE.el.style.opacity='0';FLARE.el.hidden=true;}}
 const nozzleGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:dotTex,color:new THREE.Color(0xffc860).multiplyScalar(2.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0}));
 nozzleGlow.scale.setScalar(0.4);scene.add(nozzleGlow);
 const WHITE=new THREE.Color(1,1,1);

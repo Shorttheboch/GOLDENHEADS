@@ -20,7 +20,7 @@ const {BASE,ARGS,shot}=require('./lib.cjs');
       oldHidden:['hTop','hScore','hVit','hTank','cross','rep','sub','tPause'].every(id=>cs(id).display==='none'),
       suit:q('hud-suit-pc').textContent,ship:q('hud-ship-pc').textContent,tri:q('hud-tri-n').textContent,triFill:q('hud-tri-bar').style.getPropertyValue('--v'),
       fuga:q('hud-fuga').classList.contains('off')?'-':q('hud-fuga-t').textContent,resc:q('hud-resc').classList.contains('off')?'-':q('hud-resc-t').textContent,
-      pts:q('hud-pts').textContent,rnd:q('hud-rnd').textContent,en:q('hud-en').textContent+' '+q('hud-en-l').textContent,kills:q('hud-kills').textContent,
+      pts:q('hud-pts').textContent,rnd:q('hud-rnd').textContent,cd:q('hud-cd').textContent,
       xh:q('hud-xh').className,weld:q('hud-weld').className,font:document.fonts.check('700 20px "Saira Condensed"'),
       game:{hp:Math.round(__heads.P.hp),cargo:__T.cargo,wave:__T.wave,brk:__T.inBreak,kills:__heads.stats?__heads.stats.kills:null}};});
   await step(0.5);console.log(lang,'mount',JSON.stringify(before),'->',JSON.stringify(await st()));

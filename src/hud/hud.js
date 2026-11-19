@@ -94,18 +94,16 @@
 #hud-resc svg:not(.fr){width:${u(36)};height:${u(36)}}
 
 /* ---------- Puntos ---------- */
-#hud-score{right:calc(var(--sr) + ${u(32)});top:calc(var(--st) + ${u(25)});width:${u(404)};height:${u(182)}}
-#hud-score .in{position:absolute;inset:${u(16)} ${u(20)} ${u(14)};display:grid;grid-template-rows:${u(64)} ${u(54)} 1fr;row-gap:${u(6)}}
-#hud-score .top{display:flex;align-items:center;justify-content:center;gap:${u(34)}}
-#hud-score .top .lb{font-size:${u(38)}}
-#hud-score .top .num{font-size:${u(64)};font-weight:800;min-width:${u(120)}}
-#hud-score .mid{display:grid;grid-template-columns:1fr 1.25fr;gap:${u(4)}}
-#hud-score .mid>div{display:flex;align-items:center;justify-content:center;gap:${u(10)};font-size:${u(30)};color:var(--cream);
-  border-radius:${u(3)};background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 ${u(2)} #8d6420,inset 0 0 0 ${u(3.5)} #000;
-  text-shadow:0 ${u(2)} 0 #000}
-#hud-score .mid .num{color:#fff}
-#hud-score .bot{display:flex;align-items:center;justify-content:center;gap:${u(12)};font-size:${u(25)};color:#a9a196}
-#hud-score .bot .num{color:#fff}
+/* v96 (Santi: «ocupa mucho espacio, solo interesan puntos y la ronda»): one line, as tall as the pause button: RONDA n │ puntos PTS.
+   ENEMIGOS and BAJAS are gone; between rounds the countdown sits after the round number (RONDA 4 · 6 s). */
+#hud-score{right:calc(var(--sr) + ${u(32)});top:calc(var(--st) + ${u(33)});min-width:${u(400)};height:${u(97)}}
+#hud-score .in{position:relative;height:100%;padding:0 ${u(30)};display:flex;align-items:center;justify-content:center;gap:${u(16)}}
+#hud-score .rnd,#hud-score .pts{display:flex;align-items:baseline;gap:${u(8)};font-size:${u(26)};color:var(--cream);text-shadow:0 ${u(2)} 0 #000;white-space:nowrap}
+#hud-score .rnd .num{font-size:${u(44)};font-weight:800;color:var(--gold)}
+#hud-score .rnd .cd{font-size:${u(30)};color:var(--cyan)}
+#hud-score .rnd .cd:empty{display:none}
+#hud-score .pts .num{font-size:${u(54)};font-weight:800;color:#fff}
+#hud-score .dv{width:${u(2)};height:${u(50)};background:linear-gradient(transparent,#a8741f,transparent)}
 
 /* ---------- Mira ---------- */
 #hud-xh{position:absolute;left:50%;top:50%;width:${u(72)};height:${u(72)};transform:translate(-50%,-50%);
@@ -213,10 +211,9 @@
 
 <div id="hud-score" class="hp" data-frame data-c="22" data-gems><svg class="fr"></svg>
   <div class="in">
-    <div class="top"><span class="lb">PUNTOS</span><span class="num" id="hud-pts">0</span></div>
-    <div class="mid"><div><span>RONDA</span><span class="num" id="hud-rnd">1</span></div>
-      <div><span class="num" id="hud-en">0</span><span id="hud-en-l">ENEMIGOS</span></div></div>
-    <div class="bot"><span>BAJAS</span><span class="num" id="hud-kills">0</span></div>
+    <div class="rnd"><span>RONDA</span><span class="num" id="hud-rnd">1</span><span class="cd" id="hud-cd"></span></div>
+    <span class="dv"></span>
+    <div class="pts"><span class="num" id="hud-pts">0</span><span>PTS</span></div>
   </div></div>
 
 <div id="hud-xh">${I_XHAIR}</div>
@@ -358,8 +355,9 @@
     },
     score(n)   { setNum(q('hud-pts'), n, true); return HUD; },
     // v62: el segundo argumento opcional cambia la palabra (p. ej. "s · RESPIRO" con los segundos que quedan)
-    enemies(n, label) { setNum(q('hud-en'), n); q('hud-en-l').textContent = label || (n === 1 ? 'ENEMIGO' : 'ENEMIGOS'); return HUD; },
-    kills(n)   { setNum(q('hud-kills'), n); return HUD; },
+    // v96: the panel no longer shows enemies or kills. With a label (RESPIRO / CALMA) n is the seconds left: they go after the round number.
+    enemies(n, label) { const t = label ? '· ' + n + ' s' : ''; const el = q('hud-cd'); if (el.textContent !== t) el.textContent = t; return HUD; },
+    kills(n)   { return HUD; },
     round(n, banner = true) {
       setNum(q('hud-rnd'), n);
       if (banner) { q('hud-round').querySelector('.r2').textContent = n; retrig(q('hud-round'), 'show'); }

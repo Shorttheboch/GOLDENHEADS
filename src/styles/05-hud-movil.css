@@ -42,10 +42,10 @@ body.touch .mk:not(.brk):not(.bod) .lb{font-size:9.5px}
 body.touch .mk.mid .lb{display:none}
 /* v63: "GIRA EL TELÉFONO" goes over everything, also over the language picker (ESPAÑOL / ENGLISH) and the opening film */
 #tRot{z-index:70!important}
-/* v65: boss bar (ESCUPIDORA / INCINERADORA) on phones: small, top right under the score panel (it sat in the middle of the view).
+/* v65: boss bar (ESCUPIDORA / INCINERADORA) on phones: small, top right under the score panel (it sat in the middle of the view). v96: the panel is one line now (bottom at 130 units): the bar goes up with it.
    Same units as the HUD (--u2 = 1 design unit of the 1844 × 853 layout), so it lines up with the score panel on any phone. */
 body.hm #boss{--u2:min(calc(100vw / 1844),calc(100vh / 853));left:auto!important;right:calc(env(safe-area-inset-right,0px) + var(--u2) * 32)!important;
-  top:calc(env(safe-area-inset-top,0px) + var(--u2) * 218)!important;transform:none!important;width:calc(var(--u2) * 404)!important;
+  top:calc(env(safe-area-inset-top,0px) + var(--u2) * 142)!important;transform:none!important;width:calc(var(--u2) * 404)!important;
   font-size:13px;font-weight:800;letter-spacing:.12em;text-align:right;color:#ff3b2f;text-shadow:0 1px 0 #000,0 0 8px rgba(255,40,20,.55);font-family:'Saira Condensed','Arial Narrow',system-ui,sans-serif}
 body.hm #boss b{height:6px;margin-top:2px;border-color:#ff3b2f;box-shadow:0 0 8px rgba(255,40,20,.45)}
 body.hm #boss i{background:linear-gradient(90deg,#9a0d05,#ff2a1a)}

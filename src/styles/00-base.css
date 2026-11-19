@@ -447,10 +447,8 @@ body.cine .h4,body.cine .mk,body.cine #flare{opacity:0!important;transition:opac
 #boss{top:calc(96px + env(safe-area-inset-top,0px))!important}
 #tut{top:calc(100px + env(safe-area-inset-top,0px))!important}#msg{top:27%!important}
 #pwr{top:calc(28px + min(158px,max(109px,8.4vw)) + env(safe-area-inset-top,0px))!important}
-/* v93: no mix-blend-mode here. A blend layer over the whole window makes Chrome composite the 3D canvas through an extra off-screen surface every frame
-   (even at opacity 0); Santi saw black blocks flash over the lower left of the picture, in the menus above all. The flare is pale light on dark space:
-   plain alpha looks the same. And it is not in the page at all while there is no flare ([hidden], 11-feedback.js). */
-#flare{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;overflow:hidden}
+/* v93: the flare keeps its screen blend (Santi: it looked better); it is only out of the page while there is no flare ([hidden], 11-feedback.js). */
+#flare{position:fixed;inset:0;pointer-events:none;z-index:4;mix-blend-mode:screen;opacity:0;overflow:hidden}
 #flare i{position:absolute;left:0;top:0;border-radius:50%;transform:translate(-50%,-50%)}
 #flare .fs{width:70vw;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,196,130,.35) 30%,rgba(255,244,220,.95) 50%,rgba(255,196,130,.35) 70%,transparent)}
 #flare .fc{width:22vmin;height:22vmin;background:radial-gradient(circle,rgba(255,240,210,.3),rgba(255,170,90,.08) 40%,transparent 70%)}

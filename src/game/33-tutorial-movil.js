@@ -17,7 +17,7 @@ const MTUT_S={
   collect:{t:'RECOGE Y DEPOSITA',l:['<b>1</b> Pasa cerca: se aspiran solos.','<b>2</b> Llévalos a la <b class="c">BODEGA</b>.']},
   life:{t:'TRAJE Y NAVE',l:['<b>TRAJE</b>: tu vida.','<b>NAVE</b>: mata las arañas y suelda las roturas.','Si alguno llega a <b class="r">0, pierdes</b>.']}};
 // the joystick and the aim drawings come from Santi's phone menu panel (panel.webp, 1818 × 763: the two first icons of its bottom row): x, y, w, h of each
-const MTUT_ART={stick:[80,548,116,106],aim:[522,553,122,94]};
+const MTUT_ART={stick:[128,514,126,122],aim:[708,522,134,122]}; // v94: where they are in the new panel
 const mtTR=s=>window.TR?window.TR(s):s,mtTRH=h=>window.TRH?window.TRH(h):h;
 // the drawing cut out of the menu art once, its black background turned transparent (brightness becomes opacity)
 const MTUT_CUT={};

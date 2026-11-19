@@ -164,6 +164,10 @@ H.update({
 # ---- v56: phone controls (right stick) ----
 EN.update({'Joystick izq.':'Left stick','Joystick dcho.':'Right stick','Girar rápido · un toque corto da la vuelta':'Fast turn · a short push spins you around',
  'Apuntar fino (mitad derecha)':'Fine aim (right half)'})
+# ---- v94: phone start menu, Santi's new panel (three cards, three controls) ----
+EN.update({'Sobrevive tantas rondas como puedas.':'Survive as many rounds as you can.',
+ 'DISPARA':'SHOOT','REPARA':'REPAIR','RECUPERA':'RECOVER','Elimina las arañas.':'Kill the spiders.',
+ 'Lleva los tricomas a la bodega cian.':'Take the trichomes to the cyan hold.','BOTÓN · DISPARAR':'BUTTON · SHOOT'})
 # ---- v70: phone start menu (Santi's new panel; every line of text is its own text node, line breaks are <br> in index.html) ----
 EN.update({'PROTEGE LA NAVE. SALVA LOS TRICOMAS.':'PROTECT THE SHIP. SAVE THE TRICHOMES.',
  'Las arañas rompen el casco y la carga escapa. Sobrevive tantas rondas como puedas.':'The spiders break the hull and the cargo escapes. Survive as many rounds as you can.',

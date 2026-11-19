@@ -103,6 +103,7 @@ function setupAstronaut(gltf){
   {const G=P.bones.Hose_Grip;G.updateMatrix();
    const M=G.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0,0.09+0.05,0)).multiply(new THREE.Matrix4().makeScale(1.12,1.4,1.12)).multiply(new THREE.Matrix4().makeTranslation(0,-0.09,0));
    M.decompose(G.position,G.quaternion,G.scale);G.updateMatrixWorld(true);P.nozzleLocal.set(0,1,0);}
+  {const G=P.bones.Hose_Grip;G.position.fromArray(LGRIP.p);G.quaternion.fromArray(LGRIP.q);G.updateMatrixWorld(true);for(const n in LGRIP.f)P.rest['lgrip_'+n]=new THREE.Quaternion().fromArray(LGRIP.f[n]);for(const n in LGRIP.fp)if(P.bones['LeftHand'+n])P.bones['LeftHand'+n].position.fromArray(LGRIP.fp[n]);} // v95
 }
 const Q=new THREE.Quaternion(),Q2=new THREE.Quaternion(),V1=new THREE.Vector3(),V2=new THREE.Vector3(),V3=new THREE.Vector3();
 function aimBone(bone,childPos,dir,amount=1){
@@ -204,14 +205,17 @@ function fingerTo(d){
   c[0].getWorldQuaternion(_tgQ);_tgQ.premultiply(_tgW);c[0].parent.getWorldQuaternion(_tgW).invert();c[0].quaternion.copy(_tgW.multiply(_tgQ));
   d.s=+s1.toFixed(2);d.f=+f1.toFixed(1);d.ang=[0,1,2].map(k=>Math.round(c[k].quaternion.angleTo(rest(k))*57.3));return +tip().distanceTo(_tgT).toFixed(4);}
 window.__handp=HANDP;
+// v95 (Santi posed it in Blender, HEADS_POSE_aspirar_v1.blend): how the left hand holds the nozzle. grip = Hose_Grip in LeftHand space, roll = turn of the grip
+// around its own axis against the frame poseArms builds (nozzle = aim, knuckles along the forearm), f = finger joints (local quaternions).
+const LGRIP={"p":[-0.05337,0.01179,-0.05988],"q":[0.05918,-0.0983,-0.52067,0.84601],"roll":-0.6358,"f":{"Index1":[-0.49233,-0.01654,-0.01916,0.87004],"Index2":[-0.48998,-0.01114,0.01669,0.8715],"Index3":[-0.12806,0.00555,-0.02228,0.9915],"Middle1":[-0.49233,-0.01654,-0.01916,0.87004],"Middle2":[-0.50111,0,0,0.86538],"Middle3":[-0.12805,0,0,0.99177],"Pinky1":[-0.52023,-0.02629,-0.00258,0.85362],"Pinky2":[-0.47325,0.01114,-0.01669,0.8807],"Pinky3":[-0.12805,0,0,0.99177],"Ring1":[-0.50325,-0.01623,-0.01937,0.86377],"Ring2":[-0.47325,0,0,0.88093],"Ring3":[-0.12806,0,0,0.99177],"Thumb1":[-0.18076,0.68775,-0.46513,0.52724],"Thumb2":[-0.16442,-0.26128,-0.06532,0.94891],"Thumb3":[-0.05567,-0.04456,0.27839,0.95782]},"fp":{"Index1":[0.04466,0.09828,-0.00686],"Middle1":[0.0185,0.08399,-0.01134],"Pinky1":[-0.02847,0.06846,-0.01648],"Ring1":[-0.00612,0.07536,-0.01419],"Thumb1":[0.03549,0.0127,-0.02002]}}; // fp = where he moved the first joint of each finger (LeftHand space)
 function triggerFinger(){pistol.updateMatrixWorld(true);window.__trig=fingerTo(HANDP.index);window.__thumb=fingerTo(HANDP.thumb);}
-const _hgO=new THREE.Vector3();
+const _hgO=new THREE.Vector3(),_hgQ=new THREE.Quaternion(),_hgY=new THREE.Vector3(0,1,0);
 function poseArms(aimDir,sucking,dt,leftDir,t=0){
   const B=P.bones;if(!B.LeftArm)return;
   for(const n of ['LeftArm','LeftForeArm','LeftHand','RightArm','RightForeArm','RightHand','Spine1','Spine2','Head'])if(B[n])B[n].quaternion.copy(P.rest[n]);
   // fists
   if(P.rest.grip_Index1)for(const n of FINGERS){if(!P.rest['grip_'+n])continue;
-    B['LeftHand'+n].quaternion.copy(P.rest['grip_'+n]);
+    B['LeftHand'+n].quaternion.copy(P.rest['lgrip_'+n]||P.rest['grip_'+n]); // v95: the left hand has its own grip; the right fist keeps the old one
     const delta=P.rest['LeftHand'+n].clone().invert().multiply(P.rest['grip_'+n]);delta.y*=-1;delta.z*=-1;
     B['RightHand'+n].quaternion.copy(P.rest['RightHand'+n]).multiply(delta);}
   // spine: breathing + follows the aim pitch, chest leads the turn, leans into side thrust
@@ -263,7 +267,7 @@ function poseArms(aimDir,sucking,dt,leftDir,t=0){
   // grip frame: +Y (nozzle, through the fist) = nd; -X (wrist -> knuckles) continues the forearm as far as possible
   const hx=fa.clone().addScaledVector(nd,-fa.dot(nd));if(hx.lengthSq()<1e-4)hx.copy(bU).addScaledVector(nd,-bU.dot(nd));hx.normalize();
   const gx=hx.negate(),gz=new THREE.Vector3().crossVectors(gx,nd);
-  HG.m.makeBasis(gx,nd,gz);const hW=new THREE.Quaternion().setFromRotationMatrix(HG.m).multiply(B.Hose_Grip.quaternion.clone().invert());
+  HG.m.makeBasis(gx,nd,gz);const hW=new THREE.Quaternion().setFromRotationMatrix(HG.m).multiply(_hgQ.setFromAxisAngle(_hgY,LGRIP.roll)).multiply(B.Hose_Grip.quaternion.clone().invert());
   P.hoseDown=(P.hoseDown||new THREE.Vector3()).copy(bU).negate();P.hoseBack=(P.hoseBack||new THREE.Vector3()).copy(bF).negate();P.hoseOut=(P.hoseOut||new THREE.Vector3()).copy(bR).negate();
   const pq=B.LeftHand.parent.getWorldQuaternion(new THREE.Quaternion()).invert();B.LeftHand.quaternion.copy(pq.multiply(hW));spreadTwist('Left',HG.tw);
   B.LeftHand.updateMatrixWorld(true);
@@ -322,6 +326,7 @@ function ccdTo(H,last,effFn,target,iters,k){
     Q.setFromUnitVectors(a.normalize(),b.normalize());Q.slerp(Q2.identity(),k);
     const wq=H[i].getWorldQuaternion(new THREE.Quaternion());const pq=H[i].parent.getWorldQuaternion(new THREE.Quaternion()).invert();
     H[i].quaternion.copy(pq.multiply(Q.multiply(wq)));H[i].updateMatrixWorld(true);}}
+const _hsO=new THREE.Vector3();
 function solveHose(){
   // the hose is laid along a route: backpack -> sag by the hip -> under the elbow -> along the underside of the forearm -> into the base of the grip
   const H=P.hose,B=P.bones,G=B.Hose_Grip,target=G.getWorldPosition(new THREE.Vector3());
@@ -331,11 +336,12 @@ function solveHose(){
   const L9=P.hoseOff.length(),gIn=target.clone().addScaledVector(ax,-L9);
   const gOut=gIn.clone().addScaledVector(ax,-0.12);
   if(!P.hseg){P.hseg=[];for(let i=0;i<9;i++)P.hseg.push(H[i].getWorldPosition(new THREE.Vector3()).distanceTo(H[i+1].getWorldPosition(new THREE.Vector3())));P.hlen=P.hseg.reduce((a,c)=>a+c,0);}
-  // slack hangs as a sag between the backpack and the elbow
-  const direct=A.distanceTo(gOut)+0.12,slack=Math.max(0,P.hlen-direct);
-  const M=A.clone().lerp(gOut,0.5).addScaledVector(dn,0.12+slack*0.45).addScaledVector(P.hoseBack||dn,0.04+slack*0.15);
-  if(P.hoseOut)M.addScaledVector(P.hoseOut,(HG.hoB+slack*0.3)*(P.leftBlend||0)); // v95: while sucking the hose swings out to the left in one open curve, clear of the arm
-  const curve=new THREE.CatmullRomCurve3([A,M,gOut,gIn],false,'centripetal');curve.arcLengthDivisions=48;const CL=curve.getLength(); // v93: 48 samples for the length of a 1 m hose of 10 links (three's default is 200, every frame)
+  // v95: the sag is sized so the curve is exactly as long as the hose (before, a curve longer than the hose left the last links short of the grip:
+  // a thin stretched neck at the grip and a kink at the bottom of the sag). Direction of the sag: down, a little back and, while sucking, out to the left.
+  const mid=A.clone().lerp(gOut,0.5),off=_hsO.copy(dn).multiplyScalar(0.55).addScaledVector(P.hoseBack||dn,0.2);if(P.hoseOut)off.addScaledVector(P.hoseOut,HG.hoB*5*(P.leftBlend||0));off.normalize();
+  const M=new THREE.Vector3(),curve=new THREE.CatmullRomCurve3([A,M,gOut,gIn],false,'centripetal');curve.arcLengthDivisions=40;
+  const len=k=>{M.copy(mid).addScaledVector(off,k);curve.updateArcLengths();return curve.getLength();};
+  let lo=0.02,hi=0.7,CL=len(lo);if(CL<P.hlen){for(let i=0;i<7;i++){const k=(lo+hi)/2;CL=len(k);if(CL<P.hlen)lo=k;else hi=k;}CL=len((lo+hi)/2);}
   let s=0;const pt=new THREE.Vector3();
   for(let i=0;i<9;i++){s+=P.hseg[i];curve.getPointAt(Math.min(1,s/CL),pt);
     const bp=H[i].getWorldPosition(new THREE.Vector3()),cp=H[i+1].getWorldPosition(new THREE.Vector3());

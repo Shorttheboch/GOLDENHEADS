@@ -4,13 +4,13 @@ setInterval(()=>{if($('menu').hidden)return;const d=$('play').disabled;$('menuGo
 // ---- v70: phone start menu from Santi's art (loaded only on touch; if it fails, the old text menu stays) ----
 // The stage waits for the art, its fonts and the language, then CSS plays the intro (00-base.css). MM_CUES = the beats of that intro in seconds (menuSfx(name) is the mechanical sound of each).
 const MM={ready:false,go:false};
-const MM_CUES=[['logo',0.64],['land',1.2],['unfold',1.55],['lock',2.25],['decode',1.9],['button',2.65]]; // (v94: no long bar any more) // bar at 1.3x: its stop clack lands as the bar finishes (~1.6 s)
+const MM_CUES=[['logo',0.64],['bar',1.1,1.3],['land',1.2],['unfold',1.55],['lock',2.25],['decode',1.9],['button',2.65]]; // bar at 1.3x: its stop clack lands as the bar finishes (~1.6 s)
 // v73: the phone has no letter-by-letter decoding: its texts come in one after another (--d 1.9 s ... 2.59 s, 0.28 s each), which is where the decoder sound goes; it is longer (1.5 s) than that (to 2.87 s), so it fades out there
 const MM_DECODE_END=2.87;
 if(isTouch){
   const mmFail=()=>document.body.classList.add('mmfail');
   const mmFonts=()=>Promise.race([Promise.all([window.MENU_FONTS,loadMod('assets/endui.js').then(m=>new FontFace('TekturE',`url(${m.default.font})`,{weight:'400 900'}).load()).then(f=>{document.fonts.add(f);})].map(p=>Promise.resolve(p).catch(()=>{}))),new Promise(r=>setTimeout(r,3000))]);
-  loadMod('assets/menumob.js').then(m=>{const A=m.default,ims=[['mmPanel',A.panel],['mmLogo',A.logo],['mmPanelGlow',A.panelGlow,1]];
+  loadMod('assets/menumob.js').then(m=>{const A=m.default,ims=[['mmPanel',A.panel],['mmBar',A.bar],['mmLogo',A.logo],['mmPanelGlow',A.panelGlow,1],['mmBarGlow',A.barGlow,1]];
     // every image loaded and decoded (so the intro never shows half-loaded art), plus the fonts
     Promise.all([...ims.map(([id,src,opt])=>new Promise(res=>{const im=$(id);im.onerror=()=>{if(!opt)mmFail();res();};im.onload=()=>(im.decode?im.decode():Promise.resolve()).catch(()=>{}).then(res);im.src=src;})),mmFonts()])
       .then(()=>{MM.ready=true;});})

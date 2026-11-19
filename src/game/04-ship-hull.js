@@ -47,8 +47,29 @@ function rockR(R,d){const e=1/Math.sqrt((d.x/R.ax)**2+(d.y/R.ay)**2+(d.z/R.az)**
   for(const c of R.cr){const a=d.dot(c.d);if(a>c.cos){const u=(a-c.cos)/(1-c.cos);n-=c.dep*Math.sin(Math.min(1,u*1.6)*Math.PI*0.5)-c.dep*0.35*Math.max(0,1-Math.abs(u-0.12)*8);}}
   return R.r*e*(1+n);}
 {const rng=(()=>{let x=7;return()=>(x=(x*16807)%2147483647)/2147483647;})();
- const bump=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d'),im=x.createImageData(256,256);for(let i=0;i<256*256;i++){const u=i%256,v=(i/256)|0;const n=128+50*Math.sin(u*0.21+Math.sin(v*0.13)*3)*Math.sin(v*0.17+Math.sin(u*0.11)*2)+40*(Math.random()-0.5);im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=n;im.data[i*4+3]=255;}x.putImageData(im,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(3,2);return t;})();
- const mat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:0.88,metalness:0.12,bumpMap:bump,bumpScale:2.2});
+ // v94: the surface of the rocks. One tileable detail image made from noise (tools/rocks/make_rock_tex.py: R,G = normal, B = how light the stone
+ // is) laid on from three sides (triplanar, in the rock's own space: the rocks never turn), at two sizes so the repeat does not show: no UVs,
+ // no seams at the poles. Before: a 256 px canvas of sine waves as a bump map on the sphere's UVs. The shape, the collisions and the big
+ // light/dark patches (vertex colours) are the same. Phones: the 512 px image and one size only.
+ const rockTex=new THREE.DataTexture(new Uint8Array([128,128,128,255]),1,1);rockTex.needsUpdate=true;
+ const RT={value:rockTex};
+ new THREE.TextureLoader().load(isTouch?'assets/tex/rock_512.jpg':'assets/tex/rock_1024.jpg',t=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.NoColorSpace;t.anisotropy=isTouch?2:8;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;RT.value=t;for(const R of ROCKS)if(R.mat.userData.sh)R.mat.userData.sh.uniforms.uRockT.value=t;},undefined,e=>console.warn('rock texture',e));
+ const mat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:0.9,metalness:0.06});
+ const rockShader=function(sh){this.userData.sh=sh;sh.uniforms.uRockT=RT;
+   sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vRkP;varying vec3 vRkN;').replace('#include <begin_vertex>','#include <begin_vertex>\nvRkP=position;vRkN=normal;');
+   sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
+uniform sampler2D uRockT;varying vec3 vRkP;varying vec3 vRkN;
+vec3 rkN;float rkL;
+void rockSample(){vec3 n=normalize(vRkN),w=pow(abs(n),vec3(5.));w/=(w.x+w.y+w.z);
+  const float S1=0.21;vec3 p=vRkP*S1;
+  vec3 tx=texture2D(uRockT,p.zy).xyz,ty=texture2D(uRockT,p.xz+0.37).xyz,tz=texture2D(uRockT,p.xy+0.71).xyz;
+  ${isTouch?'':'const float S2=1.07;vec3 q=vRkP.yzx*S2;vec3 ux=texture2D(uRockT,q.zy+0.13).xyz,uy=texture2D(uRockT,q.xz+0.59).xyz,uz=texture2D(uRockT,q.xy+0.29).xyz;\n  tx=vec3(tx.xy+(ux.xy-0.5)*0.55,tx.z*(0.72+0.56*ux.z));ty=vec3(ty.xy+(uy.xy-0.5)*0.55,ty.z*(0.72+0.56*uy.z));tz=vec3(tz.xy+(uz.xy-0.5)*0.55,tz.z*(0.72+0.56*uz.z));'}
+  const float K=${isTouch?'1.5':'1.35'};vec2 ax=(tx.xy*2.-1.)*K,ay=(ty.xy*2.-1.)*K,az=(tz.xy*2.-1.)*K;
+  vec3 nx=vec3(ax+n.zy,n.x),ny=vec3(ay+n.xz,n.y),nz=vec3(az+n.xy,n.z);
+  rkN=normalize(nx.zyx*w.x+ny.xzy*w.y+nz.xyz*w.z);rkL=tx.z*w.x+ty.z*w.y+tz.z*w.z;}`)
+     .replace('#include <color_fragment>','#include <color_fragment>\nrockSample();{float l=rkL*rkL*4.;diffuseColor.rgb*=vec3(0.30+1.9*l,0.30+1.75*l,0.31+1.72*l);}')
+     .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor*(1.08-0.3*rkL),0.5,1.);')
+     .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize((viewMatrix*vec4(rkN,0.)).xyz);');};
  for(const [x,y,z,r,[ax,ay,az]] of ROCK_DEF){const R={c:new THREE.Vector3(x,y,z),r,ax,ay,az,seed:rng()*20,cr:[]};
    for(let k=0;k<7;k++){const big=k<3;R.cr.push({d:new THREE.Vector3(rng()*2-1,rng()*2-1,rng()*2-1).normalize(),cos:Math.cos(big?0.28+rng()*0.25:0.1+rng()*0.1),dep:big?0.05+rng()*0.06:0.025+rng()*0.02});}
    R.rmax=r*Math.max(ax,ay,az)*1.35;
@@ -56,7 +77,7 @@ function rockR(R,d){const e=1/Math.sqrt((d.x/R.ax)**2+(d.y/R.ay)**2+(d.z/R.az)**
    for(let i=0;i<pa.count;i++){d.fromBufferAttribute(pa,i).normalize();const rr=rockR(R,d);pa.setXYZ(i,d.x*rr,d.y*rr,d.z*rr);
      const t=Math.max(0.25,0.35+0.65*(rr/(r*1.15)))*(0.85+0.15*Math.sin(d.x*23+d.y*17+R.seed)),v=0.5+0.5*Math.sin(d.x*5+d.z*4+R.seed);col.push(0.075*t*(1+0.25*v),0.06*t,0.068*t*(1+0.3*(1-v)));}
    g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.computeVertexNormals();
-   const rm=mat.clone();const m=new THREE.Mesh(g,rm);m.position.copy(R.c);m.castShadow=true;m.receiveShadow=true;scene.add(m);R.mesh=m;R.mat=rm;R.fade=1;ROCKS.push(R);}}
+   const rm=mat.clone();rm.onBeforeCompile=rockShader;rm.customProgramCacheKey=()=>'rock94';const m=new THREE.Mesh(g,rm);m.position.copy(R.c);m.castShadow=true;m.receiveShadow=true;scene.add(m);R.mesh=m;R.mat=rm;R.fade=1;ROCKS.push(R);}}
 // v43 menu backdrop: everything in the scene so far (sky, planet, lights, stars, belt, space dust, sun, rocks) also lives on
 // layer 1. On the menu the camera sees only layer 1, so the ship, the astronaut and the rest of the game stay out of shot.
 for(const o of scene.children)o.traverse(c=>c.layers.enable(1));

@@ -167,8 +167,8 @@ function ik2(upN,loN,handN,target,pole){
   const E=S.clone().addScaledVector(dir,a).addScaledVector(pd,h),T=S.clone().addScaledVector(dir,d);
   aimBone(B[upN],childPos(loN),E.clone().sub(S).normalize());
   aimBone(B[loN],childPos(handN),T.sub(E).normalize());}
-const HG={tw:0.75,rF:0.14,rR:-0.03,rU:-0.5,hA:0.4,hU:-0.24,pU:-0.3,pR:-0.2,pF:-1,sU:-0.45,sR:-1.3,sF:-0.25,gU:-0.2,gR:-0.07,gA:0.42,gRake:0.26,m:new THREE.Matrix4()}; // hose-hand pose
-for(const k of ['rF','rR','rU','hA','hU','gU','gR','gA'])HG[k]*=AS; // offsets are in metres: follow the astronaut's scale
+const HG={tw:0.75,rF:0.14,rR:-0.03,rU:-0.5,hA:0.57,hU:-0.16,hR:-0.18,hK:0.965,hoB:0.2,pU:-0.3,pR:-0.2,pF:-1,sU:-0.45,sR:-1.3,sF:-0.25,gU:-0.2,gR:-0.07,gA:0.42,gRake:0.26,m:new THREE.Matrix4()}; // hose-hand pose
+for(const k of ['rF','rR','rU','hA','hU','hR','gU','gR','gA'])HG[k]*=AS;window.__hg=HG; // offsets are in metres: follow the astronaut's scale
 // forearm roll (pronation/supination): move most of the wrist twist into the forearm so the wrist does not pinch
 const _rf=new THREE.Quaternion();
 function spreadTwist(side,k){const B=P.bones,h=B[side+'Hand'],f=B[side+'ForeArm'],qr=P.rest[side+'Hand'];
@@ -205,6 +205,7 @@ function fingerTo(d){
   d.s=+s1.toFixed(2);d.f=+f1.toFixed(1);d.ang=[0,1,2].map(k=>Math.round(c[k].quaternion.angleTo(rest(k))*57.3));return +tip().distanceTo(_tgT).toFixed(4);}
 window.__handp=HANDP;
 function triggerFinger(){pistol.updateMatrixWorld(true);window.__trig=fingerTo(HANDP.index);window.__thumb=fingerTo(HANDP.thumb);}
+const _hgO=new THREE.Vector3();
 function poseArms(aimDir,sucking,dt,leftDir,t=0){
   const B=P.bones;if(!B.LeftArm)return;
   for(const n of ['LeftArm','LeftForeArm','LeftHand','RightArm','RightForeArm','RightHand','Spine1','Spine2','Head'])if(B[n])B[n].quaternion.copy(P.rest[n]);
@@ -250,7 +251,7 @@ function poseArms(aimDir,sucking,dt,leftDir,t=0){
   P.leftBlend=THREE.MathUtils.damp(P.leftBlend||0,sucking?1:0,10,dt);
   const ld=leftDir||aimDir;
   const relaxedT=SL.clone().addScaledVector(bF,HG.rF).addScaledVector(bU,HG.rU+Math.sin(t*0.9)*0.02).addScaledVector(bR,HG.rR+Math.sin(t*0.7)*0.015).add(AN.lag);
-  const holdT=SL.clone().addScaledVector(ld,HG.hA).addScaledVector(bU,HG.hU).add(AN.lag);
+  const holdT=_hgO.set(0,0,0).addScaledVector(ld,HG.hA).addScaledVector(bU,HG.hU).addScaledVector(bR,HG.hR).clampLength(0,reachL*HG.hK).add(SL).add(AN.lag).clone(); // (almost straight: hK of the arm's reach, the elbow keeps a slight bend) // v95 (Santi): the hand out in front and to the left of the shoulder, not in front of the chest
   const lT=relaxedT.lerp(holdT,P.leftBlend);
   const lb=P.leftBlend;ik2('LeftArm','LeftForeArm','LeftHand',lT,SL.clone().addScaledVector(bU,HG.pU+(HG.sU-HG.pU)*lb).addScaledVector(bR,HG.pR+(HG.sR-HG.pR)*lb).addScaledVector(bF,HG.pF+(HG.sF-HG.pF)*lb));
   // nozzle direction: relaxed = the forearm line tipped a little forward · sucking/welding = exactly the aim
@@ -263,7 +264,7 @@ function poseArms(aimDir,sucking,dt,leftDir,t=0){
   const hx=fa.clone().addScaledVector(nd,-fa.dot(nd));if(hx.lengthSq()<1e-4)hx.copy(bU).addScaledVector(nd,-bU.dot(nd));hx.normalize();
   const gx=hx.negate(),gz=new THREE.Vector3().crossVectors(gx,nd);
   HG.m.makeBasis(gx,nd,gz);const hW=new THREE.Quaternion().setFromRotationMatrix(HG.m).multiply(B.Hose_Grip.quaternion.clone().invert());
-  P.hoseDown=(P.hoseDown||new THREE.Vector3()).copy(bU).negate();P.hoseBack=(P.hoseBack||new THREE.Vector3()).copy(bF).negate();
+  P.hoseDown=(P.hoseDown||new THREE.Vector3()).copy(bU).negate();P.hoseBack=(P.hoseBack||new THREE.Vector3()).copy(bF).negate();P.hoseOut=(P.hoseOut||new THREE.Vector3()).copy(bR).negate();
   const pq=B.LeftHand.parent.getWorldQuaternion(new THREE.Quaternion()).invert();B.LeftHand.quaternion.copy(pq.multiply(hW));spreadTwist('Left',HG.tw);
   B.LeftHand.updateMatrixWorld(true);
   solveHose();}
@@ -333,6 +334,7 @@ function solveHose(){
   // slack hangs as a sag between the backpack and the elbow
   const direct=A.distanceTo(gOut)+0.12,slack=Math.max(0,P.hlen-direct);
   const M=A.clone().lerp(gOut,0.5).addScaledVector(dn,0.12+slack*0.45).addScaledVector(P.hoseBack||dn,0.04+slack*0.15);
+  if(P.hoseOut)M.addScaledVector(P.hoseOut,(HG.hoB+slack*0.3)*(P.leftBlend||0)); // v95: while sucking the hose swings out to the left in one open curve, clear of the arm
   const curve=new THREE.CatmullRomCurve3([A,M,gOut,gIn],false,'centripetal');curve.arcLengthDivisions=48;const CL=curve.getLength(); // v93: 48 samples for the length of a 1 m hose of 10 links (three's default is 200, every frame)
   let s=0;const pt=new THREE.Vector3();
   for(let i=0;i<9;i++){s+=P.hseg[i];curve.getPointAt(Math.min(1,s/CL),pt);

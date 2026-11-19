@@ -61,13 +61,13 @@ function rockR(R,d){const e=1/Math.sqrt((d.x/R.ax)**2+(d.y/R.ay)**2+(d.z/R.az)**
 uniform sampler2D uRockT;varying vec3 vRkP;varying vec3 vRkN;
 vec3 rkN;float rkL;
 void rockSample(){vec3 n=normalize(vRkN),w=pow(abs(n),vec3(5.));w/=(w.x+w.y+w.z);
-  const float S1=0.21;vec3 p=vRkP*S1;
+  const float S1=0.18;vec3 p=vRkP*S1;
   vec3 tx=texture2D(uRockT,p.zy).xyz,ty=texture2D(uRockT,p.xz+0.37).xyz,tz=texture2D(uRockT,p.xy+0.71).xyz;
-  ${isTouch?'':'const float S2=1.07;vec3 q=vRkP*S2;vec3 ux=texture2D(uRockT,q.zy+0.13).xyz,uy=texture2D(uRockT,q.xz+0.59).xyz,uz=texture2D(uRockT,q.xy+0.29).xyz;\n  tx=vec3(tx.xy+(ux.xy-0.5)*0.45,tx.z*(0.72+0.56*ux.z));ty=vec3(ty.xy+(uy.xy-0.5)*0.45,ty.z*(0.72+0.56*uy.z));tz=vec3(tz.xy+(uz.xy-0.5)*0.45,tz.z*(0.72+0.56*uz.z));'}
-  const float K=${isTouch?'1.3':'1.15'};vec2 ax=(tx.xy*2.-1.)*K,ay=(ty.xy*2.-1.)*K,az=(tz.xy*2.-1.)*K;
+  ${isTouch?'':'const float S2=0.9;vec3 q=vRkP*S2;vec3 ux=texture2D(uRockT,q.zy+0.13).xyz,uy=texture2D(uRockT,q.xz+0.59).xyz,uz=texture2D(uRockT,q.xy+0.29).xyz;\n  tx=vec3(tx.xy+(ux.xy-0.5)*0.45,tx.z*(0.72+0.56*ux.z));ty=vec3(ty.xy+(uy.xy-0.5)*0.45,ty.z*(0.72+0.56*uy.z));tz=vec3(tz.xy+(uz.xy-0.5)*0.45,tz.z*(0.72+0.56*uz.z));'}
+  const float K=${isTouch?'1.45':'1.3'};vec2 ax=(tx.xy*2.-1.)*K,ay=(ty.xy*2.-1.)*K,az=(tz.xy*2.-1.)*K;
   vec3 nx=vec3(ax+n.zy,n.x),ny=vec3(ay+n.xz,n.y),nz=vec3(az+n.xy,n.z);
   rkN=normalize(nx.zyx*w.x+ny.xzy*w.y+nz.xyz*w.z);rkL=tx.z*w.x+ty.z*w.y+tz.z*w.z;}`)
-     .replace('#include <color_fragment>','#include <color_fragment>\nrockSample();{float l=rkL*rkL*4.;diffuseColor.rgb*=vec3(0.50+1.45*l,0.50+1.36*l,0.52+1.36*l);}')
+     .replace('#include <color_fragment>','#include <color_fragment>\nrockSample();{float l=rkL*rkL*4.;diffuseColor.rgb*=vec3(0.40+1.60*l,0.40+1.57*l,0.42+1.54*l);}')
      .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor*(1.08-0.3*rkL),0.5,1.);')
      .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize((viewMatrix*vec4(rkN,0.)).xyz);');};
  for(const [x,y,z,r,[ax,ay,az]] of ROCK_DEF){const R={c:new THREE.Vector3(x,y,z),r,ax,ay,az,seed:rng()*20,cr:[]};
@@ -75,7 +75,8 @@ void rockSample(){vec3 n=normalize(vRkN),w=pow(abs(n),vec3(5.));w/=(w.x+w.y+w.z)
    R.rmax=r*Math.max(ax,ay,az)*1.35;
    const g=mergeVertices(new THREE.IcosahedronGeometry(1,isTouch?4:5)),pa=g.attributes.position,col=[],d=new THREE.Vector3();
    for(let i=0;i<pa.count;i++){d.fromBufferAttribute(pa,i).normalize();const rr=rockR(R,d);pa.setXYZ(i,d.x*rr,d.y*rr,d.z*rr);
-     const t=Math.max(0.25,0.35+0.65*(rr/(r*1.15)))*(0.85+0.15*Math.sin(d.x*23+d.y*17+R.seed)),v=0.5+0.5*Math.sin(d.x*5+d.z*4+R.seed);col.push(0.075*t*(1+0.25*v),0.06*t,0.068*t*(1+0.3*(1-v)));}
+     const t=Math.max(0.25,0.35+0.65*(rr/(r*1.15)))*(0.85+0.15*Math.sin(d.x*23+d.y*17+R.seed)),v=0.5+0.5*Math.sin(d.x*5+d.z*4+R.seed);const ru=THREE.MathUtils.smoothstep(0.5+0.5*Math.sin(d.x*4.1+R.seed)*Math.sin(d.y*3.3+R.seed*1.7)+0.22*Math.sin(d.z*9+d.x*7+R.seed),0.42,0.85); // v94: grey stone, with only a slight warmer / cooler drift round the rock (Santi: grey, no reddish patches); it was a purplish brown
+     col.push(t*(0.068+0.004*v+0.005*ru),t*(0.064+0.002*ru),t*(0.060+0.005*(1-v)-0.003*ru));}
    g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.computeVertexNormals();
    const rm=mat.clone();rm.onBeforeCompile=rockShader;rm.customProgramCacheKey=()=>'rock94';const m=new THREE.Mesh(g,rm);m.position.copy(R.c);m.castShadow=true;m.receiveShadow=true;scene.add(m);R.mesh=m;R.mat=rm;R.fade=1;ROCKS.push(R);}}
 // v43 menu backdrop: everything in the scene so far (sky, planet, lights, stars, belt, space dust, sun, rocks) also lives on

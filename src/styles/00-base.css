@@ -113,7 +113,7 @@ body.touch #rep,body.touch #dep{bottom:calc(27% + env(safe-area-inset-bottom,0px
 body.touch .ft{font-size:12px}body.touch .ft.crit,body.touch .ft.pu{font-size:14px}
 body.touch .mk.brk span,body.touch .mk.brk em{display:none}body.touch .mk.brk .ic{width:22px;height:22px;margin-bottom:0}
 /* v70 touch: start menu from Santi's art (reference layout 1764 x 866). Inside #mmStage everything is placed in stage units (--u = 1/1764 of its width).
-   The logo pops big in the middle and flies to its place, the long bar extends, the panel unfolds out of it, the texts come in, then JUGAR (~3 s in all).
+   The logo pops big in the middle and flies to its place, the long bar extends, the panel unfolds out of it (v94: Santi's new panel, three cards and three controls; logo and bar as before), the texts come in, then JUGAR (~3 s in all).
    The same times are in MM_CUES (30-hud4-menus.js), which fires menuSfx() at each beat. */
 #mobMenu{display:none}
 body.touch #mobMenu{display:block;position:fixed;inset:0;z-index:2;pointer-events:none}
@@ -134,20 +134,20 @@ body.touch #langTog{transition-delay:2.5s}
 .mmH,.mmTab,#mmGo{font-family:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif}
 .mmH,.mmTab{line-height:1;background:linear-gradient(180deg,#ffe58c 0%,#ffc83c 50%,#ee9f14 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 calc(1.6*var(--u)) calc(1.6*var(--u)) rgba(0,0,0,.8))}
 .mmH{font-weight:800;font-size:calc(44.3*var(--u));letter-spacing:.018em}
-.mmTab{font-weight:800;font-size:calc(32.2*var(--u));letter-spacing:.013em}
+.mmTab{font-weight:800;font-size:calc(50*var(--u));letter-spacing:.013em}
 .mmSub{font-weight:600;font-size:calc(28.5*var(--u));line-height:1;color:#f6efdc}
-.mmCap{transform:translate(-50%,0);font-weight:600;font-size:calc(23.1*var(--u));line-height:calc(26*var(--u));color:#f4ecd6}
+.mmCap{transform:translate(-50%,0);font-weight:600;font-size:calc(28*var(--u));line-height:calc(30*var(--u));color:#fff}
 .mmWarn{font-weight:600;font-size:calc(20.8*var(--u));line-height:1;color:#f4ecd6}
 .mmCtl{transform:none;text-align:left;display:flex;flex-direction:column}
-.mmCtl b{font-weight:700;font-size:calc(22.4*var(--u));line-height:calc(26*var(--u));letter-spacing:-.01em;color:#ffc83c}
+.mmCtl b{font-weight:700;font-size:calc(32*var(--u));line-height:calc(38*var(--u));letter-spacing:0;color:#fff}
 .mmCtl span{font-weight:600;font-size:calc(20.3*var(--u));line-height:calc(24*var(--u));color:#f4ecd6}
 .mmCtl b+span{margin-top:calc(3*var(--u))}
 .mmCtl.s span{font-size:calc(17.4*var(--u));line-height:calc(23*var(--u))}
 /* JUGAR (the empty gold plate is in the panel art) */
-#mmGo{position:absolute;left:calc(685*var(--u));top:calc(759*var(--u));width:calc(390*var(--u));height:calc(82*var(--u));background:none;border:0;padding:0;margin:0;pointer-events:auto;touch-action:manipulation;
-  -webkit-tap-highlight-color:transparent;font-weight:900;font-size:calc(51.4*var(--u));letter-spacing:.04em;text-indent:.04em;color:#2b1a02;text-shadow:0 calc(1.5*var(--u)) 0 rgba(255,240,190,.5);
+#mmGo{position:absolute;left:calc(684.8*var(--u));top:calc(750*var(--u));width:calc(385.5*var(--u));height:calc(89.4*var(--u));display:flex;align-items:center;justify-content:center;line-height:1;background:none;border:0;padding:calc(6*var(--u)) 0 0;box-sizing:border-box;margin:0;pointer-events:auto;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;font-weight:900;font-size:calc(68*var(--u));letter-spacing:.04em;text-indent:.04em;color:#2b1a02;text-shadow:0 calc(1.5*var(--u)) 0 rgba(255,240,190,.5);
   cursor:pointer;opacity:0;overflow:hidden;clip-path:polygon(7% 0,93% 0,100% 50%,93% 100%,7% 100%,0 50%)}
-#mmGo:disabled{font-size:calc(23.5*var(--u));letter-spacing:.06em;text-indent:.06em;color:rgba(43,26,2,.72);cursor:wait}
+#mmGo:disabled{font-size:calc(22*var(--u));letter-spacing:.04em;text-indent:.04em;color:rgba(43,26,2,.72);cursor:wait}
 #mmGo:not(:disabled):active{background:rgba(255,248,215,.3)}
 #mmGo::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-120%);pointer-events:none}
 #mobMenu.go #mmGo:not(:disabled)::after{animation:mmShine 2.8s 3.3s ease-in-out infinite}
@@ -447,6 +447,7 @@ body.cine .h4,body.cine .mk,body.cine #flare{opacity:0!important;transition:opac
 #boss{top:calc(96px + env(safe-area-inset-top,0px))!important}
 #tut{top:calc(100px + env(safe-area-inset-top,0px))!important}#msg{top:27%!important}
 #pwr{top:calc(28px + min(158px,max(109px,8.4vw)) + env(safe-area-inset-top,0px))!important}
+/* v93: the flare keeps its screen blend (Santi: it looked better); it is only out of the page while there is no flare ([hidden], 11-feedback.js). */
 #flare{position:fixed;inset:0;pointer-events:none;z-index:4;mix-blend-mode:screen;opacity:0;overflow:hidden}
 #flare i{position:absolute;left:0;top:0;border-radius:50%;transform:translate(-50%,-50%)}
 #flare .fs{width:70vw;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,196,130,.35) 30%,rgba(255,244,220,.95) 50%,rgba(255,196,130,.35) 70%,transparent)}

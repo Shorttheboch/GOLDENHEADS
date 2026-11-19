@@ -41,10 +41,10 @@ const _hv=new THREE.Vector3(),_hc=new THREE.Vector3();
 // v71: also says which edge it is stuck to (ex: left/right, ey: top/bottom, both = a corner) and where the target really is (tx, ty), for h4declutter()
 const H4F={mx:0.86,mt:0.48,mb:-0.56}; // the frame markers are clamped to, in NDC
 function h4proj(p){_hv.copy(p).project(camera);let x=_hv.x,y=_hv.y;const behind=_hv.z>1;if(behind){x=-x;y=-y;if(Math.abs(x)+Math.abs(y)<1e-3)y=-1;}
-  const mx=H4F.mx,mt=H4F.mt,mb=H4F.mb,off=behind||x<-mx||x>mx||y>mt||y<mb,tx=(x+1)/2*innerWidth,ty=(1-y)/2*innerHeight;let ex=0,ey=0;
+  const mx=H4F.mx,mt=H4F.mt,mb=H4F.mb,off=behind||x<-mx||x>mx||y>mt||y<mb,tx=(x+1)/2*VW,ty=(1-y)/2*VH;let ex=0,ey=0;
   if(off){const sx=Math.abs(x)>1e-4?mx/Math.abs(x):1e9,sy=y>1e-4?mt/y:y<-1e-4?mb/y:1e9,s=Math.min(sx,sy);
     if(behind||s<1){if(sx<=sy*1.001)ex=x<0?-1:1;if(sy<=sx*1.001)ey=y<0?-1:1;x*=s;y*=s;}}
-  return {px:(x+1)/2*innerWidth,py:(1-y)/2*innerHeight,off,behind,ex,ey,tx,ty,ang:Math.atan2(-y*innerHeight,x*innerWidth)*180/Math.PI};}
+  return {px:(x+1)/2*VW,py:(1-y)/2*VH,off,behind,ex,ey,tx,ty,ang:Math.atan2(-y*VH,x*VW)*180/Math.PI};}
 function h4arrow(el,deg){const ar=el._ar;if(ar)ar.style.transform=`rotate(${deg.toFixed(1)}deg) translateX(${el._ag}px) rotate(${el._ab}deg)`;}
 function h4apply(el,s,ar,base,gap){el.style.left=s.px.toFixed(1)+'px';el.style.top=s.py.toFixed(1)+'px';el.classList.toggle('off',s.off);
   el._s=s;el._ar=ar;el._ab=base;el._ag=gap;
@@ -58,7 +58,7 @@ function h4apply(el,s,ar,base,gap){el.style.left=s.px.toFixed(1)+'px';el.style.t
 const DC={PAD:8,EXTRA:8,EASE:16};
 function h4declutter(dt){
   if(state!=='play'||CINE.on)return;
-  const W=innerWidth,H=innerHeight,bod=$('hBod'),L=[];
+  const W=VW,H=VH,bod=$('hBod'),L=[];
   if(!bod.hidden&&bod._s){bod._k=0;L.push(bod);}
   for(const m of HUD4.eg)if(!m.hidden&&m._s){m._k=0.5;L.push(m);} // v76: egg markers (already in hatching order), after the hold and before the breaches
   for(const m of TC.mk)if(!m.hidden&&m._s){m._k=1;L.push(m);} // already nearest first
@@ -163,7 +163,7 @@ function updateHud4(dt,t){
       const urg=it.rem<10,lb=m.children[2],tm=m.children[3],txt=it.n+' POR RESCATAR';if(lb.textContent!==txt)lb.textContent=txt;
       tm.style.display=urg?'':'none';if(urg){tm.lastChild.textContent=Math.max(0,Math.ceil(it.rem))+' s';tm.firstChild.style.setProperty('--a',(THREE.MathUtils.clamp(it.rem/10,0,1)*360).toFixed(0)+'deg');}
       m.classList.toggle('urg',it.rem<5);m.classList.toggle('near',!it.s.off&&it.near);
-      if(isTouch)m.classList.toggle('mid',!it.s.off&&Math.abs(it.s.px-innerWidth/2)<innerWidth*0.3&&Math.abs(it.s.py-innerHeight/2)<innerHeight*0.32);}} // v63: phones hide the count near the crosshair
+      if(isTouch)m.classList.toggle('mid',!it.s.off&&Math.abs(it.s.px-VW/2)<VW*0.3&&Math.abs(it.s.py-VH/2)<VH*0.32);}} // v63: phones hide the count near the crosshair
   for(;i<HUD4.pool.length;i++)HUD4.pool[i].hidden=true;
   const bod=$('hBod'),atH=P.pos.distanceTo(HATCH)<CFG.depositR,showB=!CINE.on&&P.carry>0&&!atH&&!ZONES[2].nest;bod.hidden=!showB;
   if(showB){h4apply(bod,h4proj(HATCH),bod.children[0],0,28);bod.classList.toggle('call',full);}

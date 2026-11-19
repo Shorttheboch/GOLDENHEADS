@@ -78,10 +78,10 @@ const _hu=new THREE.Vector3(),_hp=new THREE.Vector3();
 // once a frame (from updateHud4): one marker per egg, the one about to hatch first (h4declutter keeps that order). It hangs a little above the egg on screen.
 function h4eggs(dt){let n=0;
   if(state==='play'&&!CINE.on&&EGGS.length){
-    const up=_hu.set(0,1,0).applyQuaternion(camera.quaternion),size=isTouch?34:THREE.MathUtils.clamp(innerHeight*0.048,38,56),off=size*0.5+10;
+    const up=_hu.set(0,1,0).applyQuaternion(camera.quaternion),size=isTouch?34:THREE.MathUtils.clamp(VH*0.048,38,56),off=size*0.5+10;
     const L=EGGS.map(e=>({e,rem:Math.max(0,e.hatch-e.t)})).sort((a,b)=>a.rem-b.rem);
     for(const {e,rem} of L){const m=h4egg(n++),k=THREE.MathUtils.clamp(e.t/e.hatch,0,1),d=Math.max(0.5,camera.position.distanceTo(e.pos));
-      _hp.copy(e.pos).addScaledVector(up,off*2*Math.tan(camera.fov*Math.PI/360)*d/innerHeight); // `off` px above the egg whatever its distance
+      _hp.copy(e.pos).addScaledVector(up,off*2*Math.tan(camera.fov*Math.PI/360)*d/VH); // `off` px above the egg whatever its distance
       m.hidden=false;m._e=e;h4apply(m,h4proj(_hp),m._ar,180,size*0.5+4);
       const bt=Math.pow(Math.max(0,Math.sin(e.ph*Math.PI*2)),8); // the same heartbeat as the egg itself: faster as it nears hatching
       m._arc.style.strokeDashoffset=(-k*100).toFixed(2); // the ring empties as the egg nears hatching

@@ -1,9 +1,9 @@
-// Phone start menu (v70: logo, long bar and the panel that unfolds), ES and EN: animation frames, layout checks, then tap JUGAR. Run on dist-test.
+// Phone start menu (v70: logo, long bar and the panel that unfolds; v94: Santi's new panel with three cards and three controls), ES and EN: animation frames, layout checks, then tap JUGAR. Run on dist-test.
 // Screenshots: menu_<lang>_<w>x<h>_<moment>.png. Checks: everything inside the screen, every text inside its box (English too), the logo fully visible.
 const {chromium}=require('playwright');
 const {BASE,ARGS,shot}=require('./lib.cjs');
 // stage units (1764 x 866): the boxes the texts must stay in
-const BOX={cap:[[93,483],[502,878],[896,1270],[1290,1675]],ctl:[[213,466],[668,876],[1065,1279],[1475,1690]],warn:[[495,1275]],capY:[500,596]};
+const BOX={cap:[[90,612],[616,1147],[1151,1680]],ctl:[[270,640],[830,1156],[1314,1690]],warn:[[495,1275]],head:[150,1612]};
 const SIZES=[[844,390],[667,375]],EXTRA=[[932,430],[1024,600]];
 const MS=[[250,'a_logo_grande'],[850,'b_logo_volando'],[1400,'c_barra'],[1730,'d_panel_abriendo'],[2350,'e_textos']];
 let bad=0;
@@ -29,7 +29,8 @@ async function run(b,lang,w,h,{frames=false,tap=false}={}){
       if(el.classList.contains('mmCap')){const i=BOX.cap.findIndex(([a,b])=>(o.l+o.r)/2>a&&(o.l+o.r)/2<b),[a,b]=BOX.cap[i];if(o.l<a+4||o.r>b-4)probs.push('caption wider than its card: '+tx+' '+Math.round(o.l)+'-'+Math.round(o.r)+' in '+a+'-'+b);}
       if(el.classList.contains('mmWarn')&&(o.l<BOX.warn[0][0]+60||o.r>BOX.warn[0][1]-6))probs.push('warning wider than its strip: '+Math.round(o.l)+'-'+Math.round(o.r));
       if(el.classList.contains('mmCtl')){const i=BOX.ctl.findIndex(([a,b])=>o.l>=a-3&&o.l<b),[a,b]=BOX.ctl[i];if(o.r>b)probs.push('control text too wide: '+tx+' '+Math.round(o.r)+' > '+b);}
-      if(el.classList.contains('mmTab')&&(o.r-o.l>320))probs.push('tab too wide: '+tx);}
+      if(el.classList.contains('mmTab')){const i=BOX.cap.findIndex(([a,b])=>(o.l+o.r)/2>a&&(o.l+o.r)/2<b),[a,b]=BOX.cap[i];if(o.l<a+20||o.r>b-20)probs.push('card title too wide: '+tx);}
+      if((el.classList.contains('mmH')||el.classList.contains('mmSub'))&&(o.l<BOX.head[0]||o.r>BOX.head[1]))probs.push('header text wider than its strip: '+tx+' '+Math.round(o.l)+'-'+Math.round(o.r));}
     const g=document.getElementById('mmGo'),gr=un(g.getBoundingClientRect());
     return {probs,stage:[st.left,st.top,st.width,st.height].map(Math.round).join(','),go:document.getElementById('mmGoT').textContent,dis:g.disabled,
       logo:[lg.left,lg.top,lg.width,lg.height].map(Math.round).join(','),goBox:[gr.l,gr.t,gr.r,gr.b].map(Math.round).join(','),panelHidden:getComputedStyle(document.getElementById('menuPanel')).display,

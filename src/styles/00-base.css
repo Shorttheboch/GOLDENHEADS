@@ -147,7 +147,7 @@ body.touch #langTog{transition-delay:2.5s}
 #mmGo{position:absolute;left:calc(704.0*var(--u));top:calc(744.2*var(--u));width:calc(350.0*var(--u));height:calc(91.3*var(--u));background:none;border:0;padding:0;margin:0;pointer-events:auto;touch-action:manipulation;
   -webkit-tap-highlight-color:transparent;font-weight:900;font-size:calc(51.4*var(--u));letter-spacing:.04em;text-indent:.04em;color:#2b1a02;text-shadow:0 calc(1.5*var(--u)) 0 rgba(255,240,190,.5);
   cursor:pointer;opacity:0;overflow:hidden;clip-path:polygon(7% 0,93% 0,100% 50%,93% 100%,7% 100%,0 50%)}
-#mmGo:disabled{font-size:calc(23.5*var(--u));letter-spacing:.06em;text-indent:.06em;color:rgba(43,26,2,.72);cursor:wait}
+#mmGo:disabled{font-size:calc(20*var(--u));letter-spacing:.04em;text-indent:.04em;color:rgba(43,26,2,.72);cursor:wait}
 #mmGo:not(:disabled):active{background:rgba(255,248,215,.3)}
 #mmGo::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-120%);pointer-events:none}
 #mobMenu.go #mmGo:not(:disabled)::after{animation:mmShine 2.8s 3.3s ease-in-out infinite}

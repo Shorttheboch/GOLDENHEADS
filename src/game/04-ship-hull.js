@@ -63,11 +63,11 @@ vec3 rkN;float rkL;
 void rockSample(){vec3 n=normalize(vRkN),w=pow(abs(n),vec3(5.));w/=(w.x+w.y+w.z);
   const float S1=0.21;vec3 p=vRkP*S1;
   vec3 tx=texture2D(uRockT,p.zy).xyz,ty=texture2D(uRockT,p.xz+0.37).xyz,tz=texture2D(uRockT,p.xy+0.71).xyz;
-  ${isTouch?'':'const float S2=1.07;vec3 q=vRkP.yzx*S2;vec3 ux=texture2D(uRockT,q.zy+0.13).xyz,uy=texture2D(uRockT,q.xz+0.59).xyz,uz=texture2D(uRockT,q.xy+0.29).xyz;\n  tx=vec3(tx.xy+(ux.xy-0.5)*0.55,tx.z*(0.72+0.56*ux.z));ty=vec3(ty.xy+(uy.xy-0.5)*0.55,ty.z*(0.72+0.56*uy.z));tz=vec3(tz.xy+(uz.xy-0.5)*0.55,tz.z*(0.72+0.56*uz.z));'}
-  const float K=${isTouch?'1.5':'1.35'};vec2 ax=(tx.xy*2.-1.)*K,ay=(ty.xy*2.-1.)*K,az=(tz.xy*2.-1.)*K;
+  ${isTouch?'':'const float S2=1.07;vec3 q=vRkP*S2;vec3 ux=texture2D(uRockT,q.zy+0.13).xyz,uy=texture2D(uRockT,q.xz+0.59).xyz,uz=texture2D(uRockT,q.xy+0.29).xyz;\n  tx=vec3(tx.xy+(ux.xy-0.5)*0.45,tx.z*(0.72+0.56*ux.z));ty=vec3(ty.xy+(uy.xy-0.5)*0.45,ty.z*(0.72+0.56*uy.z));tz=vec3(tz.xy+(uz.xy-0.5)*0.45,tz.z*(0.72+0.56*uz.z));'}
+  const float K=${isTouch?'1.3':'1.15'};vec2 ax=(tx.xy*2.-1.)*K,ay=(ty.xy*2.-1.)*K,az=(tz.xy*2.-1.)*K;
   vec3 nx=vec3(ax+n.zy,n.x),ny=vec3(ay+n.xz,n.y),nz=vec3(az+n.xy,n.z);
   rkN=normalize(nx.zyx*w.x+ny.xzy*w.y+nz.xyz*w.z);rkL=tx.z*w.x+ty.z*w.y+tz.z*w.z;}`)
-     .replace('#include <color_fragment>','#include <color_fragment>\nrockSample();{float l=rkL*rkL*4.;diffuseColor.rgb*=vec3(0.30+1.9*l,0.30+1.75*l,0.31+1.72*l);}')
+     .replace('#include <color_fragment>','#include <color_fragment>\nrockSample();{float l=rkL*rkL*4.;diffuseColor.rgb*=vec3(0.50+1.45*l,0.50+1.36*l,0.52+1.36*l);}')
      .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor*(1.08-0.3*rkL),0.5,1.);')
      .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize((viewMatrix*vec4(rkN,0.)).xyz);');};
  for(const [x,y,z,r,[ax,ay,az]] of ROCK_DEF){const R={c:new THREE.Vector3(x,y,z),r,ax,ay,az,seed:rng()*20,cr:[]};

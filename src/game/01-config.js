@@ -33,6 +33,15 @@ const $=id=>document.getElementById(id);
    if(c&&c===this.lastChild&&c.nodeType===3&&v!=null){const t=String(v);if(c.data===t||(c===this._tcN&&t===this._tcV))return;} // (second case: in English the translator has rewritten that same text node in place, public/i18n.js)
    d.set.call(this,v);if(this.nodeType===1){this._tcN=this.firstChild;this._tcV=v==null?'':String(v);}}});}
 let VW=innerWidth,VH=innerHeight;addEventListener('resize',()=>{VW=innerWidth;VH=innerHeight;});
+// v98 (Santi: on the iPhone the start screen stayed stretched sideways, and turning the phone round and back no longer fixed it): iOS sends
+// `resize` / `orientationchange` before innerWidth / innerHeight have their new values (above all opening the game from the home screen), so
+// the 3D canvas kept the size of the other orientation. The size is checked again a little after those events and, on touch screens, twice
+// a second: if it changed without a `resize` that saw it, one is sent, and every fit in the game (canvas, HUD frames, panels) runs again.
+function vpCheck(){const w=innerWidth,h=innerHeight;if(w===VW&&h===VH)return;VW=w;VH=h;dispatchEvent(new Event('resize'));}
+{const later=()=>{for(const t of [60,250,600,1200])setTimeout(vpCheck,t);};
+ addEventListener('orientationchange',later);addEventListener('resize',later);addEventListener('pageshow',later);
+ try{if(window.visualViewport)visualViewport.addEventListener('resize',later);}catch(_){}
+ if(matchMedia('(pointer: coarse)').matches)setInterval(vpCheck,500);}
 const FLOW={dz:0};
 const AS=0.88; // astronaut scale (a little smaller: the ship reads bigger, the spiders scarier)
 const isTouch=matchMedia('(pointer:coarse)').matches; // v54: primary pointer only: a touch laptop used with a mouse stays PC

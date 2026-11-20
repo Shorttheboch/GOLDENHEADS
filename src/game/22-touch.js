@@ -77,7 +77,7 @@ function tcSetPause(v){if(!isTouch||TC.paused===v)return;TC.paused=v;$('tPauseM'
   else if(typeof AC!=='undefined'&&AC&&AC.state==='suspended')AC.resume().catch(()=>{});}
 // phone held upright: warning on top, and the game pauses
 function tcOrient(){if(!isTouch)return;const port=innerHeight>innerWidth*1.05;$('tRot').hidden=!port;if(port&&state==='play')tcSetPause(true);}
-function tcOrientTick(){if(!isTouch||++TC.oriN%15)return;VW=innerWidth;VH=innerHeight;const port=VH>VW*1.05;if(port!==TC.port){TC.port=port;tcOrient();}} // v93: 4 times a second, not every frame (reading the window size in the middle of a frame makes the browser lay the page out again) // also checked every frame (some browsers are late with resize)
+function tcOrientTick(){if(!isTouch||++TC.oriN%15)return;vpCheck();const port=VH>VW*1.05;if(port!==TC.port){TC.port=port;tcOrient();}} // v93: 4 times a second, not every frame (reading the window size in the middle of a frame makes the browser lay the page out again) // also checked every frame (some browsers are late with resize)
 // full screen + landscape lock when PLAY / RETRY is tapped (Android; iPhone Safari allows neither for web pages)
 function tcFull(){if(!isTouch)return;const de=document.documentElement,rq=de.requestFullscreen||de.webkitRequestFullscreen;
   const lock=()=>{try{const o=screen.orientation;if(o&&o.lock)o.lock('landscape').catch(()=>{});}catch(_){}};

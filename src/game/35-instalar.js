@@ -17,8 +17,16 @@ function instInstalled(){try{
   if(navigator.standalone===true||matchMedia('(display-mode: standalone)').matches)return true;
   if(matchMedia('(display-mode: fullscreen)').matches&&!(document.fullscreenElement||document.webkitFullscreenElement))return true;
 }catch(_){}return false;}
+// v99 (Santi: «para resaltar PANTALLA COMPLETA se podría poner todo oscuro lo demás por un momento»): once the menu is in, everything but the button
+// goes dark for ~2.6 s (a hole the size of the button whose shadow covers the rest; it lets every tap through and goes at the first one).
+function instSpot(m){setTimeout(()=>{if(m.hidden||$('menu').hidden||!document.contains(m))return;const r=m.getBoundingClientRect();if(!(r.width>0))return;
+  const pad=7,d=document.createElement('div');d.id='navSpot';
+  d.style.cssText=`left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+2*pad}px;height:${r.height+2*pad}px`;document.body.appendChild(d);
+  const bye=()=>{d.classList.add('out');setTimeout(()=>d.remove(),450);removeEventListener('pointerdown',bye,true);removeEventListener('resize',bye);};
+  addEventListener('pointerdown',bye,true);addEventListener('resize',bye);requestAnimationFrame(()=>d.classList.add('on'));setTimeout(bye,window.__spotMs||3000);},3300);} // (__spotMs: tests hold it longer for the photo)
 function instRefresh(){const show=isTouch&&!INST.done&&!instInstalled();
   for(const b of INST.btns)b.hidden=!show;
+  if(show&&window.HEADS_NAV_FROM&&!INST.glow){INST.glow=1;const m=$('instMenu');if(m){m.classList.add('navGlow');m.addEventListener('pointerdown',()=>m.classList.remove('navGlow'),{once:true});instSpot(m);}} // v99: arriving from the Instagram screen («toca PANTALLA COMPLETA»): the button glows a few times
   if(!show&&INST.open)instClose();}
 // the guide's art and fonts: the button art (endui.js), the logo (menumob.js: the phone menu already fetched it), TekturE (endui.js font) and the menu's TitilliumH (window.MENU_FONTS).
 // Done once, ahead of time when idle, and awaited by the first tap; a slow network shows the guide anyway after 3 s.

@@ -43,6 +43,8 @@ const DATA: Record<string, [string, (v: unknown) => unknown][]> = {
     ["scr", (v) => oneOf(v, ["phone", "tablet", "pc-s", "pc-m", "pc-l"])], ["blang", (v) => (typeof v === "string" && /^[a-z]{2}$/.test(v) ? v : null)],
     ["inst", bool], ["go", bool], ["ready", bool], ["consent", (v) => oneOf(v, ["yes", "no", "unset"])], ["load", (v) => int(v, 0, 600_000)],
     ["film", (v) => oneOf(v, ["none", "watched", "skipped", "error", "left"])], ["filmS", (v) => int(v, 0, 120)],
+    // v99: the app whose browser the page is open in (Instagram, Facebook, TikTok, Threads, Messenger) and the app the player left to come here (public/navegador.js)
+    ["iab", (v) => oneOf(v, ["ig", "fb", "tt", "th", "ms"])], ["nav", (v) => oneOf(v, ["ig", "fb", "tt", "th", "ms"])],
   ],
   end: [
     ["score", (v) => int(v, 0, 1e8)], ["combat", (v) => int(v, 0, 1e8)], ["cargo", (v) => int(v, 0, 1e8)], ["kills", (v) => int(v, 0, 1e5)],

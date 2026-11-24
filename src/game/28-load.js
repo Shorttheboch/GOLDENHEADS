@@ -4,6 +4,7 @@ const SHIP_URL=isTouch?'assets/ship_mobile.glb':'assets/ship.glb';
 // v92: the astronaut's normal map (puffer fabric, seams, zips) is 2048 px on PC and 1024 on phones (astronaut_mobile.glb, otherwise the same file)
 const ASTRO_URL=isTouch?'assets/astronaut_mobile.glb':'assets/astronaut.glb';
 (async()=>{
+  if(window.HEADS_NAV_WAIT)await window.HEADS_NAV_WAIT; // v99: inside Instagram & co. nothing downloads until the player chooses to stay (public/navegador.js)
   try{
     const prog={a:0,s:0};const upd=()=>$('load').textContent=`Cargando modelos ${Math.round((prog.a+prog.s)/2*100)}%`;
     loadMod('assets/hud4.js').then(m=>{const H=m.default,pcOnly=isTouch&&window.HUD?'#hVit,#hScore,#hTank,#hTk,#hTop,#pcKeys':null; // v66: phones skip the PC panels' art
@@ -31,6 +32,18 @@ const ASTRO_URL=isTouch?'assets/astronaut_mobile.glb':'assets/astronaut.glb';
     setupAstronaut(astro);P.rig=new THREE.Group();scene.add(P.rig);P.rig.add(P.model);P.model.position.set(0,-1.0*AS,0);P.pos.set(10,1.2,9);P.yaw=Math.PI/2+0.35;P.pitch=0.12;
     scene.traverse(o=>{if(o.isLight)o.layers.enable(1);});
     $('load').textContent='';$('play').disabled=false;$('play').textContent='JUGAR';
+    // v99 (Santi: the first second of the game stuttered on the iPhone): while the menu is up, the game's shaders are compiled and its textures sent to the
+    // graphics card once, so the first frames of play do not have to. Before, that only happened behind the opening film (MENU_BG.warm), not when the film was
+    // skipped, already seen this session, or never got that far. 3.5 s in, after the menu intro; spiders included (they are not in the scene until play).
+    setTimeout(()=>{if(window.__noWarm)return;try{
+      // compiled for the composer's render target (linear colour), which is where the game draws: compiled for the screen they would be other programs
+      const cmp=(o,t)=>{const rt=renderer.getRenderTarget();renderer.setRenderTarget(composer.renderTarget1);
+        try{return renderer.compileAsync?renderer.compileAsync(o,camera,t):Promise.resolve(renderer.compile(o,camera,t));}finally{renderer.setRenderTarget(rt);}};
+      // a spider as the game builds it (its materials are copies with their own shader tweaks), compiled and taken out again (not disposed: the programs stay)
+      let sp=null;try{if(SPIDER_GLB){sp=makeSpider('hunter');sp.visible=true;}}catch(_){sp=null;}
+      const pr=cmp(scene);if(sp)scene.remove(sp);pr.catch(()=>{}); // (compile() makes every program at once; the async part only waits for them, so the spider can go now)
+      const seen=new Set();scene.traverse(o=>{if(!o.material)return;for(const m of [].concat(o.material))for(const k in m){const t=m[k];if(t&&t.isTexture&&!seen.has(t)){seen.add(t);try{renderer.initTexture(t);}catch(_){}}}});
+      window.__warmed=seen.size;}catch(e){console.warn('warm',e);}},3500);
     lateStart(gun);
   }catch(err){$('load').textContent='No se pudieron cargar los modelos. Recarga la página.';console.error(err);}
 })();

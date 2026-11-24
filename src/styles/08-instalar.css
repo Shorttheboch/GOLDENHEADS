@@ -111,3 +111,11 @@
 .instGo img{position:absolute;left:0;top:0;width:100%;height:100%}
 .instGo span{position:relative;font-family:'TekturE','Oxanium','Segoe UI',system-ui,sans-serif;font-weight:900;font-size:calc(22*var(--u));letter-spacing:.04em;color:#2b1500;text-shadow:0 calc(1*var(--u)) 0 rgba(255,240,190,.55);line-height:1}
 .instGo:active img{filter:brightness(1.18)}
+
+/* v99: arriving from the screen shown inside Instagram & co. (public/navegador.js, «toca PANTALLA COMPLETA»): once the menu is in, the button pulses gold a few times */
+#instMenu.navGlow,#menu.mgo #instMenu.navGlow{animation:instIn .28s 2.5s ease-out both,navGlow 1.15s ease-in-out 3.4s 6} /* (keeps the entry of line 17) */
+@keyframes navGlow{0%,100%{box-shadow:0 0 8px rgba(255,190,60,.25)}50%{box-shadow:0 0 0 3px rgba(255,211,106,.55),0 0 26px 6px rgba(255,190,60,.85);background:rgba(232,177,58,.28)}}
+@media (prefers-reduced-motion:reduce){#instMenu.navGlow,#menu.mgo #instMenu.navGlow{animation:instIn .28s 2.5s ease-out both;box-shadow:0 0 0 2px rgba(255,211,106,.7)}}
+/* v99: the spotlight on PANTALLA COMPLETA (instSpot in 35-instalar.js): a hole over the button, everything else under its shadow */
+#navSpot{position:fixed;z-index:150;pointer-events:none;border-radius:6px;box-shadow:0 0 0 200vmax rgba(0,0,0,.74),0 0 22px 4px rgba(255,200,80,.55);opacity:0;transition:opacity .45s ease}
+#navSpot.on{opacity:1}#navSpot.out{opacity:0}

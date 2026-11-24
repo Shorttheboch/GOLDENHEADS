@@ -153,5 +153,15 @@
   "a": "window.__n1={N1,",
   "b": "window.__acc={result:(r,p)=>accResult(r,p),plate:(j,o)=>accPlateSaved(j,o)};window.__n1={N1,",
   "file": "game"
+ },
+ {
+  "a": "scene.add(pistol);pistol.traverse(o=>{if(o.isMesh)o.castShadow=true;});",
+  "b": "scene.add(pistol);pistol.traverse(o=>{if(o.isMesh)o.castShadow=true;});window.__pistol=pistol;",
+  "file": "game"
+ },
+ {
+  "a": "function makeSpider(kind){",
+  "b": "window.__makeSpider=k=>makeSpider(k);function makeSpider(kind){",
+  "file": "game"
  }
 ]

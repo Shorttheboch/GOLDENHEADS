@@ -10,10 +10,10 @@ const UA={
   fbIOS:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22F76 [FBAN/FBIOS;FBAV/500.0.0.40.110;FBBV/700000000;FBDV/iPhone15,2;FBMD/iPhone;FBSN/iOS;FBSV/18.5;FBSS/3;FBCR/;FBID/phone;FBLC/es_ES;FBOP/5]',
   safari:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1'};
 (async()=>{const b=await chromium.launch({args:ARGS});
- const open=async(name,{ua,w=390,h=844,locale='es-ES',q='',touch=true})=>{
+ const open=async(name,{ua,w=390,h=844,locale='es-ES',q='',touch=true,spot=0})=>{
   const ctx=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:2,isMobile:touch,hasTouch:touch,userAgent:ua,locale});
   try{await ctx.grantPermissions(['clipboard-read','clipboard-write'],{origin:BASE});}catch(_){}
-  const p=await ctx.newPage();const reqs=[];p.on('request',r=>reqs.push(r.url()));p.on('pageerror',e=>console.log('ERR',name,e.message));
+  const p=await ctx.newPage();const reqs=[];if(spot)await p.addInitScript(ms=>{window.__spotMs=ms;},spot);p.on('request',r=>reqs.push(r.url()));p.on('pageerror',e=>console.log('ERR',name,e.message));
   await p.goto(BASE+'/test.html'+q,{waitUntil:'domcontentloaded'});return {ctx,p,reqs};};
  const look=p=>p.evaluate(()=>{const o=document.getElementById('navOv');if(!o)return null;const r=o.querySelector('.nb').getBoundingClientRect();
    return {h:o.querySelector('h1').textContent,sub:o.querySelector('.sub').textContent,tip:o.querySelector('.tip').textContent,os:o.dataset.os,
@@ -63,14 +63,20 @@ const UA={
  {const {ctx,p}=await open('fb',{ua:UA.fbIOS});await p.waitForTimeout(1200);const s=await look(p);ok(s&&/^Facebook no deja/.test(s.sub),'inside Facebook: «Facebook no deja jugar…»',s&&s.sub);await ctx.close();}
 
  // 5) Safari arriving with ?nav=ig: no screen, the mark leaves the address, PANTALLA COMPLETA glows
- {const {ctx,p}=await open('safari-nav',{ua:UA.safari,w:844,h:390,q:'?nav=ig'});await p.waitForTimeout(800);
+ {const {ctx,p}=await open('safari-nav',{ua:UA.safari,w:844,h:390,q:'?nav=ig',spot:9000});await p.waitForTimeout(800);
   const s=await p.evaluate(()=>({ov:!!document.getElementById('navOv'),url:location.search,from:window.HEADS_NAV_FROM,ss:sessionStorage.getItem('heads_nav')}));console.log('safari-nav',JSON.stringify(s));
   ok(!s.ov,'Safari: no screen');ok(s.url==='','the ?nav mark leaves the address',s.url);ok(s.from==='ig'&&s.ss==='ig','…and is kept for the session',s);
   await p.waitForFunction(()=>{const m=document.getElementById('instMenu');return m&&!m.hidden;},null,{timeout:300000}).catch(()=>{});
   await p.waitForTimeout(4200);
   const g=await p.evaluate(()=>{const m=document.getElementById('instMenu');return {hidden:m.hidden,cls:m.className,anim:getComputedStyle(m).animationName};});console.log('glow',JSON.stringify(g));
   ok(!g.hidden&&/navGlow/.test(g.cls)&&/navGlow/.test(g.anim),'the PANTALLA COMPLETA button glows',g);
-  await p.screenshot({path:shot('navegador_safari_brillo.png')});await ctx.close();}
+  const sp=await p.evaluate(()=>{const d=document.getElementById('navSpot'),m=document.getElementById('instMenu');if(!d)return null;const a=d.getBoundingClientRect(),b=m.getBoundingClientRect();
+    return {on:d.classList.contains('on'),op:+getComputedStyle(d).opacity,inside:a.left<=b.left&&a.top<=b.top&&a.right>=b.right&&a.bottom>=b.bottom,pe:getComputedStyle(d).pointerEvents};});
+  console.log('spot',JSON.stringify(sp));
+  ok(sp&&sp.on&&sp.inside&&sp.pe==='none','everything else goes dark around PANTALLA COMPLETA for a moment (taps still pass)',sp);
+  await p.screenshot({path:shot('navegador_safari_brillo.png')});
+  await p.waitForFunction(()=>!document.getElementById('navSpot'),null,{timeout:15000}).catch(()=>{});ok(await p.evaluate(()=>!document.getElementById('navSpot')),'…and the dark goes away by itself');
+  await ctx.close();}
 
  // 6) Safari without the mark and PC: nothing changes
  {const {ctx,p}=await open('safari',{ua:UA.safari,w:844,h:390});await p.waitForTimeout(1500);

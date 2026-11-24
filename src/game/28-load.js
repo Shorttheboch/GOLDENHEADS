@@ -32,6 +32,13 @@ const ASTRO_URL=isTouch?'assets/astronaut_mobile.glb':'assets/astronaut.glb';
     setupAstronaut(astro);P.rig=new THREE.Group();scene.add(P.rig);P.rig.add(P.model);P.model.position.set(0,-1.0*AS,0);P.pos.set(10,1.2,9);P.yaw=Math.PI/2+0.35;P.pitch=0.12;
     scene.traverse(o=>{if(o.isLight)o.layers.enable(1);});
     $('load').textContent='';$('play').disabled=false;$('play').textContent='JUGAR';
+    // v99 (Santi: the first second of the game stuttered on the iPhone): while the menu is up, the game's shaders are compiled and its textures sent to the
+    // graphics card once, so the first frames of play do not have to. Before, that only happened behind the opening film (MENU_BG.warm), not when the film was
+    // skipped, already seen this session, or never got that far. 3.5 s in, after the menu intro; spiders included (they are not in the scene until play).
+    setTimeout(()=>{if(window.__noWarm)return;try{const cmp=(o,t)=>renderer.compileAsync?renderer.compileAsync(o,camera,t):Promise.resolve(renderer.compile(o,camera,t));
+      cmp(scene).then(()=>SPIDER_GLB?cmp(SPIDER_GLB.scene,scene):0).catch(()=>{});
+      const seen=new Set();scene.traverse(o=>{if(!o.material)return;for(const m of [].concat(o.material))for(const k in m){const t=m[k];if(t&&t.isTexture&&!seen.has(t)){seen.add(t);try{renderer.initTexture(t);}catch(_){}}}});
+      window.__warmed=seen.size;}catch(e){console.warn('warm',e);}},3500);
     lateStart(gun);
   }catch(err){$('load').textContent='No se pudieron cargar los modelos. Recarga la página.';console.error(err);}
 })();

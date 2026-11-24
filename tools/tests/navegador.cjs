@@ -30,6 +30,7 @@ const UA={
   ok(s&&!s.over,'nothing sticks out sideways (upright 390 px)');
   ok(models(reqs)===0,'nothing downloads behind the screen (no .glb requested in 3 s)',models(reqs));
   ok(await p.evaluate(()=>!!window.HEADS_INAPP&&window.HEADS_INAPP==='ig'),'HEADS_INAPP = ig');
+  ok(await p.evaluate(()=>/[?&]nav=ig\b/.test(location.search)),'the address itself carries ?nav=ig (Instagram\'s own «open in browser» takes it along)',await p.evaluate(()=>location.search));
   await p.screenshot({path:shot('navegador_ios.png')});
   await p.tap('#navCopy');await p.waitForTimeout(400);
   const after=await p.evaluate(async()=>({btn:document.getElementById('navCopy').textContent,clip:await navigator.clipboard.readText().catch(()=>null),n:window.HEADS_NAV_COPIED||0}));

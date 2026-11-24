@@ -23,6 +23,9 @@
     else{try{window.HEADS_NAV_FROM=sessionStorage.getItem('heads_nav')||null;}catch(e){}}}catch(e){}
   if(!app)return;
   window.HEADS_INAPP=app[0];
+  // Santi opened it with Instagram's own ··· → «Abrir en el navegador», not with the copied link, and the PANTALLA COMPLETA spotlight did not come:
+  // that menu opens the address the page has now, so the mark goes into the address here too.
+  try{var qm=new URLSearchParams(location.search);if(qm.get('nav')!==app[0]){qm.set('nav',app[0]);history.replaceState(history.state,'',location.pathname+'?'+qm.toString()+location.hash);}}catch(e){}
   var go;window.HEADS_NAV_WAIT=new Promise(function(r){go=r;});
   var lang='es';try{lang=localStorage.getItem('heads_lang')||((navigator.language||'es').toLowerCase().indexOf('es')===0?'es':'en');}catch(e){}
   var ios=/iP(hone|ad|od)/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),android=/Android/i.test(ua);

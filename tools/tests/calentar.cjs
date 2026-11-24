@@ -4,8 +4,9 @@
 const {chromium}=require('playwright');const {BASE,ARGS}=require('./lib.cjs');
 let fails=0;const ok=(c,m,d)=>{console.log((c?'  ok   ':'  FAIL ')+m+(c||d===undefined?'':'  '+JSON.stringify(d)));if(!c)fails++;};
 const GPU=process.env.HEADS_GPU_ARGS?JSON.parse(process.env.HEADS_GPU_ARGS):null;
-(async()=>{const b=await chromium.launch({args:GPU||ARGS});const res={};
- for(const mode of ['warm','cold','warm2','cold2']){
+(async()=>{const res={};
+ // a new browser for every run (programs compiled by one run would help the next), and the order alternates
+ for(const mode of ['cold','warm','cold2','warm2']){const b=await chromium.launch({args:GPU||ARGS});
   const ctx=await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:2,isMobile:true,hasTouch:true});const p=await ctx.newPage();
   p.on('pageerror',e=>console.log('ERR',e.message));
   await p.addInitScript(m=>{window.__lang='es';if(m.startsWith('cold'))window.__noWarm=1;window.__noCine=0;},mode); // (with the start cinematic, as a player sees it; the film stays off)
@@ -18,9 +19,9 @@ const GPU=process.env.HEADS_GPU_ARGS?JSON.parse(process.env.HEADS_GPU_ARGS):null
   await p.waitForFunction(()=>window.__T&&__T.state==='play',null,{timeout:120000}).catch(()=>{});
   await p.waitForTimeout(2500);
   const r=await p.evaluate(()=>{const a=window.__ft.slice(2);const s=[...a].sort((x,y)=>y-x);return {n:a.length,max:Math.round(s[0]||0),top3:s.slice(0,3).map(Math.round),state:window.__T&&__T.state};});
-  res[mode]={warmed,...r};console.log(mode,JSON.stringify(res[mode]));await ctx.close();}
+  res[mode]={warmed,...r};console.log(mode,JSON.stringify(res[mode]));await ctx.close();await b.close();}
  ok(res.warm.warmed>0&&res.warm2.warmed>0,'the warm-up ran in the menu (textures sent: '+res.warm.warmed+')');
  ok(res.cold.warmed===0,'…and not with __noWarm');
  ok(res.warm.state==='play'&&res.warm2.state==='play','the game started');
  console.log('longest frame after JUGAR (ms): with warm-up',res.warm.max,res.warm2.max,'· without',res.cold.max,res.cold2.max);
- await b.close();console.log(fails?'FAIL '+fails:'ALL OK');process.exit(fails?1:0);})();
+ console.log(fails?'FAIL '+fails:'ALL OK');process.exit(fails?1:0);})();

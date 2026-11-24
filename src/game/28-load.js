@@ -4,6 +4,7 @@ const SHIP_URL=isTouch?'assets/ship_mobile.glb':'assets/ship.glb';
 // v92: the astronaut's normal map (puffer fabric, seams, zips) is 2048 px on PC and 1024 on phones (astronaut_mobile.glb, otherwise the same file)
 const ASTRO_URL=isTouch?'assets/astronaut_mobile.glb':'assets/astronaut.glb';
 (async()=>{
+  if(window.HEADS_NAV_WAIT)await window.HEADS_NAV_WAIT; // v99: inside Instagram & co. nothing downloads until the player chooses to stay (public/navegador.js)
   try{
     const prog={a:0,s:0};const upd=()=>$('load').textContent=`Cargando modelos ${Math.round((prog.a+prog.s)/2*100)}%`;
     loadMod('assets/hud4.js').then(m=>{const H=m.default,pcOnly=isTouch&&window.HUD?'#hVit,#hScore,#hTank,#hTk,#hTop,#pcKeys':null; // v66: phones skip the PC panels' art

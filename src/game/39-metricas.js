@@ -45,7 +45,7 @@ function mtFilm(){const v=$('opVid');if(!v||!v.getAttribute('src'))return {film:
   if(v.error||(v.paused&&!v.ended&&c<0.1))return {film:'error'};
   return v.ended||c>=d-0.6?{film:'watched'}:{film:'skipped',filmS:Math.round(c)};}
 function mtVisit(){if(MT.visit)return null;MT.visit=true;
-  const e=Object.assign(mtBase('visit'),{scr:MT.env.scr,blang:MT.env.bl,inst:instInstalled(),go:MT.go,ready:MT.ready!==null,consent:MT.cs});
+  const e=Object.assign(mtBase('visit'),{scr:MT.env.scr,blang:MT.env.bl,inst:instInstalled(),iab:window.HEADS_INAPP||null,nav:window.HEADS_NAV_FROM||null,go:MT.go,ready:MT.ready!==null,consent:MT.cs});
   if(MT.ready!==null)e.load=Math.round(MT.ready);
   if(MT.film)Object.assign(e,MT.film);
   else if(MT.go&&!$('opening').hidden)Object.assign(e,{film:'left',filmS:Math.round($('opVid').currentTime||0)}); // the page goes away during the film

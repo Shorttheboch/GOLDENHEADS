@@ -19,6 +19,7 @@ function instInstalled(){try{
 }catch(_){}return false;}
 function instRefresh(){const show=isTouch&&!INST.done&&!instInstalled();
   for(const b of INST.btns)b.hidden=!show;
+  if(show&&window.HEADS_NAV_FROM&&!INST.glow){INST.glow=1;const m=$('instMenu');if(m){m.classList.add('navGlow');m.addEventListener('pointerdown',()=>m.classList.remove('navGlow'),{once:true});}} // v99: arriving from the Instagram screen («toca PANTALLA COMPLETA»): the button glows a few times
   if(!show&&INST.open)instClose();}
 // the guide's art and fonts: the button art (endui.js), the logo (menumob.js: the phone menu already fetched it), TekturE (endui.js font) and the menu's TitilliumH (window.MENU_FONTS).
 // Done once, ahead of time when idle, and awaited by the first tap; a slow network shows the guide anyway after 3 s.

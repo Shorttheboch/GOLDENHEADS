@@ -117,23 +117,23 @@ chipN = fbm([28, 10], [1, 0.6]) * 0.7 + fine * 0.3
 
 # chips: more along the letter edges and the panel seams, a few out in the open
 Mb = blur(M, 4); edge = np.clip(1 - np.abs(Mb - 0.5) * 2.2, 0, 1)
-chipT = 0.50 - 0.32 * edge - 0.28 * cav
+chipT = 0.66 - 0.22 * edge - 0.14 * cav
 chip = np.clip((chipN - chipT) / 0.05, 0, 1)
 # scratches: thin, long, mostly along the ship (V), a few across
-scr = np.maximum(np.clip((fbm([40, 14], [1, 0.5], aniso=(1, 0.05)) - 0.70) / 0.05, 0, 1), 0.6 * np.clip((fbm([40, 14], [1, 0.5], aniso=(0.06, 1)) - 0.80) / 0.05, 0, 1))
+scr = np.maximum(np.clip((fbm([40, 14], [1, 0.5], aniso=(1, 0.05)) - 0.78) / 0.05, 0, 1), 0.6 * np.clip((fbm([40, 14], [1, 0.5], aniso=(0.06, 1)) - 0.88) / 0.05, 0, 1))
 scr *= np.clip(fbm([140], [1]) * 2.0 - 0.1, 0, 1)                 # in a few patches, not everywhere
-chip = np.maximum(chip, scr * 0.6)
+chip = np.maximum(chip, scr * 0.35)
 alpha = np.clip(M * (1 - chip), 0, 1)
-alpha *= np.clip(0.93 + 0.07 * mott, 0, 1)                       # thin spots let a hint of gold through
+alpha *= np.clip(0.96 + 0.04 * mott, 0, 1)                       # thin spots let a hint of gold through
 
 # ---------- base colour ----------
 paint = np.array([int(c) for c in a.paint.split(',')], np.float32) / 255
 ob = base[sy, sx]
 lum = ob @ np.array([0.2126, 0.7152, 0.0722], np.float32)
 detail = np.clip(lum / (blur(lum, 5) + 1e-4), 0.55, 1.25)[..., None]   # the panel lines and rivets of the original map, kept in the paint
-pc = paint[None, None, :] * (1 + 0.08 * mott[..., None]) * (1 - 0.22 * np.clip(streak, 0, 1)[..., None]) * detail
+pc = paint[None, None, :] * (1 + 0.08 * mott[..., None]) * (1 - 0.12 * np.clip(streak, 0, 1)[..., None]) * detail
 dirt = np.array([0.30, 0.27, 0.22], np.float32)
-pc = pc * (1 - 0.78 * grime[..., None]) + dirt * 0.78 * grime[..., None] * 0.45
+pc = pc * (1 - 0.55 * grime[..., None]) + dirt * 0.55 * grime[..., None] * 0.5
 pc = np.clip(pc, 0, 1)
 nb = ob * (1 - alpha[..., None]) + pc * alpha[..., None]
 # a thin dark lip where the paint stops (paint edge / chip edge picks up dirt)

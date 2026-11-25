@@ -20,6 +20,11 @@ const DIR=process.argv[2]||process.env.HEADS_DIR||'dist-test';
  // the game's own camera, HUD hidden
  await p.evaluate(()=>{for(const el of document.querySelectorAll('body>*:not(canvas)'))el.style.visibility='hidden';});
  {const d=await p.evaluate(()=>{__composer.render();return __composer.renderer.domElement.toDataURL('image/jpeg',0.92);});fs.writeFileSync(shot('letras_'+(process.env.TAG||'x')+'_juego.jpg'),Buffer.from(d.split(',')[1],'base64'));}
+ // the game scene (its sky, sun and bloom) seen from a few places a player looks from: behind the astronaut on the spine, beside the ship, above it
+ for(const [n,pos,at] of [['juego_lomo',[3.5,7.5,13],[0,3.6,0]],['juego_lado',[16,6,4],[0,3,0.5]],['juego_arriba',[-6,16,-14],[0,3.5,1]]]){
+  const d=await p.evaluate(({pos,at})=>{window.__manual=1;window.__noRender=1;const c=__composer.passes[0].camera;c.position.set(...pos);c.lookAt(...at);c.updateMatrixWorld(true);
+    __composer.render();return __composer.renderer.domElement.toDataURL('image/jpeg',0.92);},{pos,at});
+  fs.writeFileSync(shot('letras_'+(process.env.TAG||'x')+'_'+n+'.jpg'),Buffer.from(d.split(',')[1],'base64'));}
  await p.evaluate(()=>{for(const el of document.querySelectorAll('body>*:not(canvas)'))el.style.visibility='';});
  await p.evaluate(()=>{const H=__heads;window.__noSpawn=1;__T.toSpawn=0;for(const s of [...H.spiders])H.killSpider(s);});
  await p.evaluate(()=>__step(40));

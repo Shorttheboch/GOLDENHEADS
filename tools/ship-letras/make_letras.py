@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 ap = argparse.ArgumentParser()
 ap.add_argument('--tris', required=True); ap.add_argument('--glb', required=True); ap.add_argument('--font', required=True)
 ap.add_argument('--out', required=True); ap.add_argument('--seed', type=int, default=7)
-ap.add_argument('--paint', default='176,174,166', help='paint colour, sRGB 0-255 (off-white, a little warm, not pure white)')
+ap.add_argument('--paint', default='150,148,140', help='paint colour, sRGB 0-255 (off-white, a little warm, not pure white)')
 ap.add_argument('--zh', type=float, default=9.28); ap.add_argument('--zs', type=float, default=-7.64)   # along the ship: front of the H, back of the S
 ap.add_argument('--h', type=float, default=3.33)                                                      # letter height, across the spine
 a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
@@ -104,10 +104,11 @@ def blur(A, r): return gaussian_filter(A.astype(np.float32), r)
 
 # grooves and rivets: where the normal map leans away from flat (+ the baked AO)
 n = nrm[sy, sx]; dev = np.sqrt(n[..., 0] ** 2 + n[..., 1] ** 2)
-cav = np.clip((blur(dev, 1.2) - 0.06) / 0.25, 0, 1)
+cav = np.clip((blur(dev, 1.0) - 0.04) / 0.16, 0, 1)
+print('cavity: mean', round(float(cav.mean()), 3), 'share >0.5', round(float((cav > 0.5).mean()), 3))
 ao = np.asarray(Image.fromarray((orm[..., 0] * 255).astype(np.uint8)).resize((N, N), Image.BILINEAR)).astype(np.float32)[sy, sx] / 255
 grime = np.clip(cav * 0.85 + (1 - ao) * 0.8, 0, 1)
-grime = np.clip(grime + 0.35 * blur(grime, 3), 0, 1)            # dirt spreads a little out of the seams
+grime = np.clip(grime + 0.55 * blur(grime, 4) + 0.25 * blur(grime, 12), 0, 1)   # dirt spreads out of the seams and rivets
 
 mott = fbm([90, 40, 15], [1, 0.6, 0.3])                          # large soft patches of uneven paint
 streak = fbm([160, 60], [1, 0.5], aniso=(1, 0.18))               # streaks along the ship (V = along the fuselage in this island)
@@ -116,8 +117,12 @@ chipN = fbm([28, 10], [1, 0.6]) * 0.7 + fine * 0.3
 
 # chips: more along the letter edges and the panel seams, a few out in the open
 Mb = blur(M, 4); edge = np.clip(1 - np.abs(Mb - 0.5) * 2.2, 0, 1)
-chipT = 0.62 - 0.30 * edge - 0.22 * cav
+chipT = 0.50 - 0.32 * edge - 0.28 * cav
 chip = np.clip((chipN - chipT) / 0.05, 0, 1)
+# scratches: thin, long, mostly along the ship (V), a few across
+scr = np.maximum(np.clip((fbm([40, 14], [1, 0.5], aniso=(1, 0.05)) - 0.70) / 0.05, 0, 1), 0.6 * np.clip((fbm([40, 14], [1, 0.5], aniso=(0.06, 1)) - 0.80) / 0.05, 0, 1))
+scr *= np.clip(fbm([140], [1]) * 2.0 - 0.1, 0, 1)                 # in a few patches, not everywhere
+chip = np.maximum(chip, scr * 0.6)
 alpha = np.clip(M * (1 - chip), 0, 1)
 alpha *= np.clip(0.93 + 0.07 * mott, 0, 1)                       # thin spots let a hint of gold through
 
@@ -126,9 +131,9 @@ paint = np.array([int(c) for c in a.paint.split(',')], np.float32) / 255
 ob = base[sy, sx]
 lum = ob @ np.array([0.2126, 0.7152, 0.0722], np.float32)
 detail = np.clip(lum / (blur(lum, 5) + 1e-4), 0.55, 1.25)[..., None]   # the panel lines and rivets of the original map, kept in the paint
-pc = paint[None, None, :] * (1 + 0.06 * mott[..., None]) * (1 - 0.10 * np.clip(streak, 0, 1)[..., None]) * detail
+pc = paint[None, None, :] * (1 + 0.08 * mott[..., None]) * (1 - 0.22 * np.clip(streak, 0, 1)[..., None]) * detail
 dirt = np.array([0.30, 0.27, 0.22], np.float32)
-pc = pc * (1 - 0.62 * grime[..., None]) + dirt * 0.62 * grime[..., None] * 0.55
+pc = pc * (1 - 0.78 * grime[..., None]) + dirt * 0.78 * grime[..., None] * 0.45
 pc = np.clip(pc, 0, 1)
 nb = ob * (1 - alpha[..., None]) + pc * alpha[..., None]
 # a thin dark lip where the paint stops (paint edge / chip edge picks up dirt)
@@ -136,7 +141,7 @@ lip = np.clip(blur(alpha, 1.0) - alpha, 0, 1) * 0.9
 nb *= (1 - 0.35 * lip[..., None])
 
 # ---------- ORM: R = AO (unchanged), G = roughness, B = metallic (2048: averaged from the 4096 work) ----------
-rough_p = np.clip(0.56 + 0.10 * mott + 0.06 * fine + 0.25 * grime + 0.08 * np.clip(streak, 0, 1), 0.35, 0.95)
+rough_p = np.clip(0.64 + 0.14 * mott + 0.08 * fine + 0.25 * grime + 0.12 * np.clip(streak, 0, 1), 0.38, 0.97)
 def down(A):  # 4096 crop -> 2048 crop (box)
     h, w = A.shape[:2]; return A[:h - h % 2, :w - w % 2].reshape(h // 2, 2, w // 2, 2, *A.shape[2:]).mean((1, 3))
 k = N // NO

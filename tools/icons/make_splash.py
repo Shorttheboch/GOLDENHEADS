@@ -3,8 +3,8 @@
 
 An iPhone that opens the game from the home screen shows a launch screen before the page draws anything. Without one it is
 plain white. iOS only uses an image whose size matches the screen exactly (CSS size, pixel ratio and orientation in the media
-query), so there is one per iPhone screen and orientation. Each is the near-black background of the icons with Santi's logo in
-the middle (the same art as make_icons.py: no new artwork, no text). Android uses the manifest instead (black, with the icon).
+query), so there is one per iPhone screen and orientation. Each is the near-black background of the icons with the logo in
+the middle (the same art as make_icons.py: since v101 the HEADS brand logo; no text). Android uses the manifest instead (black, with the icon).
 
 iOS reads these when the game is added to the home screen: an icon added before v97 keeps the white screen until it is added again.
 
@@ -26,10 +26,13 @@ PHONES = [(375, 667, 2), (414, 736, 3), (375, 812, 3), (414, 896, 2), (414, 896,
 LOGO_K = 0.46   # the logo is 46 % of the short side wide
 
 
+LOGO_RGBA = None
+
+
 def splash(w, h):
     n = max(w, h)
     bg = mk.background(n).crop(((n - w) // 2, (n - h) // 2, (n - w) // 2 + w, (n - h) // 2 + h))
-    logo = Image.open(mk.LOGO).convert('RGBA')
+    logo = LOGO_RGBA
     lw = round(min(w, h) * LOGO_K); lh = round(logo.height * lw / logo.width)
     logo = logo.resize((lw, lh), Image.LANCZOS)
     bg.paste(logo, ((w - lw) // 2, (h - lh) // 2), logo)
@@ -37,6 +40,8 @@ def splash(w, h):
 
 
 def main():
+    global LOGO_RGBA
+    LOGO_RGBA = mk.load_logo()
     os.makedirs(OUT, exist_ok=True)
     lines = []
     for cw, ch, dpr in PHONES:

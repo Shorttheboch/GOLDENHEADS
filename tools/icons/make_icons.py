@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Icons of the installed game (v75): home-screen icon on iPhone/iPad and Android.
+"""Icons of the installed game (v75; v101: the brand logo): home-screen icon on iPhone/iPad, Android and desktop.
 
-Takes Santi's logo (public/assets/ui/menuui/logo.webp, 1200x810, transparent) as it is, centres it on a near-black square
+Takes the HEADS brand logo (tools/icons/heads-marca.png, Santi's golden HEADS with the swooshes, on black; since v101 —
+before it was the game logo, public/assets/ui/menuui/logo.webp, which stays in the menu and in the game), turns its black
+into transparency, centres it on a near-black square
 with a very subtle warm radial glow behind it, and writes public/icons/:
 
   apple-touch-icon.png     180x180  opaque (iOS rounds the corners itself; transparency would turn black)
@@ -19,7 +21,7 @@ import sys
 from PIL import Image, ImageDraw
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-LOGO = os.path.join(ROOT, 'public', 'assets', 'ui', 'menuui', 'logo.webp')
+LOGO = os.path.join(ROOT, 'tools', 'icons', 'heads-marca.png')   # v101: the brand logo, golden on pure black (no alpha)
 OUT = os.path.join(ROOT, 'public', 'icons')
 
 EDGE = (4, 3, 2)        # near-black at the corners
@@ -30,6 +32,26 @@ GLOW_SHOULDER = 1.6     # how soft the glow's edge is (higher = tighter in the m
 SAFE_R = 0.40           # maskable: the safe zone is a circle of 40 % of the icon size in radius (80 % across)
 SAFE_MARGIN = 0.96      # ... and the logo stays a little inside it
 SS = 2                  # supersampling: drawn at 2x and reduced, so the smooth glow does not band
+
+
+def load_logo():
+    """The brand logo as RGBA: its black background becomes transparent. Gold on pure black, so alpha comes from the brightest
+    channel (anything brighter than 70 is fully opaque) and the colour is un-premultiplied: the soft glowing edges keep their
+    colour instead of turning grey, and on the near-black icon background it looks exactly like the original."""
+    im = Image.open(LOGO).convert('RGB')
+    px = im.load(); w, h = im.size
+    out = Image.new('RGBA', (w, h))
+    o = out.load()
+    for y in range(h):
+        for x in range(w):
+            r, g, b = px[x, y]
+            m = max(r, g, b)
+            a = min(1.0, m / 70.0)
+            if a <= 0.02:
+                o[x, y] = (0, 0, 0, 0)
+            else:
+                o[x, y] = (min(255, round(r / a)), min(255, round(g / a)), min(255, round(b / a)), round(a * 255))
+    return out
 
 
 def background(n):
@@ -83,7 +105,7 @@ def enclosing_circle(img):
 def make(n, maskable):
     s = n * SS
     bg = background(s).convert('RGBA')
-    logo = Image.open(LOGO).convert('RGBA')
+    logo = load_logo()
     if maskable:
         cx, cy, r = enclosing_circle(logo)
         k = SAFE_R * SAFE_MARGIN * s / r                    # the whole logo inside the safe circle

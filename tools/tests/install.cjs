@@ -166,12 +166,19 @@ async function pcPhase(b){
   const metas=await p.evaluate(()=>Object.fromEntries([...document.querySelectorAll('meta[name]')].map(m=>[m.name,m.content])));
   ok(metas['apple-mobile-web-app-capable']==='yes'&&metas['apple-mobile-web-app-status-bar-style']==='black-translucent'&&metas['apple-mobile-web-app-title']==='HEADS','Apple tags: capable yes, status bar black-translucent, title HEADS');
   ok(metas['mobile-web-app-capable']==='yes'&&metas['theme-color']==='#000000','Android tags: mobile-web-app-capable yes, theme-color black');
-  // the maskable icon keeps the whole logo inside the 80 % safe circle; the "any" ones use ~86 % of the width
+  // v101: the brand logo, centred on the word HEADS (not on the swooshes) and big: in the maskable icon the word sits across the middle
+  // inside the 80 % safe circle (the swoosh tips may be cropped); in the "any" icons the logo fills almost the whole width
   const sz=await p.evaluate(async()=>{const out={};for(const [k,src] of [['maskable','icons/icon-maskable-512.png'],['any','icons/icon-512.png']]){const im=new Image();im.src=src;await im.decode();const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.drawImage(im,0,0);
-      const d=x.getImageData(0,0,512,512).data;let far=0,minx=512,maxx=0;for(let y=0;y<512;y++)for(let xx=0;xx<512;xx++){const i=(y*512+xx)*4;if(d[i]+d[i+1]+d[i+2]>150){far=Math.max(far,Math.hypot(xx-256,y-256));minx=Math.min(minx,xx);maxx=Math.max(maxx,xx);}}
-      out[k]={far,wFrac:(maxx-minx)/512};}return out;});
-  ok(sz.maskable.far<=0.4*512,'maskable icon: the whole logo is inside the safe circle (farthest bright pixel '+sz.maskable.far.toFixed(1)+' of '+(0.4*512)+')');
-  ok(sz.any.wFrac>0.8&&sz.any.wFrac<0.9,'"any" icon: the logo is about 86 % of the width ('+(sz.any.wFrac*100).toFixed(0)+' %)');
+      const d=x.getImageData(0,0,512,512).data;const row=new Array(512).fill(0);let minx=512,maxx=0;for(let y=0;y<512;y++)for(let xx=0;xx<512;xx++){const i=(y*512+xx)*4;if(d[i]+d[i+1]+d[i+2]>150){row[y]++;minx=Math.min(minx,xx);maxx=Math.max(maxx,xx);}}
+      // the word is the band of rows full of gold: rows with more than 40 % of the busiest row's count, around the busiest row
+      const peak=row.indexOf(Math.max(...row));let a=peak,b=peak;const th=Math.max(...row)*0.4;while(a>0&&row[a-1]>th)a--;while(b<511&&row[b+1]>th)b++;
+      let wl=512,wr=0;for(let y=a;y<=b;y++)for(let xx=0;xx<512;xx++){const i=(y*512+xx)*4;if(d[i]+d[i+1]+d[i+2]>150&&Math.abs(xx-256)<0.45*512){wl=Math.min(wl,xx);wr=Math.max(wr,xx);}}
+      out[k]={band:[a,b],mid:(a+b)/2,wFrac:(maxx-minx)/512,word:[wl,wr]};}return out;});
+  console.log('icons',JSON.stringify(sz));
+  ok(Math.abs(sz.maskable.mid-256)<0.05*512&&Math.abs(sz.any.mid-256)<0.05*512,'the word HEADS is centred in both icons (band of rows '+JSON.stringify(sz.maskable.band)+', '+JSON.stringify(sz.any.band)+')');
+  {const [a,b]=sz.maskable.band,[l,r]=sz.maskable.word,far=Math.max(...[[l,a],[l,b],[r,a],[r,b]].map(([x,y])=>Math.hypot(x-256,y-256)));
+   ok(far<=0.4*512&&(r-l)>0.55*512,'maskable icon: HEADS is big ('+((r-l)/5.12).toFixed(0)+' % of the width) and inside the safe circle (corner at '+far.toFixed(1)+' of '+(0.4*512)+')');}
+  ok(sz.any.wFrac>0.9,'"any" icon: the logo fills almost the whole width ('+(sz.any.wFrac*100).toFixed(0)+' %)');
   ok(!errs.length,'PC: no page errors '+JSON.stringify(errs.slice(0,3)));
   await ctx.close();}
 

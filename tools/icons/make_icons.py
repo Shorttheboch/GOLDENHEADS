@@ -9,7 +9,8 @@ with a very subtle warm radial glow behind it, and writes public/icons/:
   apple-touch-icon.png     180x180  opaque (iOS rounds the corners itself; transparency would turn black)
   icon-192.png             192x192  purpose "any"
   icon-512.png             512x512  purpose "any"
-  icon-maskable-512.png    512x512  purpose "maskable": the logo sits inside the 80 % safe circle (Android crops it to a circle, squircle, ...)
+  icon-maskable-512.png    512x512  purpose "maskable": the word HEADS sits inside the 80 % safe circle (Android crops it to a circle,
+                                    squircle, ...; the swoosh tips may be cut)
 
 No new artwork and no extra text: only the logo, scaled, on a background. Needs Pillow (pip install pillow).
 
@@ -27,7 +28,9 @@ OUT = os.path.join(ROOT, 'public', 'icons')
 EDGE = (4, 3, 2)        # near-black at the corners
 GLOW = (44, 29, 11)     # warm gold-brown at the centre: very subtle, the logo is what shines
 GLOW_R = 0.95           # the glow fades to nothing at this fraction of the half-width (0.95: just short of the edges)
-ANY_FIT = 0.86          # "any" icons: the logo is 86 % of the icon width
+WORD = (172, 490, 1027, 650)   # v101: the word HEADS inside heads-marca.png (pixels): the icons are centred on it, not on the swooshes
+ANY_WORD = 0.74         # "any" icons: HEADS is 74 % of the icon width (the swoosh tips may run off the edges)
+MASK_WORD = 0.70        # maskable: HEADS is 70 % of the width, its corners inside the 80 % safe circle; the swooshes may be cropped
 GLOW_SHOULDER = 1.6     # how soft the glow's edge is (higher = tighter in the middle)
 SAFE_R = 0.40           # maskable: the safe zone is a circle of 40 % of the icon size in radius (80 % across)
 SAFE_MARGIN = 0.96      # ... and the logo stays a little inside it
@@ -106,15 +109,12 @@ def make(n, maskable):
     s = n * SS
     bg = background(s).convert('RGBA')
     logo = load_logo()
-    if maskable:
-        cx, cy, r = enclosing_circle(logo)
-        k = SAFE_R * SAFE_MARGIN * s / r                    # the whole logo inside the safe circle
-        cx_t, cy_t = s / 2, s / 2                           # circle centre -> icon centre
-    else:
-        bb = logo.getchannel('A').point(lambda v: 255 if v > 24 else 0).getbbox()
-        k = ANY_FIT * s / (bb[2] - bb[0])
-        cx, cy = (bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2   # visible box centre -> icon centre
-        cx_t, cy_t = s / 2, s / 2
+    ww, wh = WORD[2] - WORD[0], WORD[3] - WORD[1]
+    k = (MASK_WORD if maskable else ANY_WORD) * s / ww
+    if maskable:                                            # the corners of the word stay inside the safe circle
+        assert math.hypot(ww * k / 2, wh * k / 2) <= SAFE_R * SAFE_MARGIN * s, 'HEADS would leave the safe circle'
+    cx, cy = (WORD[0] + WORD[2]) / 2, (WORD[1] + WORD[3]) / 2   # the word's centre -> icon centre
+    cx_t, cy_t = s / 2, s / 2
     lw, lh = round(logo.width * k), round(logo.height * k)
     logo = logo.resize((lw, lh), Image.LANCZOS)
     bg.alpha_composite(logo, (round(cx_t - cx * k), round(cy_t - cy * k)))

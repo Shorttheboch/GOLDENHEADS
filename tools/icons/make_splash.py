@@ -23,7 +23,7 @@ OUT = os.path.join(mk.ROOT, 'public', 'icons', 'splash')
 # 12-14 / 16e, 12-13 Pro Max / 14 Plus, 14 Pro-16 / 17, 14 Pro Max-16 Plus, 16 Pro, 16 Pro Max / 17 Pro Max, Air
 PHONES = [(375, 667, 2), (414, 736, 3), (375, 812, 3), (414, 896, 2), (414, 896, 3), (390, 844, 3), (428, 926, 3),
           (393, 852, 3), (430, 932, 3), (402, 874, 3), (440, 956, 3), (420, 912, 3)]
-LOGO_K = 0.46   # the logo is 46 % of the short side wide
+WORD_K = 0.56   # v101: the word HEADS is 56 % of the short side wide
 
 
 LOGO_RGBA = None
@@ -33,10 +33,12 @@ def splash(w, h):
     n = max(w, h)
     bg = mk.background(n).crop(((n - w) // 2, (n - h) // 2, (n - w) // 2 + w, (n - h) // 2 + h))
     logo = LOGO_RGBA
-    lw = round(min(w, h) * LOGO_K); lh = round(logo.height * lw / logo.width)
+    k = min(w, h) * WORD_K / (mk.WORD[2] - mk.WORD[0])      # v101: sized and centred on the word HEADS
+    lw, lh = round(logo.width * k), round(logo.height * k)
     logo = logo.resize((lw, lh), Image.LANCZOS)
-    bg.paste(logo, ((w - lw) // 2, (h - lh) // 2), logo)
-    return bg.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    cx, cy = (mk.WORD[0] + mk.WORD[2]) / 2 * k, (mk.WORD[1] + mk.WORD[3]) / 2 * k
+    bg.paste(logo, (round(w / 2 - cx), round(h / 2 - cy)), logo)
+    return bg.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
 
 
 def main():
